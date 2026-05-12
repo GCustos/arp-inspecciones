@@ -2,6 +2,129 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ARP">
+  <link rel="manifest" href="manifest.json">
+  <title>ARP Inspecciones</title>
+  <style>
+    :root {
+      --gold: #C8993A;
+      --dark: #1A1A1A;
+      --surf: #F5F3EF;
+      --border: #E2DDD5;
+      --text: #2C2C2C;
+      --muted: #8A8278;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--surf);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .splash {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 20px;
+    }
+    .logo {
+      width: 80px; height: 80px;
+      background: var(--gold);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 700;
+      color: white;
+    }
+    .app-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--dark);
+    }
+    .app-sub {
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .btn-login {
+      margin-top: 20px;
+      padding: 14px 32px;
+      background: var(--gold);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .offline-badge {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--dark);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      display: none;
+    }
+    .offline-badge.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="splash">
+  <div class="logo">ARP</div>
+  <div class="app-name">ARP Inspecciones</div>
+  <div class="app-sub">Sistema de gestión de inspecciones</div>
+  <button class="btn-login" onclick="login()">
+    Entrar con Google
+  </button>
+</div>
+
+<div class="offline-badge" id="offlineBadge">
+  Sin conexión — modo offline
+</div>
+
+<script>
+  // Registrar Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/arp-inspecciones/sw.js')
+      .then(() => console.log('SW registrado'))
+      .catch(e => console.log('SW error:', e));
+  }
+
+  // Detectar offline
+  function updateOnlineStatus() {
+    const badge = document.getElementById('offlineBadge');
+    if (!navigator.onLine) {
+      badge.classList.add('visible');
+    } else {
+      badge.classList.remove('visible');
+    }
+  }
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
+
+  // Login placeholder
+  function login() {
+    alert('Login con Google — próximamente');
+  }
+</script>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ARP Inspecciones</title>
 </head>
