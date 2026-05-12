@@ -168,7 +168,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-  import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 
   const firebaseConfig = {
@@ -184,14 +184,6 @@
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
-  // Primero intentamos recoger el resultado del redirect
-  getRedirectResult(auth).then(result => {
-    if (result?.user) {
-      mostrarUsuario(result.user);
-    }
-  }).catch(e => console.error('Redirect error:', e));
-
-  // También escuchamos cambios de estado
   onAuthStateChanged(auth, user => {
     document.getElementById('loadingMsg').style.display = 'none';
     if (user) {
@@ -212,10 +204,15 @@
 
   window.loginGoogle = async () => {
     try {
-      await signInWithRedirect(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      mostrarUsuario(result.user);
     } catch (e) {
-      console.error('Error login:', e);
-      alert('Error al iniciar sesión. Inténtalo de nuevo.');
+      console.error('Error login:', e.code, e.message);
+      if (e.code === 'auth/popup-blocked') {
+        alert('Tu navegador bloqueó la ventana. Permite popups para este sitio e inténtalo de nuevo.');
+      } else {
+        alert('Error: ' + e.message);
+      }
     }
   };
 
