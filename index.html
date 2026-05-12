@@ -184,25 +184,32 @@
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
-  // Recoger resultado del redirect al volver
-  getRedirectResult(auth).catch(e => console.error('Redirect error:', e));
+  // Primero intentamos recoger el resultado del redirect
+  getRedirectResult(auth).then(result => {
+    if (result?.user) {
+      mostrarUsuario(result.user);
+    }
+  }).catch(e => console.error('Redirect error:', e));
 
-  // Detectar estado de autenticación
+  // También escuchamos cambios de estado
   onAuthStateChanged(auth, user => {
     document.getElementById('loadingMsg').style.display = 'none';
     if (user) {
-      document.getElementById('btnLogin').style.display = 'none';
-      document.getElementById('userInfo').classList.add('visible');
-      document.getElementById('userAvatar').src = user.photoURL || '';
-      document.getElementById('userName').textContent = user.displayName || '';
-      document.getElementById('userEmail').textContent = user.email || '';
+      mostrarUsuario(user);
     } else {
       document.getElementById('btnLogin').style.display = 'flex';
       document.getElementById('userInfo').classList.remove('visible');
     }
   });
 
-  // Login con Google — redirect (funciona en móvil y PC)
+  function mostrarUsuario(user) {
+    document.getElementById('btnLogin').style.display = 'none';
+    document.getElementById('userInfo').classList.add('visible');
+    document.getElementById('userAvatar').src = user.photoURL || '';
+    document.getElementById('userName').textContent = user.displayName || '';
+    document.getElementById('userEmail').textContent = user.email || '';
+  }
+
   window.loginGoogle = async () => {
     try {
       await signInWithRedirect(auth, provider);
@@ -212,31 +219,22 @@
     }
   };
 
-  // Logout
-  window.logout = async () => {
-    await signOut(auth);
-  };
+  window.logout = async () => { await signOut(auth); };
+  window.enterApp = () => { window.location.href = 'app.html'; };
 
-  // Entrar a la app
-  window.enterApp = () => {
-    window.location.href = 'app.html';
-  };
-
-  // Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/arp-inspecciones/sw.js')
       .catch(e => console.log('SW error:', e));
   }
 
-  // Offline
   function updateOnlineStatus() {
-    const badge = document.getElementById('offlineBadge');
-    badge.classList.toggle('visible', !navigator.onLine);
+    document.getElementById('offlineBadge').classList.toggle('visible', !navigator.onLine);
   }
   window.addEventListener('online', updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
   updateOnlineStatus();
 </script>
+
 
 </body>
 </html>
