@@ -168,7 +168,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 
   const firebaseConfig = {
@@ -184,9 +184,59 @@
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
+  // Recoger resultado del redirect al volver
+  getRedirectResult(auth).catch(e => console.error('Redirect error:', e));
+
   // Detectar estado de autenticación
   onAuthStateChanged(auth, user => {
     document.getElementById('loadingMsg').style.display = 'none';
     if (user) {
-      // Usuario logueado
-      document.getElementById(
+      document.getElementById('btnLogin').style.display = 'none';
+      document.getElementById('userInfo').classList.add('visible');
+      document.getElementById('userAvatar').src = user.photoURL || '';
+      document.getElementById('userName').textContent = user.displayName || '';
+      document.getElementById('userEmail').textContent = user.email || '';
+    } else {
+      document.getElementById('btnLogin').style.display = 'flex';
+      document.getElementById('userInfo').classList.remove('visible');
+    }
+  });
+
+  // Login con Google — redirect (funciona en móvil y PC)
+  window.loginGoogle = async () => {
+    try {
+      await signInWithRedirect(auth, provider);
+    } catch (e) {
+      console.error('Error login:', e);
+      alert('Error al iniciar sesión. Inténtalo de nuevo.');
+    }
+  };
+
+  // Logout
+  window.logout = async () => {
+    await signOut(auth);
+  };
+
+  // Entrar a la app
+  window.enterApp = () => {
+    window.location.href = 'app.html';
+  };
+
+  // Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/arp-inspecciones/sw.js')
+      .catch(e => console.log('SW error:', e));
+  }
+
+  // Offline
+  function updateOnlineStatus() {
+    const badge = document.getElementById('offlineBadge');
+    badge.classList.toggle('visible', !navigator.onLine);
+  }
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
+</script>
+
+</body>
+</html>
