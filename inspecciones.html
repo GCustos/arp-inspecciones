@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Inspecciones - ARP</title>
+  <style>
+    :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;--orange:#E67E22;}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
+    .app-header{background:var(--dark);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+    .btn-back{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;padding:0;line-height:1}
+    .hdr-mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white}
+    .hdr-title{color:white;font-size:15px;font-weight:600;flex:1}
+    .content{padding:16px;max-width:680px;margin:0 auto}
+    .btn-nueva{width:100%;padding:15px;background:var(--gold);color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:24px;box-shadow:0 4px 12px rgba(200,153,58,0.3);transition:all 0.2s}
+    .btn-nueva:hover{transform:translateY(-1px)}
+    .sec-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+    .sec-title::after{content:"";flex:1;height:1px;background:var(--border)}
+    .insp-card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;cursor:pointer;transition:all 0.2s;display:flex;align-items:flex-start;gap:12px}
+    .insp-card:hover{border-color:var(--gold);box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+    .insp-status{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .status-curso{background:rgba(230,126,34,0.12)}
+    .status-done{background:rgba(39,174,96,0.12)}
+    .status-borrador{background:rgba(138,130,120,0.1)}
+    .insp-body{flex:1;min-width:0}
+    .insp-nombre{font-size:14px;font-weight:600;color:var(--dark);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .insp-meta{font-size:11px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;margin-bottom:3px}
+    .insp-badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:.04em}
+    .badge-paa{background:rgba(200,153,58,0.15);color:var(--gold)}
+    .badge-anual{background:#E8F5E9;color:var(--green)}
+    .badge-inicial{background:#E3F2FD;color:#2980B9}
+    .badge-extraordinaria{background:#F3E5F5;color:#8E24AA}
+    .insp-inspector{font-size:11px;color:var(--muted)}
+    .insp-fecha{font-size:11px;color:var(--muted);flex-shrink:0;text-align:right;margin-top:2px}
+    .empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+    .empty-icon{font-size:44px;margin-bottom:12px}
+    .empty-text{font-size:14px;line-height:1.5}
+    .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;margin:40px auto 12px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-text{text-align:center;color:var(--muted);font-size:14px}
+    .offline-badge{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
+    .offline-badge.visible{display:block}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="location.href='index.html'">&#8592;</button>
+  <div class="hdr-mark">ARP</div>
+  <div class="hdr-title">Inspecciones</div>
+</div>
+
+<div class="content">
+  <button class="btn-nueva" onclick="nuevaInspeccion()">
+    &#43; Nueva inspecci&#243;n
+  </button>
+  <div id="listContainer">
+    <div class="spinner"></div>
+    <div class="loading-text">Cargando inspecciones...</div>
+  </div>
+</div>
+
+<div class="offline-badge" id="offlineBadge">Sin conexi&#243;n &#8212; modo offline</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+  import { getFirestore, collection, query, where, orderBy, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+    authDomain: "arp-inspecciones.firebaseapp.com",
+    projectId: "arp-inspecciones",
+    storageBucket: "arp-inspecciones.firebasestorage.app",
+    messagingSenderId: "35880168451",
+    appId: "1:35880168451:web:090e3c250b4416ed0b3236"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  let currentUser = null;
+  let userRole = null;
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { location.href = "index.html"; return; }
+    currentUser = user;
+    try {
+      const snap = await getDoc(doc(db, "usuarios", user.email));
+      if (!snap.exists() || !snap.data().activo) { location.href = "index.html"; return; }
+      userRole = snap.data().rol;
+      await cargarInspecciones();
+    } catch(e) {
+      renderInspecciones([]);
+    }
+  });
+
+  async function cargarInspecciones() {
+    try {
+      const col = collection(db, "inspecciones");
+      let q;
+      if (userRole === "admin" || userRole === "director") {
+        q = query(col, orderBy("fechaCreacion", "desc"));
+      } else {
+        q = query(col,
+          where("inspectorEmail", "==", currentUser.email),
+          orderBy("fechaCreacion", "desc")
+        );
+      }
+      const snap = await getDocs(q);
+      const lista = [];
+      snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
+      renderInspecciones(lista);
+    } catch(e) {
+      console.error(e);
+      renderInspecciones([]);
+    }
+  }
+
+  function renderInspecciones(lista) {
+    const container = document.getElementById("listContainer");
+    if (!lista.length) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">&#128203;</div>
+          <div class="empty-text">No hay inspecciones todav&#237;a.<br>Pulsa el bot&#243;n para crear la primera.</div>
+        </div>`;
+      return;
+    }
+    const enCurso = lista.filter(i => i.estado === "en_curso" || i.estado === "borrador");
+    const completadas = lista.filter(i => i.estado === "completada");
+    let html = "";
+    if (enCurso.length) {
+      html += `<div class="sec-title">En curso</div>`;
+      enCurso.forEach(i => { html += cardHTML(i); });
+    }
+    if (completadas.length) {
+      html += `<div class="sec-title" style="margin-top:20px">Completadas</div>`;
+      completadas.forEach(i => { html += cardHTML(i); });
+    }
+    container.innerHTML = html;
+  }
+
+  function cardHTML(i) {
+    const icon = i.estado === "completada" ? "&#10003;" : i.estado === "en_curso" ? "&#9203;" : "&#128221;";
+    const cls = i.estado === "completada" ? "status-done" : i.estado === "en_curso" ? "status-curso" : "status-borrador";
+    const tipo = (i.tipoAlcance || "PAA").toLowerCase();
+    const insp = (i.tipoInspeccion || "").toLowerCase();
+    return `
+      <div class="insp-card" onclick="location.href='inspeccion.html?id=${i.id}'">
+        <div class="insp-status ${cls}">${icon}</div>
+        <div class="insp-body">
+          <div class="insp-nombre">${i.nombreInstalacion || "Sin nombre"}</div>
+          <div class="insp-meta">
+            <span class="insp-badge badge-${tipo}">${i.tipoAlcance || "PAA"}</span>
+            ${i.tipoInspeccion ? `<span class="insp-badge badge-${insp}">${i.tipoInspeccion}</span>` : ""}
+          </div>
+          <div class="insp-inspector">${i.inspectorNombre || ""}</div>
+        </div>
+        <div class="insp-fecha">${i.fechaInspeccion || ""}</div>
+      </div>`;
+  }
+
+  window.nuevaInspeccion = () => {
+    location.href = "nueva-inspeccion.html";
+  };
+
+  function updateOnline() {
+    document.getElementById("offlineBadge").classList.toggle("visible", !navigator.onLine);
+  }
+  window.addEventListener("online", updateOnline);
+  window.addEventListener("offline", updateOnline);
+  updateOnline();
+</script>
+</body>
+</html>
