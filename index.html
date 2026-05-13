@@ -187,7 +187,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc }
+  import { getFirestore, enableIndexedDbPersistence, doc, getDoc }
     from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -199,20 +199,6 @@
     appId: "1:35880168451:web:090e3c250b4416ed0b3236"
   };
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, enableIndexedDbPersistence }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Activar persistencia offline
-enableIndexedDbPersistence(db).catch(e => {
-  console.log('Persistencia offline no disponible:', e.code);
-});
 
   function show(id) {
     ["loginScreen","loadingScreen","deniedScreen","appScreen"].forEach(s => {
