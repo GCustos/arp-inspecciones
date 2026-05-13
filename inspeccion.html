@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Inspecci&#243;n - ARP</title>
+  <style>
+    :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;--orange:#E67E22;--blue:#2980B9;}
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
+
+    /* HEADER */
+    .app-header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:200}
+    .btn-back{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;padding:0;line-height:1}
+    .hdr-info{flex:1;min-width:0}
+    .hdr-title{color:white;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .hdr-sub{color:var(--muted);font-size:10px}
+    .hdr-estado{font-size:10px;font-weight:700;padding:3px 9px;border-radius:12px;flex-shrink:0}
+    .estado-borrador{background:rgba(138,130,120,0.2);color:var(--muted)}
+    .estado-curso{background:rgba(230,126,34,0.15);color:var(--orange)}
+    .estado-completada{background:rgba(39,174,96,0.15);color:var(--green)}
+
+    /* TABS */
+    .tabs{display:flex;background:white;border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:100}
+    .tab{flex:1;padding:11px 8px;font-size:12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;text-align:center;transition:all .2s}
+    .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+    /* CONTENT */
+    .tab-content{display:none;padding:16px;max-width:680px;margin:0 auto;padding-bottom:100px}
+    .tab-content.active{display:block}
+
+    /* CARDS */
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
+    .card-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .card-title::after{content:"";flex:1;height:1px;background:var(--border)}
+
+    /* CHECKLIST GENERAL */
+    .chk-wrap{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
+    .chk-sec{background:var(--surf);border-bottom:1px solid var(--border);padding:7px 12px;display:flex;align-items:center;gap:8px}
+    .chk-ref{font-size:9px;font-weight:700;color:white;background:var(--gold);padding:1px 6px;border-radius:3px;font-family:monospace}
+    .chk-sec-name{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+    .chk-row{display:flex;align-items:flex-start;border-bottom:1px solid var(--border);background:white}
+    .chk-row:last-child{border-bottom:none}
+    .chk-desc{flex:1;padding:10px 12px;font-size:12px;line-height:1.35;color:var(--text)}
+    .chk-snb{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border-left:1px solid var(--border);flex-shrink:0}
+    .snb{padding:4px 8px;border-radius:12px;font-size:10px;font-weight:700;font-family:monospace;border:1.5px solid var(--border);cursor:pointer;background:white;color:var(--muted);min-width:34px;text-align:center;transition:all .15s}
+    .snb.s-S{background:#E8F5E9;border-color:var(--green);color:var(--green)}
+    .snb.s-N{background:#FFF3E0;border-color:var(--orange);color:var(--orange)}
+    .snb.s-NA{background:#F5F5F5;border-color:#999;color:#666}
+    .chk-obs{border-top:1px solid #FFE0C0;background:#FFF8F0;padding:6px 12px;display:none}
+    .chk-obs.vis{display:block}
+    .chk-obs input{width:100%;border:none;background:transparent;font-family:inherit;font-size:12px;color:var(--text)}
+    .chk-obs input:focus{outline:none}
+    .obs-gral{width:100%;padding:10px 12px;border:none;border-top:1px solid var(--border);font-family:inherit;font-size:13px;color:var(--text);resize:vertical;min-height:80px;background:white}
+    .obs-gral:focus{outline:none;background:#FFF9F0}
+
+    /* CIRCUITOS */
+    .circ-card{background:white;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden}
+    .circ-header{display:flex;align-items:center;padding:12px 14px;cursor:pointer;gap:10px;user-select:none}
+    .circ-toggle{font-size:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
+    .circ-toggle.open{transform:rotate(90deg)}
+    .circ-nombre{flex:1;font-size:13px;font-weight:700;color:var(--dark);font-family:monospace;text-transform:uppercase;letter-spacing:.05em}
+    .circ-stats{font-size:11px;color:var(--muted);flex-shrink:0}
+    .circ-body{display:none;border-top:1px solid var(--border)}
+    .circ-body.open{display:block}
+
+    /* TABLA JUEGOS */
+    .jt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .jt{width:100%;border-collapse:collapse;font-size:11px;min-width:520px}
+    .jt th{background:var(--dark);color:white;padding:7px 5px;text-align:center;font-size:9px;font-weight:700;letter-spacing:.04em;line-height:1.3}
+    .jt th.tl{text-align:left;padding-left:8px}
+    .jt td{border-bottom:1px solid var(--border);vertical-align:middle;padding:0}
+    .jt tr:nth-child(even) td{background:#FAFAF9}
+    .jt tr:last-child td{border-bottom:none}
+    .jt-inp{border:none;background:transparent;padding:7px 6px;font-family:inherit;font-size:11px;color:var(--text);width:100%}
+    .jt-inp:focus{outline:none;background:#FFF9F0}
+    .snb-c{display:flex;justify-content:center;gap:2px;padding:5px 2px}
+    .snb-s{padding:3px 5px;border-radius:8px;font-size:9px;font-weight:700;font-family:monospace;border:1.5px solid var(--border);cursor:pointer;background:white;color:var(--muted)}
+    .snb-s.s-S{background:#E8F5E9;border-color:var(--green);color:var(--green)}
+    .snb-s.s-N{background:#FFF3E0;border-color:var(--orange);color:var(--orange)}
+    .snb-s.s-NA{background:#F5F5F5;border-color:#999;color:#666}
+    /* Tipo juego */
+    .tipo-sel{border:none;background:transparent;font-family:monospace;font-size:10px;color:var(--muted);width:100%;padding:6px 4px;cursor:pointer}
+    .tipo-sel:focus{outline:none}
+    /* Rama */
+    .rama-inp{border:none;background:transparent;font-family:monospace;font-size:11px;color:var(--gold);width:100%;padding:6px 4px;text-align:center;font-weight:700}
+    .rama-inp:focus{outline:none;background:#FFF9F0}
+    .del-btn{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:4px 6px}
+    .del-btn:hover{color:var(--red)}
+    .btn-add-juego{display:flex;align-items:center;gap:6px;padding:9px 14px;border:1.5px dashed var(--border);background:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;width:100%;transition:all .2s}
+    .btn-add-juego:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
+    .btn-add-circ{display:flex;align-items:center;gap:8px;padding:11px 14px;border:1.5px dashed var(--border);border-radius:12px;background:none;color:var(--muted);font-family:inherit;font-size:13px;cursor:pointer;width:100%;transition:all .2s;margin-bottom:12px}
+    .btn-add-circ:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
+
+    /* NC */
+    .nc-card{border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:10px;background:#FAFAF9}
+    .nc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .nc-num{font-size:10px;font-weight:700;color:white;background:var(--dark);padding:2px 8px;border-radius:4px;font-family:monospace}
+    .nc-del{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer}
+    .nc-del:hover{color:var(--red)}
+    .f{margin-bottom:10px}
+    .f:last-child{margin-bottom:0}
+    .f label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px}
+    .f input,.f select,.f textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text);background:var(--surf);-webkit-appearance:none}
+    .f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--gold);background:white}
+    .f textarea{resize:vertical;min-height:70px}
+    .prio-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .prio-btn{padding:5px 10px;border-radius:14px;font-size:10px;font-weight:700;border:1.5px solid var(--border);cursor:pointer;background:white;color:var(--muted);font-family:inherit;transition:all .15s}
+    .prio-btn.p-GRAVE{background:#FFEBEE;border-color:var(--red);color:var(--red)}
+    .prio-btn.p-MEDIA{background:#FFF8E1;border-color:var(--orange);color:var(--orange)}
+    .prio-btn.p-LEVE{background:#E3F2FD;border-color:var(--blue);color:var(--blue)}
+    .prio-btn.p-DOCUMENTAL{background:#F3E5F5;border-color:#8E24AA;color:#8E24AA}
+    .btn-add-nc{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1.5px dashed var(--border);border-radius:10px;background:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;width:100%;margin-top:8px;transition:all .2s}
+    .btn-add-nc:hover{border-color:var(--gold);color:var(--gold)}
+
+    /* FOTOS */
+    .foto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+    .foto-thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--surf);border:1px solid var(--border)}
+    .foto-thumb img{width:100%;height:100%;object-fit:cover}
+    .foto-del{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(0,0,0,.55);border:none;border-radius:50%;color:white;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .foto-add{aspect-ratio:1;border-radius:8px;border:1.5px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:none;gap:4px;font-family:inherit;font-size:11px;color:var(--muted);transition:all .2s}
+    .foto-add:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
+
+    /* BOTTOM BAR */
+    .bottom-bar{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px;z-index:150}
+    .btn-guardar{flex:1;padding:13px;background:var(--surf);color:var(--text);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+    .btn-guardar:hover{border-color:var(--gold);color:var(--gold)}
+    .btn-completar{flex:2;padding:13px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 4px 12px rgba(200,153,58,0.3)}
+    .btn-completar:hover{transform:translateY(-1px)}
+
+    .offline-badge{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
+    .offline-badge.visible{display:block}
+    .loading{text-align:center;padding:40px;color:var(--muted)}
+    .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="location.href='inspecciones.html'">&#8592;</button>
+  <div class="hdr-info">
+    <div class="hdr-title" id="hdrTitulo">Cargando...</div>
+    <div class="hdr-sub" id="hdrSub"></div>
+  </div>
+  <span class="hdr-estado estado-borrador" id="hdrEstado">Borrador</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" id="tab1" onclick="goTab(1)">General</div>
+  <div class="tab" id="tab2" onclick="goTab(2)">Circuitos</div>
+  <div class="tab" id="tab3" onclick="goTab(3)">NC y Fotos</div>
+</div>
+
+<!-- TAB 1: CHECKLIST GENERAL -->
+<div class="tab-content active" id="tc1">
+  <div id="genChecklist"></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:10px 14px 6px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Observaciones generales</div>
+    <textarea class="obs-gral" id="obsGral" placeholder="Observaciones generales de la inspecci&#243;n..." onchange="markDirty()"></textarea>
+  </div>
+</div>
+
+<!-- TAB 2: CIRCUITOS Y JUEGOS -->
+<div class="tab-content" id="tc2">
+  <button class="btn-add-circ" onclick="addCircuito()">
+    &#43; A&#241;adir circuito
+  </button>
+  <div id="circuitosContainer"></div>
+</div>
+
+<!-- TAB 3: NC Y FOTOS -->
+<div class="tab-content" id="tc3">
+  <div class="card">
+    <div class="card-title">No conformidades</div>
+    <div id="ncList"></div>
+    <button class="btn-add-nc" onclick="addNC()">&#43; A&#241;adir no conformidad</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Fotos del informe</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:4px">
+      Las fotos seleccionadas aqu&#237; aparecer&#225;n en el informe PDF.
+    </p>
+    <div class="foto-grid" id="fotoGrid">
+      <button class="foto-add" onclick="document.getElementById('fileInput').click()">
+        <span style="font-size:22px">&#128247;</span>
+        <span>A&#241;adir foto</span>
+      </button>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFotos(this)">
+  </div>
+  <div class="card">
+    <div class="card-title">Ensayos no realizados</div>
+    <div class="f">
+      <textarea id="ensayos" placeholder="ej. No se realiza ensayo de inercia." onchange="markDirty()"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bottom-bar">
+  <button class="btn-guardar" onclick="guardar()">&#128190; Guardar</button>
+  <button class="btn-completar" onclick="completar()">Completar inspecci&#243;n &#8594;</button>
+</div>
+
+<div class="offline-badge" id="offlineBadge">Sin conexi&#243;n &#8212; modo offline</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, updateDoc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+    authDomain: "arp-inspecciones.firebaseapp.com",
+    projectId: "arp-inspecciones",
+    storageBucket: "arp-inspecciones.firebasestorage.app",
+    messagingSenderId: "35880168451",
+    appId: "1:35880168451:web:090e3c250b4416ed0b3236"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const GEN_ITEMS = [
+    {id:"g1",ref:"4.1",sec:"Selecci\u00f3n de Lugar y Entorno",desc:"Evacuaci\u00f3n posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosi\u00f3n)."},
+    {id:"g2",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.3 Sistemas de soporte naturales \u2013 \u00c1rboles. Evaluaci\u00f3n de resistencia e idoneidad por experto; diagn\u00f3stico actualizado; protecci\u00f3n de ra\u00edces; medidas correctivas."},
+    {id:"g3",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.2 Sistemas de soporte artificiales. Adecuaci\u00f3n a cargas; vientos y anclajes protegidos; verificaci\u00f3n de estructuras existentes si aplican; c\u00e1lculos disponibles."},
+    {id:"g4",ref:"4.2",sec:"Materiales y cables",desc:"Maderas, metales, compuestos; cables (galvanizado/inox); terminaciones conforme; criterio de desecho."},
+    {id:"g5",ref:"6",sec:"Se\u00f1alizaci\u00f3n general y control de acceso",desc:"Control de acceso. Codificaci\u00f3n de recorridos y dificultad; pictogramas; ubicaci\u00f3n y legibilidad."},
+    {id:"g6",ref:"7",sec:"EPI y equipos de rescate",desc:"Identificaci\u00f3n y marcados; revisi\u00f3n peri\u00f3dica vigente; prueba funcional si aplica; adecuaci\u00f3n a morfolog\u00eda de usuarios; registros al d\u00eda."},
+    {id:"g7",ref:"8",sec:"Documentaci\u00f3n",desc:"Manual del constructor, mantenimiento, evaluaci\u00f3n arb\u00f3rea, identificaci\u00f3n en planos, marcados."},
+  ];
+
+  const COLS = [
+    {key:"ie", label:"Integ.\nestr."},
+    {key:"af", label:"Anclajes\nfijac."},
+    {key:"ej", label:"Elem.\njuego"},
+    {key:"ra", label:"Riesgos\natrap."},
+    {key:"zs", label:"Zona\nsegur."},
+  ];
+
+  let inspeccionId = null;
+  let inspeccionData = null;
+  let currentUser = null;
+  let isDirty = false;
+
+  // STATE
+  const S = {
+    gen: {},
+    genObs: {},
+    obsGral: "",
+    circuitos: [],
+    ncs: [],
+    fotos: [],
+    ensayos: ""
+  };
+
+  // Get ID from URL
+  const params = new URLSearchParams(window.location.search);
+  inspeccionId = params.get("id");
+  if (!inspeccionId) { location.href = "inspecciones.html"; }
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { location.href = "index.html"; return; }
+    currentUser = user;
+    await cargarInspeccion();
+  });
+
+  async function cargarInspeccion() {
+    try {
+      const snap = await getDoc(doc(db, "inspecciones", inspeccionId));
+      if (!snap.exists()) { location.href = "inspecciones.html"; return; }
+      inspeccionData = snap.data();
+
+      // Verificar acceso
+      const userSnap = await getDoc(doc(db, "usuarios", currentUser.email));
+      const ud = userSnap.data();
+      if (ud.rol === "inspector" && inspeccionData.inspectorEmail !== currentUser.email) {
+        alert("No tienes acceso a esta inspecci\u00f3n.");
+        location.href = "inspecciones.html";
+        return;
+      }
+
+      // Cargar datos guardados
+      if (inspeccionData.checklist) Object.assign(S.gen, inspeccionData.checklist);
+      if (inspeccionData.checklistObs) Object.assign(S.genObs, inspeccionData.checklistObs);
+      if (inspeccionData.obsGral) S.obsGral = inspeccionData.obsGral;
+      if (inspeccionData.circuitos) S.circuitos = inspeccionData.circuitos;
+      if (inspeccionData.ncs) S.ncs = inspeccionData.ncs;
+      if (inspeccionData.ensayos) S.ensayos = inspeccionData.ensayos;
+
+      // Header
+      document.getElementById("hdrTitulo").textContent = inspeccionData.nombreInstalacion || "Sin nombre";
+      document.getElementById("hdrSub").textContent = (inspeccionData.tipoAlcance || "PAA") + " \u00b7 " + (inspeccionData.tipoInspeccion || "") + " \u00b7 " + (inspeccionData.inspectorNombre || "");
+      actualizarEstado(inspeccionData.estado || "borrador");
+
+      // Render
+      renderGen();
+      renderCircuitos();
+      renderNCs();
+      renderFotos();
+      document.getElementById("obsGral").value = S.obsGral;
+      document.getElementById("ensayos").value = S.ensayos;
+
+    } catch(e) {
+      console.error(e);
+    }
+  }
+
+  function actualizarEstado(estado) {
+    const el = document.getElementById("hdrEstado");
+    el.className = "hdr-estado estado-" + estado;
+    const labels = {borrador:"Borrador", en_curso:"En curso", completada:"Completada"};
+    el.textContent = labels[estado] || estado;
+  }
+
+  // ── TABS ──
+  window.goTab = (n) => {
+    document.querySelectorAll(".tab").forEach((t,i) => t.classList.toggle("active", i===n-1));
+    document.querySelectorAll(".tab-content").forEach((t,i) => t.classList.toggle("active", i===n-1));
+  };
+
+  // ── CHECKLIST GENERAL ──
+  function renderGen() {
+    const c = document.getElementById("genChecklist");
+    let lastSec = "", html = "";
+    GEN_ITEMS.forEach(item => {
+      if (item.sec !== lastSec) {
+        lastSec = item.sec;
+        html += `<div class="chk-sec"><span class="chk-ref">${item.ref}</span><span class="chk-sec-name">${item.sec}</span></div>`;
+      }
+      const v = S.gen[item.id] || "";
+      const obs = S.genObs[item.id] || "";
+      html += `
+        <div class="chk-row">
+          <div class="chk-desc">${item.desc}</div>
+          <div class="chk-snb">
+            <button class="snb ${v==="S"?"s-S":""}" onclick="setGen('${item.id}','S')">S</button>
+            <button class="snb ${v==="N"?"s-N":""}" onclick="setGen('${item.id}','N')">N</button>
+            <button class="snb ${v==="NA"?"s-NA":""}" onclick="setGen('${item.id}','NA')">NA</button>
+          </div>
+        </div>
+        <div class="chk-obs ${v==="N"?"vis":""}" id="go_${item.id}">
+          <input type="text" placeholder="Observaci\u00f3n..." value="${obs}" onchange="S.genObs['${item.id}']=this.value;checkAutoNC('${item.id}');markDirty()">
+        </div>`;
+    });
+    c.innerHTML = `<div class="chk-wrap">${html}</div>`;
+  }
+
+  window.setGen = (id, v) => {
+    S.gen[id] = v;
+    if (v === "N") {
+      checkAutoNC(id);
+    }
+    markDirty();
+    renderGen();
+  };
+
+  function checkAutoNC(itemId) {
+    const item = GEN_ITEMS.find(i => i.id === itemId);
+    if (!item) return;
+    const exists = S.ncs.find(n => n.autoId === itemId);
+    if (!exists && S.gen[itemId] === "N") {
+      S.ncs.push({
+        autoId: itemId,
+        elem: item.sec,
+        desc: S.genObs[itemId] || "",
+        norma: "UNE EN 15.567-1:2015+A1:2021, punto " + item.ref,
+        prio: ""
+      });
+      renderNCs();
+    }
+  }
+
+  // ── CIRCUITOS Y JUEGOS ──
+  window.addCircuito = () => {
+    const nombre = prompt("Nombre del circuito:", "Circuito " + (S.circuitos.length + 1));
+    if (!nombre) return;
+    S.circuitos.push({ nombre, juegos: [] });
+    markDirty();
+    renderCircuitos();
+    addJuegoToCircuito(S.circuitos.length - 1);
+  };
+
+  window.addJuegoToCircuito = (ci) => {
+    S.circuitos[ci].juegos.push({ nombre: "", tipo: "R", rama: "", ie: "", af: "", ej: "", ra: "", zs: "", obs: "" });
+    markDirty();
+    renderCircuitos();
+  };
+
+  window.setJuego = (ci, ji, col, val) => {
+    S.circuitos[ci].juegos[ji][col] = val;
+    if (col !== "nombre" && col !== "obs" && col !== "rama" && val === "N") {
+      checkAutoNCJuego(ci, ji, col);
+    }
+    markDirty();
+  };
+
+  function checkAutoNCJuego(ci, ji, col) {
+    const j = S.circuitos[ci].juegos[ji];
+    const colLabels = {ie:"Integridad estructural",af:"Anclajes y fijaciones",ej:"Elementos de juego",ra:"Riesgos y atrapamientos",zs:"Zona de seguridad/Entorno"};
+    const autoId = `j_${ci}_${ji}_${col}`;
+    const exists = S.ncs.find(n => n.autoId === autoId);
+    if (!exists) {
+      S.ncs.push({
+        autoId,
+        elem: `${S.circuitos[ci].nombre} \u2014 ${j.nombre || "Juego " + (ji+1)}`,
+        desc: `${colLabels[col]} no satisfactorio.`,
+        norma: "UNE EN 15.567-1:2015+A1:2021",
+        prio: ""
+      });
+      renderNCs();
+    }
+  }
+
+  window.delJuego = (ci, ji) => {
+    S.circuitos[ci].juegos.splice(ji, 1);
+    markDirty();
+    renderCircuitos();
+  };
+
+  window.toggleCircuito = (ci) => {
+    const body = document.getElementById("cb_" + ci);
+    const toggle = document.getElementById("ct_" + ci);
+    body.classList.toggle("open");
+    toggle.classList.toggle("open");
+  };
+
+  function renderCircuitos() {
+    const c = document.getElementById("circuitosContainer");
+    if (!S.circuitos.length) {
+      c.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">
+        Pulsa el bot\u00f3n para a\u00f1adir el primer circuito.</div>`;
+      return;
+    }
+    c.innerHTML = S.circuitos.map((circ, ci) => {
+      const total = circ.juegos.length;
+      const ok = circ.juegos.filter(j => COLS.every(col => j[col.key] === "S" || j[col.key] === "NA")).length;
+      return `
+        <div class="circ-card">
+          <div class="circ-header" onclick="toggleCircuito(${ci})">
+            <span class="circ-toggle open" id="ct_${ci}">&#9654;</span>
+            <span class="circ-nombre">${circ.nombre}</span>
+            <span class="circ-stats">${ok}/${total} OK</span>
+          </div>
+          <div class="circ-body open" id="cb_${ci}">
+            <div class="jt-wrap">
+              <table class="jt">
+                <thead><tr>
+                  <th class="tl" style="width:28%">Juego</th>
+                  <th style="width:7%">Tipo</th>
+                  <th style="width:6%">Rama</th>
+                  ${COLS.map(col => `<th style="width:9%">${col.label.replace("\n","<br>")}</th>`).join("")}
+                  <th style="min-width:70px">Obs.</th>
+                  <th style="width:22px"></th>
+                </tr></thead>
+                <tbody>
+                  ${circ.juegos.map((j, ji) => `
+                    <tr>
+                      <td><input class="jt-inp" type="text" value="${j.nombre}" placeholder="Nombre juego" onchange="setJuego(${ci},${ji},'nombre',this.value)"></td>
+                      <td>
+                        <select class="tipo-sel" onchange="setJuego(${ci},${ji},'tipo',this.value)">
+                          <option value="R" ${j.tipo==="R"?"selected":""}>R</option>
+                          <option value="NR" ${j.tipo==="NR"?"selected":""}>NR</option>
+                          <option value="AUX" ${j.tipo==="AUX"?"selected":""}>AUX</option>
+                        </select>
+                      </td>
+                      <td><input class="rama-inp" type="text" value="${j.rama||""}" placeholder="-" maxlength="2" onchange="setJuego(${ci},${ji},'rama',this.value)"></td>
+                      ${COLS.map(col => `
+                        <td><div class="snb-c">
+                          <button class="snb-s ${j[col.key]==="S"?"s-S":""}" onclick="setJuego(${ci},${ji},'${col.key}','S');renderCircuitos()">S</button>
+                          <button class="snb-s ${j[col.key]==="N"?"s-N":""}" onclick="setJuego(${ci},${ji},'${col.key}','N');renderCircuitos()">N</button>
+                          <button class="snb-s ${j[col.key]==="NA"?"s-NA":""}" onclick="setJuego(${ci},${ji},'${col.key}','NA');renderCircuitos()">NA</button>
+                        </div></td>`).join("")}
+                      <td><input class="jt-inp" style="font-size:10px;color:var(--muted)" type="text" value="${j.obs||""}" placeholder="obs..." onchange="setJuego(${ci},${ji},'obs',this.value)"></td>
+                      <td><button class="del-btn" onclick="delJuego(${ci},${ji})">&#215;</button></td>
+                    </tr>`).join("")}
+                </tbody>
+              </table>
+            </div>
+            <button class="btn-add-juego" onclick="addJuegoToCircuito(${ci})">&#43; A\u00f1adir juego</button>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  // ── NO CONFORMIDADES ──
+  function renderNCs() {
+    const c = document.getElementById("ncList");
+    if (!S.ncs.length) {
+      c.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:12px;padding:14px">Sin no conformidades.</div>`;
+      return;
+    }
+    c.innerHTML = S.ncs.map((nc, i) => `
+      <div class="nc-card">
+        <div class="nc-hdr">
+          <span class="nc-num">NC ${i+1}${nc.autoId ? " \u2022 auto" : ""}</span>
+          <button class="nc-del" onclick="delNC(${i})">&#215;</button>
+        </div>
+        <div class="f">
+          <label>Elemento afectado</label>
+          <input type="text" value="${nc.elem||""}" placeholder="ej. Tirolina Final" onchange="S.ncs[${i}].elem=this.value;markDirty()">
+        </div>
+        <div class="f">
+          <label>Descripci\u00f3n</label>
+          <textarea onchange="S.ncs[${i}].desc=this.value;markDirty()" placeholder="Describe la no conformidad...">${nc.desc||""}</textarea>
+        </div>
+        <div class="f">
+          <label>Referencia normativa</label>
+          <input type="text" value="${nc.norma||""}" placeholder="UNE EN 15.567-1:2015+A1:2021, punto X.X" onchange="S.ncs[${i}].norma=this.value;markDirty()">
+        </div>
+        <div class="prio-row">
+          ${["GRAVE","MEDIA","LEVE","DOCUMENTAL"].map(p =>
+            `<button class="prio-btn ${nc.prio===p?"p-"+p:""}" onclick="S.ncs[${i}].prio='${p}';markDirty();renderNCs()">${p}</button>`
+          ).join("")}
+        </div>
+      </div>`).join("");
+  }
+
+  window.addNC = () => {
+    S.ncs.push({ elem: "", desc: "", norma: "UNE EN 15.567-1:2015+A1:2021", prio: "" });
+    markDirty();
+    renderNCs();
+    goTab(3);
+  };
+
+  window.delNC = (i) => {
+    S.ncs.splice(i, 1);
+    markDirty();
+    renderNCs();
+  };
+
+  // ── FOTOS ──
+  window.handleFotos = (inp) => {
+    Array.from(inp.files).forEach(f => {
+      const r = new FileReader();
+      r.onload = e => { S.fotos.push({ dataUrl: e.target.result, name: f.name }); renderFotos(); markDirty(); };
+      r.readAsDataURL(f);
+    });
+    inp.value = "";
+  };
+
+  function renderFotos() {
+    const g = document.getElementById("fotoGrid");
+    g.innerHTML = S.fotos.map((f, i) => `
+      <div class="foto-thumb">
+        <img src="${f.dataUrl}" alt="foto ${i+1}">
+        <button class="foto-del" onclick="S.fotos.splice(${i},1);renderFotos();markDirty()">&#215;</button>
+      </div>`).join("");
+    g.innerHTML += `<button class="foto-add" onclick="document.getElementById('fileInput').click()">
+      <span style="font-size:22px">&#128247;</span><span>A\u00f1adir</span></button>`;
+  }
+
+  // ── GUARDAR / COMPLETAR ──
+  window.markDirty = () => { isDirty = true; };
+
+  function buildPayload(estado) {
+    return {
+      checklist: S.gen,
+      checklistObs: S.genObs,
+      obsGral: document.getElementById("obsGral").value,
+      circuitos: S.circuitos,
+      ncs: S.ncs,
+      ensayos: document.getElementById("ensayos").value,
+      estado,
+      ultimaModificacion: serverTimestamp()
+    };
+  }
+
+  window.guardar = async () => {
+    try {
+      await updateDoc(doc(db, "inspecciones", inspeccionId), buildPayload("en_curso"));
+      isDirty = false;
+      actualizarEstado("en_curso");
+      const btn = document.querySelector(".btn-guardar");
+      btn.textContent = "\u2713 Guardado";
+      setTimeout(() => { btn.innerHTML = "&#128190; Guardar"; }, 2000);
+    } catch(e) {
+      alert("Error al guardar. Comp\u00f3rtate con conexi\u00f3n.");
+    }
+  };
+
+  window.completar = async () => {
+    const graves = S.ncs.filter(n => n.prio === "GRAVE").length;
+    const resultado = graves === 0 ? "FAVORABLE" : "DESFAVORABLE";
+    const msg = graves === 0
+      ? "La inspecci\u00f3n tiene resultado FAVORABLE.\n\u00bfDeseas completarla y generar el informe?"
+      : `La inspecci\u00f3n tiene ${graves} no conformidad(es) GRAVE(s). Resultado DESFAVORABLE.\n\u00bfDeseas completarla de todas formas?`;
+    if (!confirm(msg)) return;
+    try {
+      await updateDoc(doc(db, "inspecciones", inspeccionId), {
+        ...buildPayload("completada"),
+        resultado,
+        fechaCompletada: serverTimestamp()
+      });
+      isDirty = false;
+      location.href = `resultado.html?id=${inspeccionId}`;
+    } catch(e) {
+      alert("Error al completar la inspecci\u00f3n.");
+    }
+  };
+
+  // Avisar si hay cambios sin guardar
+  window.addEventListener("beforeunload", e => {
+    if (isDirty) { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  function updateOnline() {
+    document.getElementById("offlineBadge").classList.toggle("visible", !navigator.onLine);
+  }
+  window.addEventListener("online", updateOnline);
+  window.addEventListener("offline", updateOnline);
+  updateOnline();
+</script>
+</body>
+</html>
