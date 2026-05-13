@@ -1,17 +1,20 @@
-const CACHE_NAME = 'arp-inspecciones-v1';
+const CACHE_NAME = 'arp-inspecciones-v2';
 const ASSETS = [
   '/arp-inspecciones/',
   '/arp-inspecciones/index.html',
+  '/arp-inspecciones/inspecciones.html',
+  '/arp-inspecciones/nueva-inspeccion.html',
+  '/arp-inspecciones/inspeccion.html',
   '/arp-inspecciones/manifest.json',
-  '/arp-inspecciones/css/app.css',
-  '/arp-inspecciones/js/app.js'
+  '/arp-inspecciones/sw.js'
 ];
 
-// Instalar y cachear
+// Instalar y precachear todos los ficheros
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -19,18 +22,30 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys
-        .filter(key => key !== CACHE_NAME)
-        .map(key => caches.delete(key))
+      Promise.all(
+        keys.filter(key => key !== CACHE_NAME)
+            .map(key => caches.delete(key))
       )
-    )
+    ).then(() => self.clients.claim())
   );
 });
 
-// Interceptar peticiones - offline first
+// Offline first — cache luego red
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request)
-      .then(cached => cached || fetch(e.request))
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      return fetch(e.request).then(response => {
+        // Cachear dinamicamente lo que se va visitando
+        if (response && response.status === 200 && response.type === 'basic') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+        }
+        return response;
+      }).catch(() => {
+        // Sin conexion y sin cache — devolver index
+        return caches.match('/arp-inspecciones/index.html');
+      });
+    })
   );
 });
