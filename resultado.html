@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Resultado - ARP</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;--orange:#E67E22;--blue:#2980B9;}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
+    .app-header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+    .btn-back{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;padding:0;line-height:1}
+    .hdr-title{color:white;font-size:15px;font-weight:600;flex:1}
+    .content{padding:16px;max-width:680px;margin:0 auto;padding-bottom:40px}
+
+    /* RESULTADO HEADER */
+    .res-header{border-radius:14px;padding:24px 20px;text-align:center;margin-bottom:16px}
+    .res-header.favorable{background:linear-gradient(135deg,#1a3a2a,#1e4d35)}
+    .res-header.desfavorable{background:linear-gradient(135deg,#3a1a1a,#4d1e1e)}
+    .res-icon{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 14px}
+    .res-header.favorable .res-icon{background:rgba(39,174,96,0.25)}
+    .res-header.desfavorable .res-icon{background:rgba(192,57,43,0.25)}
+    .res-titulo{color:white;font-size:22px;font-weight:700;margin-bottom:4px}
+    .res-ref{color:rgba(255,255,255,0.5);font-size:12px;font-family:monospace}
+    .res-instalacion{color:rgba(255,255,255,0.8);font-size:14px;margin-top:8px}
+
+    /* STATS */
+    .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+    .stat-box{background:white;border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+    .stat-val{font-size:24px;font-weight:700;color:var(--dark)}
+    .stat-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+
+    /* CARDS */
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
+    .card-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .card-title::after{content:"";flex:1;height:1px;background:var(--border)}
+
+    /* NC LIST */
+    .nc-item{border-left:3px solid var(--border);padding:10px 12px;background:var(--surf);border-radius:0 8px 8px 0;margin-bottom:8px}
+    .nc-item.grave{border-color:var(--red)}
+    .nc-item.media{border-color:var(--orange)}
+    .nc-item.leve{border-color:var(--blue)}
+    .nc-item.documental{border-color:#8E24AA}
+    .nc-titulo{font-size:13px;font-weight:600;margin-bottom:3px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+    .nc-desc{font-size:12px;color:var(--muted)}
+    .nc-norma{font-size:11px;color:var(--muted);margin-top:4px;font-style:italic}
+    .prio-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;flex-shrink:0;text-transform:uppercase}
+    .prio-badge.grave{background:#FFEBEE;color:var(--red)}
+    .prio-badge.media{background:#FFF8E1;color:var(--orange)}
+    .prio-badge.leve{background:#E3F2FD;color:var(--blue)}
+    .prio-badge.documental{background:#F3E5F5;color:#8E24AA}
+
+    /* DOCUMENTOS */
+    .doc-item{display:flex;align-items:center;gap:12px;padding:13px;background:var(--surf);border-radius:10px;margin-bottom:8px}
+    .doc-icon{font-size:24px;flex-shrink:0}
+    .doc-info{flex:1}
+    .doc-nombre{font-size:13px;font-weight:600;color:var(--dark)}
+    .doc-desc{font-size:11px;color:var(--muted);margin-top:2px}
+    .doc-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:14px;flex-shrink:0}
+    .doc-badge.listo{background:#E8F5E9;color:var(--green)}
+    .doc-badge.no{background:#FFEBEE;color:var(--red)}
+    .doc-badge.pendiente{background:var(--surf);color:var(--muted);border:1px solid var(--border)}
+
+    /* BOTONES */
+    .btn-pdf{width:100%;padding:15px;background:var(--gold);color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;margin-bottom:10px;box-shadow:0 4px 12px rgba(200,153,58,0.3);display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-pdf:hover{transform:translateY(-1px)}
+    .btn-pdf:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+    .btn-sec{width:100%;padding:13px;background:white;color:var(--text);border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-sec:hover{border-color:var(--gold);color:var(--gold)}
+
+    .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .offline-badge{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
+    .offline-badge.visible{display:block}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="location.href='inspecciones.html'">&#8592;</button>
+  <div class="hdr-title">Resultado de inspecci&#243;n</div>
+</div>
+
+<div class="content">
+  <div id="mainContent">
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<div class="offline-badge" id="offlineBadge">Sin conexi&#243;n &#8212; modo offline</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+    authDomain: "arp-inspecciones.firebaseapp.com",
+    projectId: "arp-inspecciones",
+    storageBucket: "arp-inspecciones.firebasestorage.app",
+    messagingSenderId: "35880168451",
+    appId: "1:35880168451:web:090e3c250b4416ed0b3236"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const params = new URLSearchParams(window.location.search);
+  const inspeccionId = params.get("id");
+  if (!inspeccionId) location.href = "inspecciones.html";
+
+  let inspeccionData = null;
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { location.href = "index.html"; return; }
+    try {
+      const snap = await getDoc(doc(db, "inspecciones", inspeccionId));
+      if (!snap.exists()) { location.href = "inspecciones.html"; return; }
+      inspeccionData = { id: snap.id, ...snap.data() };
+      renderResultado();
+    } catch(e) {
+      console.error(e);
+    }
+  });
+
+  function generarRef() {
+    const inst = inspeccionData.nombreInstalacion || "XXX";
+    const fecha = (inspeccionData.fechaInspeccion || "").replace(/-/g,"").slice(2);
+    const sig = inst.split(" ").map(w => w[0]).join("").toUpperCase().slice(0,3);
+    return `${sig}/PAA/${fecha} Rev 0`;
+  }
+
+  function renderResultado() {
+    const d = inspeccionData;
+    const favorable = d.resultado === "FAVORABLE";
+    const ref = generarRef();
+    const ncs = d.ncs || [];
+    const graves = ncs.filter(n => n.prio === "GRAVE").length;
+    const totalJuegos = (d.circuitos || []).reduce((a,c) => a + (c.juegos||[]).length, 0);
+    const nsGen = Object.values(d.checklist || {}).filter(v => v === "N").length;
+    const nsJuegos = (d.circuitos || []).reduce((a,c) =>
+      a + (c.juegos||[]).reduce((b,j) =>
+        b + ["ie","af","ej","ra","zs"].filter(k => j[k] === "N").length, 0), 0);
+
+    document.getElementById("mainContent").innerHTML = `
+
+      <div class="res-header ${favorable ? "favorable" : "desfavorable"}">
+        <div class="res-icon">${favorable ? "&#10003;" : "&#10007;"}</div>
+        <div class="res-titulo">Resultado ${favorable ? "FAVORABLE" : "DESFAVORABLE"}</div>
+        <div class="res-ref">${ref}</div>
+        <div class="res-instalacion">${d.nombreInstalacion || ""}</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-val">${totalJuegos}</div>
+          <div class="stat-lbl">Juegos inspeccionados</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" style="color:var(--orange)">${nsGen + nsJuegos}</div>
+          <div class="stat-lbl">No satisfactorios</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" style="color:var(--red)">${ncs.length}</div>
+          <div class="stat-lbl">No conformidades</div>
+        </div>
+      </div>
+
+      ${ncs.length ? `
+        <div class="card">
+          <div class="card-title">No conformidades</div>
+          ${ncs.map(nc => {
+            const cl = (nc.prio || "leve").toLowerCase();
+            return `
+              <div class="nc-item ${cl}">
+                <div class="nc-titulo">
+                  <span>${nc.elem || "Sin elemento"}</span>
+                  <span class="prio-badge ${cl}">${nc.prio || "&#8212;"}</span>
+                </div>
+                <div class="nc-desc">${nc.desc || ""}</div>
+                ${nc.norma ? `<div class="nc-norma">${nc.norma}</div>` : ""}
+              </div>`;
+          }).join("")}
+        </div>` : ""}
+
+      <div class="card">
+        <div class="card-title">Documentos</div>
+        <div class="doc-item">
+          <div class="doc-icon">&#128196;</div>
+          <div class="doc-info">
+            <div class="doc-nombre">Informe de inspecci&#243;n</div>
+            <div class="doc-desc">${ref}</div>
+          </div>
+          <span class="doc-badge listo">Listo</span>
+        </div>
+        <div class="doc-item">
+          <div class="doc-icon">&#127885;</div>
+          <div class="doc-info">
+            <div class="doc-nombre">Certificado de conformidad</div>
+            <div class="doc-desc">${favorable ? "Resultado favorable &#8212; se emite" : "No se emite &#8212; existen NC graves"}</div>
+          </div>
+          <span class="doc-badge ${favorable ? "listo" : "no"}">${favorable ? "Se emite" : "No se emite"}</span>
+        </div>
+      </div>
+
+      <button class="btn-pdf" onclick="generarPDF()" id="btnPDF">
+        &#128229; Descargar informe PDF
+      </button>
+      ${favorable ? `
+        <button class="btn-sec" onclick="generarCertificado()">
+          &#127885; Descargar certificado
+        </button>` : ""}
+      <button class="btn-sec" onclick="location.href='inspeccion.html?id=${inspeccionId}'">
+        &#9998; Editar inspecci&#243;n
+      </button>`;
+  }
+
+  // ── GENERADOR PDF ──
+  window.generarPDF = async () => {
+    const btn = document.getElementById("btnPDF");
+    btn.disabled = true;
+    btn.textContent = "Generando...";
+    try {
+      await buildInformePDF();
+    } catch(e) {
+      console.error(e);
+      alert("Error al generar el PDF.");
+    }
+    btn.disabled = false;
+    btn.innerHTML = "&#128229; Descargar informe PDF";
+  };
+
+  async function buildInformePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const d = inspeccionData;
+    const W = 210, M = 18;
+    const G = [200,153,58], D = [26,26,26], MU = [138,130,120];
+    const ref = generarRef();
+    const favorable = d.resultado === "FAVORABLE";
+    const ncs = d.ncs || [];
+    const circuitos = d.circuitos || [];
+
+    const fechaFmt = (d.fechaInspeccion || "").split("-").reverse().join("/");
+    const dias = ["Domingo","Lunes","Martes","Mi\u00e9rcoles","Jueves","Viernes","S\u00e1bado"];
+    const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+    let fechaLarga = "";
+    if (d.fechaInspeccion) {
+      const dt = new Date(d.fechaInspeccion + "T12:00:00");
+      fechaLarga = `${dias[dt.getDay()]}, ${dt.getDate()} de ${meses[dt.getMonth()]} de ${dt.getFullYear()}`;
+    }
+
+    const addHdr = () => {
+      doc.setFillColor(...G);
+      doc.roundedRect(M, 10, 10, 10, 2, 2, "F");
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(6); doc.setFont("helvetica","bold");
+      doc.text("ARP", M+5, 16.5, {align:"center"});
+      doc.setTextColor(...D);
+      doc.setFontSize(9); doc.setFont("helvetica","bold");
+      doc.text("Arp Prevenci\u00f3n S.L.", M+13, 14);
+      doc.setFontSize(6.5); doc.setFont("helvetica","normal");
+      doc.setTextColor(...MU);
+      doc.text("C/ Gabriel Mir\u00f3 3, Edificio Wertice, Planta 1\u00aa Puerta 4 \u2014 41704 Dos Hermanas, Sevilla", M+13, 18);
+      doc.setTextColor(...G);
+      doc.setFontSize(7.5); doc.setFont("helvetica","bold");
+      doc.text(ref, W-M, 14, {align:"right"});
+      doc.setDrawColor(...G); doc.setLineWidth(0.4);
+      doc.line(M, 22, W-M, 22);
+    };
+
+    const addFtr = (pg, tot) => {
+      doc.setDrawColor(...G); doc.setLineWidth(0.3);
+      doc.line(M, 284, W-M, 284);
+      doc.setFontSize(7); doc.setFont("helvetica","bold");
+      doc.setTextColor(...G);
+      doc.text("Arp Prevenci\u00f3n S.L.", M, 289);
+      doc.setTextColor(...MU); doc.setFont("helvetica","normal");
+      doc.text(`${ref}`, W/2, 289, {align:"center"});
+      doc.text(`P\u00e1gina ${pg} de ${tot}`, W-M, 289, {align:"right"});
+    };
+
+    const hw = W - M*2;
+    const fld = (lbl, val, x, y, w) => {
+      doc.setFillColor(245,243,239);
+      doc.rect(x, y, w, 10, "F");
+      doc.setDrawColor(...G); doc.setLineWidth(0.15);
+      doc.rect(x, y, w, 10);
+      doc.setTextColor(...MU); doc.setFontSize(6.5); doc.setFont("helvetica","bold");
+      doc.text(lbl, x+2, y+4);
+      doc.setTextColor(...D); doc.setFontSize(8.5); doc.setFont("helvetica","normal");
+      doc.text(String(val || "\u2014"), x+2, y+8.5, {maxWidth: w-4});
+    };
+
+    const TOTAL_PAGES = 4 + (circuitos.length > 0 ? 1 : 0);
+
+    // ── PORTADA ──
+    addHdr(); let y = 28;
+    doc.setFontSize(20); doc.setFont("helvetica","bold"); doc.setTextColor(...D);
+    doc.text("Inspecci\u00f3n de Parque Acrob\u00e1tico en Altura", W/2, y, {align:"center"}); y += 8;
+    doc.setFontSize(11); doc.setFont("helvetica","normal"); doc.setTextColor(...MU);
+    doc.text("seg\u00fan UNE-EN 15.567-1:2015+A1:2021", W/2, y, {align:"center"}); y += 10;
+    doc.setDrawColor(...G); doc.setLineWidth(0.5); doc.line(M, y, W-M, y); y += 8;
+    doc.setFontSize(18); doc.setFont("helvetica","bold"); doc.setTextColor(...D);
+    doc.text(d.nombreInstalacion || "", W-M, y, {align:"right"}); y += 7;
+    doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.setTextColor(...MU);
+    doc.text(`${d.municipio || ""} ${d.provincia ? ", "+d.provincia : ""}`, W-M, y, {align:"right"}); y += 8;
+    doc.setDrawColor(...G); doc.line(M, y, W-M, y); y += 8;
+    doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(...D);
+    doc.text(ref, W-M, y, {align:"right"}); y += 8;
+    doc.setDrawColor(...G); doc.line(M, y, W-M, y); y += 8;
+    doc.setFontSize(9); doc.setFont("helvetica","italic"); doc.setTextColor(...MU);
+    doc.text(`Fecha inspecci\u00f3n: ${fechaFmt}  \u2013  Inspector: ${d.inspectorNombre || ""}`, W/2, y, {align:"center"});
+    addFtr(1, TOTAL_PAGES);
+
+    // ── DATOS GENERALES ──
+    doc.addPage(); addHdr(); y = 28;
+    doc.setFillColor(...D); doc.rect(M, y, hw, 7, "F");
+    doc.setTextColor(255,255,255); doc.setFontSize(8.5); doc.setFont("helvetica","bold");
+    doc.text("PROPIETARIO DE LAS INSTALACIONES", M+4, y+5); y += 9;
+    fld("EMPRESA", d.propietario, M, y, hw*0.6);
+    fld("CIF", d.cif, M+hw*0.6+1, y, hw*0.4); y += 12;
+    fld("GESTOR", d.gestor, M, y, hw); y += 12;
+    doc.setFillColor(...D); doc.rect(M, y, hw, 7, "F");
+    doc.setTextColor(255,255,255); doc.setFontSize(8.5); doc.setFont("helvetica","bold");
+    doc.text("SOLICITANTE DE LA INSPECCI\u00d3N", M+4, y+5); y += 9;
+    fld("SOLICITANTE", d.solicitante || d.propietario, M, y, hw*0.6);
+    fld("TIPO DE INSPECCI\u00d3N", d.tipoInspeccion, M+hw*0.6+1, y, hw*0.4); y += 12;
+    doc.setFillColor(...D); doc.rect(M, y, hw, 7, "F");
+    doc.setTextColor(255,255,255); doc.setFontSize(8.5); doc.setFont("helvetica","bold");
+    doc.text("ORGANISMO DE INSPECCI\u00d3N", M+4, y+5); y += 9;
+    doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(...D);
+    doc.text("ARP PREVENCI\u00d3N S.L.", M, y+5); y += 8;
+    doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...MU);
+    doc.text("C/ Gabriel Mir\u00f3 3, Edificio Wertice Planta 1\u00aa Puerta 4 \u2014 41704 Dos Hermanas, Sevilla", M, y+5); y += 6;
+    doc.text("Tel\u00e9fono: 93 377 67 95  \u00b7  info@arpprevencion.com  \u00b7  www.arpprevencion.com", M, y+5);
+    addFtr(2, TOTAL_PAGES);
+
+    // ── CHECKLIST GENERAL ──
+    doc.addPage(); addHdr(); y = 28;
+    const GEN_ITEMS = [
+      {id:"g1",ref:"4.1",sec:"General",desc:"4.1 Selecci\u00f3n de Lugar y Entorno. Evacuaci\u00f3n posible desde cualquier punto; riesgos locales."},
+      {id:"g2",ref:"4.3.3",sec:"4.3.3 Sistemas de Soporte",desc:"4.3.3.3 Sistemas de soporte naturales \u2013 \u00c1rboles. Evaluaci\u00f3n de resistencia; diagn\u00f3stico actualizado."},
+      {id:"g3",ref:"4.3.3",sec:"4.3.3 Sistemas de Soporte",desc:"4.3.3.2 Sistemas de soporte artificiales. Adecuaci\u00f3n a cargas; c\u00e1lculos disponibles."},
+      {id:"g4",ref:"4.2",sec:"4.2 Materiales y cables",desc:"Maderas, metales, compuestos; cables (galvanizado/inox); terminaciones conforme; criterio de desecho."},
+      {id:"g5",ref:"6",sec:"6 Se\u00f1alizaci\u00f3n",desc:"Control de acceso. Codificaci\u00f3n de recorridos y dificultad; pictogramas; ubicaci\u00f3n y legibilidad."},
+      {id:"g6",ref:"7",sec:"7 EPI y equipos de rescate",desc:"Identificaci\u00f3n y marcados; revisi\u00f3n peri\u00f3dica vigente; prueba funcional si aplica; registros al d\u00eda."},
+      {id:"g7",ref:"8",sec:"8 Documentaci\u00f3n",desc:"Manual del constructor, mantenimiento, evaluaci\u00f3n arb\u00f3rea, identificaci\u00f3n en planos, marcados."},
+    ];
+    const checklist = d.checklist || {};
+    const checklistObs = d.checklistObs || {};
+    // Cabecera
+    doc.setFillColor(...D); doc.rect(M, y, hw, 7, "F");
+    doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont("helvetica","bold");
+    doc.text("General", W/2, y+5, {align:"center"}); y += 9;
+    let lastSec = "";
+    GEN_ITEMS.forEach((item, i) => {
+      if (y > 265) { doc.addPage(); addHdr(); y = 28; }
+      if (item.sec !== lastSec) {
+        lastSec = item.sec;
+        doc.setFillColor(245,243,239); doc.rect(M, y, hw, 5.5, "F");
+        doc.setFillColor(...G); doc.rect(M, y, 1.5, 5.5, "F");
+        doc.setTextColor(...G); doc.setFontSize(6.5); doc.setFont("helvetica","bold");
+        doc.text(item.ref, M+3.5, y+3.8);
+        doc.setTextColor(...D); doc.text(item.sec, M+12, y+3.8);
+        y += 6.5;
+      }
+      const v = checklist[item.id] || "";
+      const obs = checklistObs[item.id] || "";
+      const rh = (obs && v === "N") ? 13 : 8;
+      doc.setFillColor(i%2===0?[255,255,255]:[252,251,249]);
+      doc.rect(M, y, hw-22, rh, "F");
+      doc.setTextColor(...D); doc.setFontSize(7.5); doc.setFont("helvetica","normal");
+      doc.text(doc.splitTextToSize(item.desc, hw-27), M+2, y+5);
+      const vc = v==="S"?[39,174,96]:v==="N"?[230,126,34]:v==="NA"?[160,160,160]:[240,238,234];
+      doc.setFillColor(...vc); doc.roundedRect(M+hw-20, y+1, 18, rh-2, 2, 2, "F");
+      doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont("helvetica","bold");
+      doc.text(v||"\u2014", M+hw-11, y+rh/2+2, {align:"center"});
+      y += rh;
+      if (obs && v==="N") {
+        doc.setFillColor(255,248,240); doc.rect(M, y-rh+8, hw-22, 5, "F");
+        doc.setTextColor(...MU); doc.setFontSize(6.5); doc.setFont("helvetica","italic");
+        doc.text("Obs: "+obs, M+4, y-rh+11.5, {maxWidth:hw-28});
+      }
+    });
+    // Observaciones generales
+    y += 6;
+    if (d.obsGral) {
+      doc.setFillColor(245,243,239); doc.rect(M, y, hw, 6, "F");
+      doc.setTextColor(...MU); doc.setFontSize(7); doc.setFont("helvetica","bold");
+      doc.text("OBSERVACIONES GENERALES", M+3, y+4.5); y += 8;
+      doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(...D);
+      const ls = doc.splitTextToSize(d.obsGral, hw-4);
+      doc.text(ls, M+2, y+4); y += ls.length*5+6;
+    }
+    addFtr(3, TOTAL_PAGES);
+
+    // ── CIRCUITOS Y JUEGOS ──
+    if (circuitos.length > 0) {
+      doc.addPage(); addHdr(); y = 28;
+      const COLS = ["ie","af","ej","ra","zs"];
+      const COL_LBLS = ["Integridad\nestructural","Anclajes y\nfijaciones","Elementos de\njuego","Riesgos y\natrapamientos","Zona de\nseguridad"];
+      const cw = hw;
+      const jW = cw*0.22, sW = cw*0.09, obsW = cw - jW - sW*5 - 14;
+      // Cabecera tabla
+      doc.setFillColor(...D); doc.rect(M, y, cw, 14, "F");
+      doc.setTextColor(255,255,255); doc.setFontSize(6.5); doc.setFont("helvetica","bold");
+      doc.text("Juego", M+2, y+9);
+      let cx = M+jW;
+      COL_LBLS.forEach(l => {
+        const ls = l.split("\n");
+        ls.forEach((ll,li) => doc.text(ll, cx+sW/2, y+4+li*3.5, {align:"center"}));
+        cx += sW;
+      });
+      doc.text("Observaciones", cx+obsW/2, y+9, {align:"center"});
+      y += 15;
+      circuitos.forEach(circ => {
+        if (y > 265) { doc.addPage(); addHdr(); y = 28; }
+        doc.setFillColor(245,240,230); doc.rect(M, y, cw, 5.5, "F");
+        doc.setTextColor(...G); doc.setFontSize(7); doc.setFont("helvetica","bold");
+        doc.text("\u25b8 " + circ.nombre, M+3, y+4); y += 6;
+        (circ.juegos||[]).forEach((j, ji) => {
+          if (y > 275) { doc.addPage(); addHdr(); y = 28; }
+          const bg = ji%2===0?[255,255,255]:[252,251,249];
+          doc.setFillColor(...bg); doc.rect(M, y, cw, 7, "F");
+          // Tipo y nombre
+          const tipoStr = j.tipo === "NR" ? "*." : j.tipo === "AUX" ? "\u2020." : "";
+          const ramaStr = j.rama ? `(${j.rama}) ` : "";
+          doc.setTextColor(...D); doc.setFontSize(7.5); doc.setFont("helvetica","normal");
+          doc.text(tipoStr + ramaStr + (j.nombre||"\u2014"), M+2, y+4.8, {maxWidth:jW-4});
+          // SNB cols
+          cx = M+jW;
+          COLS.forEach(col => {
+            const v = j[col]||"";
+            const vc = v==="S"?[39,174,96]:v==="N"?[230,126,34]:v==="NA"?[160,160,160]:[220,218,215];
+            doc.setFillColor(...vc); doc.roundedRect(cx+sW*0.15, y+0.8, sW*0.7, 5.5, 1, 1, "F");
+            doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont("helvetica","bold");
+            doc.text(v||"\u2014", cx+sW/2, y+4.8, {align:"center"});
+            cx += sW;
+          });
+          doc.setTextColor(...MU); doc.setFontSize(6.5); doc.setFont("helvetica","italic");
+          doc.text(j.obs||"", cx+2, y+4.8, {maxWidth:obsW-4});
+          doc.setDrawColor(220,218,215); doc.setLineWidth(0.15);
+          doc.line(M, y+7, M+cw, y+7);
+          y += 7;
+        });
+        y += 3;
+      });
+      addFtr(4, TOTAL_PAGES);
+    }
+
+    // ── NC + FIRMA ──
+    doc.addPage(); addHdr(); y = 28;
+    if (ncs.length) {
+      doc.setFillColor(...D); doc.rect(M, y, hw, 7, "F");
+      doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont("helvetica","bold");
+      doc.text("LISTADO DE OBSERVACIONES", M+4, y+5); y += 10;
+      ncs.forEach((nc, i) => {
+        if (y > 240) { doc.addPage(); addHdr(); y = 28; }
+        const pc = nc.prio==="GRAVE"?[192,57,43]:nc.prio==="MEDIA"?[230,126,34]:nc.prio==="DOCUMENTAL"?[142,36,170]:[41,128,185];
+        doc.setFillColor(...pc); doc.rect(M, y, 3, 22, "F");
+        doc.setFillColor(250,250,248); doc.rect(M+3, y, hw-3, 22, "F");
+        doc.setTextColor(...pc); doc.setFontSize(8); doc.setFont("helvetica","bold");
+        doc.text(`${i+1}. ${nc.prio||"\u2014"}`, M+6, y+5.5);
+        doc.setTextColor(...D); doc.setFontSize(9); doc.setFont("helvetica","bold");
+        doc.text(nc.elem||"\u2014", M+6, y+11);
+        doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(...MU);
+        doc.text(doc.splitTextToSize(nc.desc||"", hw-14), M+6, y+16);
+        if (nc.norma) { doc.setFontSize(6.5); doc.text("Ref: "+nc.norma, M+6, y+21); }
+        y += 26;
+      });
+      y += 4;
+    }
+    if (d.ensayos) {
+      doc.setFontSize(8); doc.setFont("helvetica","bold"); doc.setTextColor(...D);
+      doc.text("Ensayos no realizados:", M, y); y += 5;
+      const el = doc.splitTextToSize(d.ensayos, hw);
+      doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...MU);
+      doc.text(el, M, y); y += el.length*5+6;
+    }
+    // Firma
+    if (y > 220) { doc.addPage(); addHdr(); y = 28; }
+    y = Math.max(y+10, 210);
+    doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(...D);
+    doc.text(fechaLarga, W/2, y, {align:"center"}); y += 5;
+    doc.text(d.inspectorNombre || "", W/2, y, {align:"center"}); y += 5;
+    doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(...MU);
+    doc.text("Inspector Autorizado", W/2, y, {align:"center"}); y += 14;
+    // Bloques firma
+    doc.setDrawColor(...G); doc.setLineWidth(0.35);
+    doc.rect(W/2-36, y, 32, 16); doc.rect(W/2+4, y, 32, 16);
+    doc.setFontSize(6.5); doc.setFont("helvetica","bold"); doc.setTextColor(...G);
+    doc.text("Inspector", W/2-20, y+4, {align:"center"});
+    doc.text("Revisor", W/2+20, y+4, {align:"center"});
+    doc.setTextColor(...D); doc.setFont("helvetica","normal"); doc.setFontSize(7);
+    doc.text(d.inspectorNombre||"", W/2-20, y+10, {align:"center", maxWidth:28});
+    doc.text("Jos\u00e9 Manuel Moreno V\u00e9lez", W/2+20, y+10, {align:"center", maxWidth:28});
+    addFtr(TOTAL_PAGES, TOTAL_PAGES);
+
+    const filename = ref.replace(/\//g,"_").replace(/ /g,"_") + ".pdf";
+    doc.save(filename);
+  }
+
+  window.generarCertificado = async () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const d = inspeccionData;
+    const W = 210, M = 20;
+    const G = [200,153,58], D = [26,26,26], MU = [138,130,120];
+    const ref = generarRef();
+    const fechaFmt = (d.fechaInspeccion||"").split("-").reverse().join("/");
+    const fechaVigencia = d.fechaInspeccion ? (() => {
+      const dt = new Date(d.fechaInspeccion+"T12:00:00"); dt.setDate(dt.getDate()+1);
+      return dt.toLocaleDateString("es-ES");
+    })() : "";
+    const proxima = d.fechaInspeccion ? (() => {
+      const dt = new Date(d.fechaInspeccion+"T12:00:00"); dt.setFullYear(dt.getFullYear()+1);
+      return dt.toLocaleDateString("es-ES");
+    })() : "";
+    const totalJuegos = (d.circuitos||[]).reduce((a,c)=>a+(c.juegos||[]).length,0);
+
+    // Cabecera
+    doc.setFillColor(...G); doc.rect(M, 14, W-M*2, 0.5, "F");
+    doc.setTextColor(...D);
+    doc.setFontSize(18); doc.setFont("helvetica","bold");
+    doc.text("CERTIFICADO DE CONFORMIDAD", W/2, 30, {align:"center"});
+    doc.setFontSize(12);
+    doc.text("A NORMA UNE EN 15567-1:2015+A1:2021", W/2, 38, {align:"center"});
+    doc.setFillColor(...G); doc.rect(M, 42, W-M*2, 0.5, "F");
+    doc.setFontSize(10); doc.setTextColor(...G); doc.setFont("helvetica","bold");
+    doc.text(ref, W/2, 50, {align:"center"});
+    doc.setFontSize(9); doc.setTextColor(...D); doc.setFont("helvetica","normal");
+    doc.text("Concedido a", W/2, 57, {align:"center"});
+    doc.setFontSize(13); doc.setFont("helvetica","bold");
+    doc.text((d.propietario||"").toUpperCase(), W/2, 65, {align:"center"});
+
+    // Cuerpo
+    doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.setTextColor(...D);
+    const cuerpo1 = `ARP PREVENCI\u00d3N S.L., organismo de inspecci\u00f3n, certifica haber efectuado en fecha ${fechaFmt} la inspecci\u00f3n de los equipamientos de RECORRIDO ACROBAT\u00cdCO EN ALTURA de las instalaciones de ${d.nombreInstalacion||""}, ${totalJuegos} JUEGOS, situado en ${d.direccion||""}, ${d.municipio||""}${d.provincia?", "+d.provincia:""}.`;
+    const lines1 = doc.splitTextToSize(cuerpo1, W-M*2);
+    doc.text(lines1, M, 76);
+
+    let y = 76 + lines1.length*6 + 6;
+    const cuerpo2 = `La intervenci\u00f3n realizada da como resultado un "Informe de inspecci\u00f3n", con la numeraci\u00f3n ${ref}, que indica las observaciones relativas a las instalaciones y omisiones. Estas observaciones s\u00f3lo son v\u00e1lidas en las condiciones presentes en la instalaci\u00f3n en el momento de control.`;
+    const lines2 = doc.splitTextToSize(cuerpo2, W-M*2);
+    doc.text(lines2, M, y); y += lines2.length*6 + 6;
+
+    const cuerpo3 = `ARP PREVENCI\u00d3N S.L. certifica que los equipamientos cumplen con las exigencias marcadas en las normas UNE-EN 15567-1:2015+A1:2021. Recorrido acrobático en altura. Parte 1 tras la inspecci\u00f3n in situ realizada, la validaci\u00f3n de los distintos documentos exigidos por norma y las acciones de mantenimiento realizadas.`;
+    const lines3 = doc.splitTextToSize(cuerpo3, W-M*2);
+    doc.text(lines3, M, y); y += lines3.length*6 + 6;
+
+    const cuerpo4 = `Visto que el informe presenta un resultado FAVORABLE, se considera que los equipamientos cumplen con las especificaciones de seguridad de las normas de aplicaci\u00f3n en vigencia y que son aptos para su uso bajo las indicaciones y directrices del manual de uso y mantenimiento del constructor/instalador.`;
+    const lines4 = doc.splitTextToSize(cuerpo4, W-M*2);
+    doc.text(lines4, M, y); y += lines4.length*6 + 10;
+
+    // Firma
+    doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(...D);
+    doc.text("FIRMA DIGITAL", W/2, y, {align:"center"}); y += 12;
+    doc.setDrawColor(...G); doc.setLineWidth(0.35);
+    doc.rect(W/2-36, y, 32, 18); doc.rect(W/2+4, y, 32, 18);
+    doc.setFontSize(6.5); doc.setFont("helvetica","bold"); doc.setTextColor(...G);
+    doc.text("Inspector", W/2-20, y+4, {align:"center"});
+    doc.text("Revisor", W/2+20, y+4, {align:"center"});
+    doc.setTextColor(...D); doc.setFont("helvetica","normal"); doc.setFontSize(7);
+    doc.text(d.inspectorNombre||"", W/2-20, y+10, {align:"center", maxWidth:28});
+    doc.text("Jos\u00e9 Manuel Moreno V\u00e9lez", W/2+20, y+10, {align:"center", maxWidth:28});
+    doc.setFontSize(8); doc.setTextColor(...D); doc.setFont("helvetica","normal");
+    doc.text("Director T\u00e9cnico", W/2+20, y+15, {align:"center"});
+    y += 24;
+
+    // Fechas
+    doc.setFontSize(9);
+    doc.text(`Fecha entrada en vigor:`, M, y);
+    doc.setFont("helvetica","bold"); doc.text(fechaVigencia, M+50, y); y += 6;
+    doc.setFont("helvetica","normal");
+    doc.text(`Fecha pr\u00f3xima inspecci\u00f3n:`, M, y);
+    doc.setFont("helvetica","bold"); doc.text(proxima, M+50, y); y += 10;
+
+    // Footer
+    doc.setFillColor(...G); doc.rect(M, y, W-M*2, 0.5, "F"); y += 4;
+    doc.setFontSize(7.5); doc.setFont("helvetica","normal"); doc.setTextColor(...MU);
+    doc.text("Adell Riesgos y Prevenci\u00f3n S.L. \u00b7 C/ Gabriel Mir\u00f3 3, Edificio Wertice, Planta 1\u00aa Puerta 4 \u2014 41704 Dos Hermanas, Sevilla", W/2, y+4, {align:"center"});
+
+    const filename = ref.replace(/\//g,"_").replace(/ /g,"_") + "_Certificado.pdf";
+    doc.save(filename);
+  };
+
+  function updateOnline() {
+    document.getElementById("offlineBadge").classList.toggle("visible", !navigator.onLine);
+  }
+  window.addEventListener("online", updateOnline);
+  window.addEventListener("offline", updateOnline);
+  updateOnline();
+</script>
+</body>
+</html>
