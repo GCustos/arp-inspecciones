@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Nueva inspecci&#243;n - ARP</title>
+  <style>
+    :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
+    .app-header{background:var(--dark);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+    .btn-back{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;padding:0;line-height:1}
+    .hdr-mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white}
+    .hdr-title{color:white;font-size:15px;font-weight:600;flex:1}
+    .content{padding:16px;max-width:680px;margin:0 auto;padding-bottom:40px}
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px}
+    .card-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+    .card-title::after{content:"";flex:1;height:1px;background:var(--border)}
+    .f{margin-bottom:13px}
+    .f:last-child{margin-bottom:0}
+    .f label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px}
+    .f input,.f select,.f textarea{width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;color:var(--text);background:var(--surf);-webkit-appearance:none;transition:border .2s}
+    .f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--gold);background:white}
+    .f input:disabled,.f select:disabled{opacity:0.6;cursor:not-allowed}
+    .f textarea{resize:vertical;min-height:70px}
+    .r2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .r3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+    /* TIPO ALCANCE PILLS */
+    .alcance-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .alcance-btn{padding:10px 6px;border:1.5px solid var(--border);border-radius:9px;background:white;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all .15s}
+    .alcance-btn:hover{border-color:var(--gold);color:var(--gold)}
+    .alcance-btn.selected{background:rgba(200,153,58,0.12);border-color:var(--gold);color:var(--gold)}
+    .alcance-btn.disabled{opacity:0.35;cursor:not-allowed}
+    /* TIPO INSPECCION PILLS */
+    .tipo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .tipo-btn{padding:10px 6px;border:1.5px solid var(--border);border-radius:9px;background:white;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all .15s}
+    .tipo-btn:hover{border-color:var(--gold);color:var(--gold)}
+    .tipo-btn.selected{background:rgba(200,153,58,0.12);border-color:var(--gold);color:var(--gold)}
+    /* INSPECTOR BADGE */
+    .inspector-display{display:flex;align-items:center;gap:10px;padding:10px 13px;border:1px solid var(--border);border-radius:8px;background:var(--surf)}
+    .inspector-avatar{width:32px;height:32px;border-radius:50%;border:2px solid var(--gold)}
+    .inspector-name{font-size:14px;font-weight:500;color:var(--text);flex:1}
+    .inspector-lock{font-size:16px;color:var(--muted)}
+    /* BOTONES */
+    .btn-crear{width:100%;padding:16px;background:var(--gold);color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:8px;box-shadow:0 4px 12px rgba(200,153,58,0.3)}
+    .btn-crear:hover{transform:translateY(-1px)}
+    .btn-crear:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+    .btn-cancelar{width:100%;padding:13px;background:white;color:var(--text);border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;margin-top:8px}
+    .btn-cancelar:hover{border-color:var(--red);color:var(--red)}
+    /* IMPROVISADO BADGE */
+    .badge-improvisado{display:inline-flex;align-items:center;gap:5px;background:rgba(230,126,34,0.1);border:1px solid rgba(230,126,34,0.3);color:var(--orange,#E67E22);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;margin-bottom:14px}
+    .offline-badge{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
+    .offline-badge.visible{display:block}
+    .loading-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+    .loading-overlay.visible{display:flex}
+    .spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite}
+    .loading-overlay p{color:white;font-size:14px;font-weight:500}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="location.href='inspecciones.html'">&#8592;</button>
+  <div class="hdr-mark">ARP</div>
+  <div class="hdr-title">Nueva inspecci&#243;n</div>
+</div>
+
+<div class="content">
+
+  <!-- TIPO DE ALCANCE -->
+  <div class="card">
+    <div class="card-title">Tipo de inspecci&#243;n</div>
+    <div class="alcance-grid" id="alcanceGrid">
+      <button class="alcance-btn selected" data-val="PAA" onclick="selAlcance(this)">PAA</button>
+      <button class="alcance-btn disabled" data-val="SAE" title="Pr&#243;ximamente">SAE</button>
+      <button class="alcance-btn disabled" data-val="FER" title="Pr&#243;ximamente">FER</button>
+      <button class="alcance-btn disabled" data-val="AJN" title="Pr&#243;ximamente">AJN</button>
+      <button class="alcance-btn disabled" data-val="HIN" title="Pr&#243;ximamente">HIN</button>
+      <button class="alcance-btn disabled" data-val="ESC" title="Pr&#243;ximamente">ESC</button>
+    </div>
+  </div>
+
+  <!-- TIPO DE VISITA -->
+  <div class="card">
+    <div class="card-title">Tipo de visita</div>
+    <div class="tipo-grid">
+      <button class="tipo-btn selected" data-val="ANUAL" onclick="selTipo(this)">Anual</button>
+      <button class="tipo-btn" data-val="INICIAL" onclick="selTipo(this)">Inicial</button>
+      <button class="tipo-btn" data-val="EXTRAORDINARIA" onclick="selTipo(this)">Extraordinaria</button>
+    </div>
+  </div>
+
+  <!-- INSTALACION -->
+  <div class="card">
+    <div class="card-title">Instalaci&#243;n</div>
+    <div class="f">
+      <label>Nombre de la instalaci&#243;n *</label>
+      <input type="text" id="nombreInstalacion" placeholder="ej. Villaduke Esaventura">
+    </div>
+    <div class="f">
+      <label>Direcci&#243;n</label>
+      <input type="text" id="direccion" placeholder="Direcci&#243;n completa">
+    </div>
+    <div class="r2">
+      <div class="f">
+        <label>Municipio</label>
+        <input type="text" id="municipio" placeholder="Municipio">
+      </div>
+      <div class="f">
+        <label>Provincia</label>
+        <input type="text" id="provincia" placeholder="Provincia">
+      </div>
+    </div>
+  </div>
+
+  <!-- PROPIETARIO -->
+  <div class="card">
+    <div class="card-title">Propietario / Cliente</div>
+    <div class="f">
+      <label>Empresa propietaria</label>
+      <input type="text" id="propietario" placeholder="Raz&#243;n social S.L.">
+    </div>
+    <div class="r2">
+      <div class="f">
+        <label>CIF</label>
+        <input type="text" id="cif" placeholder="B12345678">
+      </div>
+      <div class="f">
+        <label>Gestor</label>
+        <input type="text" id="gestor" placeholder="Nombre gestor">
+      </div>
+    </div>
+    <div class="f">
+      <label>Solicitante (si difiere del propietario)</label>
+      <input type="text" id="solicitante" placeholder="Empresa o persona solicitante">
+    </div>
+  </div>
+
+  <!-- FECHA Y HORA -->
+  <div class="card">
+    <div class="card-title">Fecha y horario</div>
+    <div class="r3">
+      <div class="f">
+        <label>Fecha inspecci&#243;n *</label>
+        <input type="date" id="fechaInspeccion">
+      </div>
+      <div class="f">
+        <label>Hora inicio</label>
+        <input type="time" id="horaInicio">
+      </div>
+      <div class="f">
+        <label>Hora fin</label>
+        <input type="time" id="horaFin">
+      </div>
+    </div>
+    <div class="f" id="sesionInfo" style="display:none">
+      <label>Sesi&#243;n</label>
+      <input type="text" id="sesionNota" placeholder="ej. Sesi&#243;n 1 de 2">
+    </div>
+  </div>
+
+  <!-- INSPECTOR -->
+  <div class="card">
+    <div class="card-title">Inspector</div>
+    <div id="inspectorContainer">
+      <!-- Se rellena por JS -->
+    </div>
+  </div>
+
+  <!-- NOTAS -->
+  <div class="card">
+    <div class="card-title">Notas previas</div>
+    <div class="f">
+      <textarea id="notas" placeholder="Observaciones o notas antes de la inspecci&#243;n..."></textarea>
+    </div>
+  </div>
+
+  <button class="btn-crear" id="btnCrear" onclick="crearInspeccion()">
+    Crear inspecci&#243;n &#8594;
+  </button>
+  <button class="btn-cancelar" onclick="location.href='inspecciones.html'">
+    Cancelar
+  </button>
+
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p>Creando inspecci&#243;n...</p>
+</div>
+
+<div class="offline-badge" id="offlineBadge">Sin conexi&#243;n &#8212; modo offline</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+  import { getFirestore, collection, addDoc, doc, getDoc, getDocs, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+    authDomain: "arp-inspecciones.firebaseapp.com",
+    projectId: "arp-inspecciones",
+    storageBucket: "arp-inspecciones.firebasestorage.app",
+    messagingSenderId: "35880168451",
+    appId: "1:35880168451:web:090e3c250b4416ed0b3236"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  let currentUser = null;
+  let userData = null;
+  let selectedAlcance = "PAA";
+  let selectedTipo = "ANUAL";
+  let selectedInspectorEmail = null;
+  let selectedInspectorNombre = null;
+
+  // Fecha de hoy por defecto
+  document.getElementById("fechaInspeccion").value = new Date().toISOString().split("T")[0];
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { location.href = "index.html"; return; }
+    currentUser = user;
+    try {
+      const snap = await getDoc(doc(db, "usuarios", user.email));
+      if (!snap.exists() || !snap.data().activo) { location.href = "index.html"; return; }
+      userData = snap.data();
+      renderInspector();
+    } catch(e) {
+      console.error(e);
+    }
+  });
+
+  function renderInspector() {
+    const container = document.getElementById("inspectorContainer");
+    if (userData.rol === "admin" || userData.rol === "director") {
+      // Admin y director pueden seleccionar inspector
+      cargarSelectInspectores(container);
+    } else {
+      // Inspector solo ve su propio nombre, no puede cambiarlo
+      selectedInspectorEmail = currentUser.email;
+      selectedInspectorNombre = userData.nombre || currentUser.displayName;
+      container.innerHTML = `
+        <div class="inspector-display">
+          <img class="inspector-avatar" src="${currentUser.photoURL || ""}" onerror="this.style.display='none'">
+          <span class="inspector-name">${selectedInspectorNombre}</span>
+          <span class="inspector-lock">&#128274;</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">
+          Solo puedes crear inspecciones asignadas a ti mismo.
+        </div>`;
+    }
+  }
+
+  async function cargarSelectInspectores(container) {
+    container.innerHTML = `<div style="color:var(--muted);font-size:13px">Cargando inspectores...</div>`;
+    try {
+      const snap = await getDocs(collection(db, "usuarios"));
+      const inspectores = [];
+      snap.forEach(d => {
+        const u = d.data();
+        if (u.activo) inspectores.push({ email: d.id, ...u });
+      });
+      let options = inspectores.map(i =>
+        `<option value="${i.email}" data-nombre="${i.nombre || i.email}">${i.nombre || i.email} (${i.rol})</option>`
+      ).join("");
+      container.innerHTML = `
+        <div class="f">
+          <label>Asignar a</label>
+          <select id="selectInspector" onchange="onInspectorChange(this)">
+            <option value="">-- Selecciona inspector --</option>
+            ${options}
+          </select>
+        </div>`;
+      // Preseleccionar el propio usuario
+      const sel = document.getElementById("selectInspector");
+      if (sel) {
+        sel.value = currentUser.email;
+        onInspectorChange(sel);
+      }
+    } catch(e) {
+      container.innerHTML = `<div style="color:var(--red);font-size:13px">Error cargando inspectores.</div>`;
+    }
+  }
+
+  window.onInspectorChange = (sel) => {
+    const opt = sel.options[sel.selectedIndex];
+    selectedInspectorEmail = sel.value;
+    selectedInspectorNombre = opt.dataset.nombre || sel.value;
+  };
+
+  window.selAlcance = (btn) => {
+    if (btn.classList.contains("disabled")) return;
+    document.querySelectorAll(".alcance-btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    selectedAlcance = btn.dataset.val;
+  };
+
+  window.selTipo = (btn) => {
+    document.querySelectorAll(".tipo-btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    selectedTipo = btn.dataset.val;
+  };
+
+  window.crearInspeccion = async () => {
+    const nombre = document.getElementById("nombreInstalacion").value.trim();
+    const fecha = document.getElementById("fechaInspeccion").value;
+
+    if (!nombre) {
+      alert("El nombre de la instalaci\u00f3n es obligatorio.");
+      document.getElementById("nombreInstalacion").focus();
+      return;
+    }
+    if (!fecha) {
+      alert("La fecha de inspecci\u00f3n es obligatoria.");
+      document.getElementById("fechaInspeccion").focus();
+      return;
+    }
+    if (!selectedInspectorEmail) {
+      alert("Selecciona un inspector.");
+      return;
+    }
+
+    document.getElementById("loadingOverlay").classList.add("visible");
+    document.getElementById("btnCrear").disabled = true;
+
+    try {
+      const inspeccion = {
+        tipoAlcance: selectedAlcance,
+        tipoInspeccion: selectedTipo,
+        nombreInstalacion: nombre,
+        direccion: document.getElementById("direccion").value.trim(),
+        municipio: document.getElementById("municipio").value.trim(),
+        provincia: document.getElementById("provincia").value.trim(),
+        propietario: document.getElementById("propietario").value.trim(),
+        cif: document.getElementById("cif").value.trim(),
+        gestor: document.getElementById("gestor").value.trim(),
+        solicitante: document.getElementById("solicitante").value.trim(),
+        fechaInspeccion: fecha,
+        horaInicio: document.getElementById("horaInicio").value,
+        horaFin: document.getElementById("horaFin").value,
+        notas: document.getElementById("notas").value.trim(),
+        inspectorEmail: selectedInspectorEmail,
+        inspectorNombre: selectedInspectorNombre,
+        creadoPor: currentUser.email,
+        estado: "borrador",
+        sesiones: [{
+          fecha: fecha,
+          horaInicio: document.getElementById("horaInicio").value,
+          horaFin: document.getElementById("horaFin").value
+        }],
+        fechaCreacion: serverTimestamp(),
+      };
+
+      const ref = await addDoc(collection(db, "inspecciones"), inspeccion);
+      location.href = `inspeccion.html?id=${ref.id}`;
+    } catch(e) {
+      console.error(e);
+      alert("Error al crear la inspecci\u00f3n. Int\u00e9ntalo de nuevo.");
+      document.getElementById("loadingOverlay").classList.remove("visible");
+      document.getElementById("btnCrear").disabled = false;
+    }
+  };
+
+  function updateOnline() {
+    document.getElementById("offlineBadge").classList.toggle("visible", !navigator.onLine);
+  }
+  window.addEventListener("online", updateOnline);
+  window.addEventListener("offline", updateOnline);
+  updateOnline();
+</script>
+</body>
+</html>
