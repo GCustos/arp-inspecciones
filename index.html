@@ -218,24 +218,47 @@
   }
 
   onAuthStateChanged(auth, async user => {
-    if (!user) { show("loginScreen"); return; }
-    show("loadingScreen");
+    if (!user) { show('loginScreen'); return; }
+    show('loadingScreen');
+
+    // Sin conexion — usar datos en cache local
+    if (!navigator.onLine) {
+      const cached = localStorage.getItem('arpUser_' + user.email);
+      if (cached) {
+        mostrarApp(user, JSON.parse(cached));
+      } else {
+        show('deniedScreen');
+      }
+      return;
+    }
+
+    // Con conexion — verificar en Firestore y guardar cache
     try {
-      const snap = await getDoc(doc(db, "usuarios", user.email));
-      if (!snap.exists() || !snap.data().activo) { show("deniedScreen"); return; }
+      const snap = await getDoc(doc(db, 'usuarios', user.email));
+      if (!snap.exists() || !snap.data().activo) { show('deniedScreen'); return; }
       const ud = snap.data();
-      show("appScreen");
-      document.getElementById("headerAvatar").src = user.photoURL || "";
-      document.getElementById("welcomeName").textContent = ud.nombre || user.displayName;
-      document.getElementById("welcomeRole").textContent = ud.rol || "inspector";
-      document.getElementById("menuName").textContent = ud.nombre || user.displayName;
-      document.getElementById("menuEmail").textContent = user.email;
-      if (ud.rol === "admin") document.getElementById("adminCard").style.display = "flex";
+      localStorage.setItem('arpUser_' + user.email, JSON.stringify(ud));
+      mostrarApp(user, ud);
     } catch(e) {
-      console.error("Firestore error:", e);
-      show("deniedScreen");
+      // Si falla Firestore intentar cache
+      const cached = localStorage.getItem('arpUser_' + user.email);
+      if (cached) {
+        mostrarApp(user, JSON.parse(cached));
+      } else {
+        show('deniedScreen');
+      }
     }
   });
+
+  function mostrarApp(user, ud) {
+    show('appScreen');
+    document.getElementById('headerAvatar').src = user.photoURL || '';
+    document.getElementById('welcomeName').textContent = ud.nombre || user.displayName;
+    document.getElementById('welcomeRole').textContent = ud.rol || 'inspector';
+    document.getElementById('menuName').textContent = ud.nombre || user.displayName;
+    document.getElementById('menuEmail').textContent = user.email;
+    if (ud.rol === 'admin') document.getElementById('adminCard').style.display = 'flex';
+  }
 
   window.loginGoogle = async () => {
     try {
