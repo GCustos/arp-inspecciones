@@ -10,140 +10,85 @@
   <title>ARP Inspecciones</title>
   <style>
     :root {
-      --gold: #C8993A;
-      --dark: #1A1A1A;
-      --surf: #F5F3EF;
-      --border: #E2DDD5;
-      --text: #2C2C2C;
-      --muted: #8A8278;
+      --gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;
+      --text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--surf);
-      color: var(--text);
-      min-height: 100vh;
-    }
-    .splash {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      gap: 16px;
-      padding: 20px;
-    }
-    .logo {
-      width: 88px; height: 88px;
-      background: var(--gold);
-      border-radius: 22px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 34px;
-      font-weight: 700;
-      color: white;
-      box-shadow: 0 8px 24px rgba(200,153,58,0.3);
-    }
-    .app-name {
-      font-size: 26px;
-      font-weight: 700;
-      color: var(--dark);
-      margin-top: 8px;
-    }
-    .app-sub {
-      font-size: 14px;
-      color: var(--muted);
-      text-align: center;
-    }
-    .btn-login {
-      margin-top: 24px;
-      padding: 15px 32px;
-      background: var(--gold);
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      box-shadow: 0 4px 12px rgba(200,153,58,0.3);
-      transition: all 0.2s;
-    }
-    .btn-login:hover { transform: translateY(-1px); }
-    .btn-login:active { transform: translateY(0); }
-    .user-info {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      margin-top: 16px;
-    }
-    .user-info.visible { display: flex; }
-    .user-avatar {
-      width: 56px; height: 56px;
-      border-radius: 50%;
-      border: 3px solid var(--gold);
-    }
-    .user-name {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--dark);
-    }
-    .user-email {
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .btn-enter {
-      padding: 14px 40px;
-      background: var(--dark);
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 8px;
-    }
-    .btn-logout {
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-size: 13px;
-      cursor: pointer;
-      text-decoration: underline;
-      margin-top: 4px;
-    }
-    .loading {
-      font-size: 14px;
-      color: var(--muted);
-      margin-top: 20px;
-    }
-    .offline-badge {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--dark);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      display: none;
-    }
-    .offline-badge.visible { display: block; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
+    .screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;gap:16px}
+    .screen.visible{display:flex}
+    .app-screen{display:none;flex-direction:column;min-height:100vh}
+    .app-screen.visible{display:flex}
+    /* LOGIN */
+    .logo{width:88px;height:88px;background:var(--gold);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:700;color:white;box-shadow:0 8px 24px rgba(200,153,58,0.3)}
+    .app-name{font-size:26px;font-weight:700;color:var(--dark);margin-top:8px}
+    .app-sub{font-size:14px;color:var(--muted);text-align:center}
+    .btn-login{margin-top:24px;padding:15px 32px;background:var(--gold);color:white;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:0 4px 12px rgba(200,153,58,0.3);transition:all 0.2s}
+    .btn-login:hover{transform:translateY(-1px)}
+    /* LOADING */
+    .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    /* DENIED */
+    .denied-icon{width:72px;height:72px;background:#FFEBEE;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px}
+    .denied-title{font-size:20px;font-weight:700;color:var(--red)}
+    .denied-sub{font-size:14px;color:var(--muted);max-width:280px;text-align:center}
+    /* HEADER */
+    .app-header{background:var(--dark);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+    .hdr-l{display:flex;align-items:center;gap:10px}
+    .hdr-mark{width:32px;height:32px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white}
+    .hdr-title{color:white;font-size:15px;font-weight:600}
+    .hdr-sub{color:var(--muted);font-size:10px}
+    .user-avatar-small{width:34px;height:34px;border-radius:50%;border:2px solid var(--gold);cursor:pointer}
+    /* USER MENU */
+    .user-menu{display:none;position:fixed;top:62px;right:16px;background:white;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:200;overflow:hidden;min-width:210px}
+    .user-menu.visible{display:block}
+    .menu-item{padding:13px 16px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background 0.15s}
+    .menu-item:hover{background:var(--surf)}
+    .menu-item.danger{color:var(--red)}
+    .menu-divider{height:1px;background:var(--border)}
+    /* CONTENT */
+    .content{padding:18px 16px;max-width:680px;margin:0 auto;width:100%}
+    /* WELCOME */
+    .welcome{background:var(--dark);border-radius:14px;padding:20px;margin-bottom:20px;color:white}
+    .welcome-hi{font-size:13px;color:var(--muted);margin-bottom:4px}
+    .welcome-name{font-size:22px;font-weight:700;margin-bottom:6px}
+    .role-badge{display:inline-block;background:rgba(200,153,58,0.2);color:var(--gold);font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px;border:1px solid rgba(200,153,58,0.3);text-transform:uppercase;letter-spacing:0.05em}
+    /* SECTION */
+    .sec-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+    /* MODULES */
+    .modules-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+    .mod-card{background:white;border:1px solid var(--border);border-radius:12px;padding:18px 16px;cursor:pointer;transition:all 0.2s;display:flex;flex-direction:column;gap:8px}
+    .mod-card:hover{border-color:var(--gold);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+    .mod-card.disabled{opacity:0.45;cursor:not-allowed}
+    .mod-card.disabled:hover{transform:none;border-color:var(--border);box-shadow:none}
+    .mod-icon{font-size:26px}
+    .mod-name{font-size:14px;font-weight:600;color:var(--dark)}
+    .mod-desc{font-size:11px;color:var(--muted);line-height:1.3}
+    .badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;text-transform:uppercase;letter-spacing:.05em;width:fit-content}
+    .badge-on{background:#E8F5E9;color:var(--green)}
+    .badge-off{background:var(--surf);color:var(--muted)}
+    .badge-admin{background:rgba(200,153,58,0.15);color:var(--gold)}
+    /* DATOS */
+    .datos-card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px}
+    .datos-empresa{font-size:14px;font-weight:600;color:var(--dark);margin-bottom:2px}
+    .datos-line{font-size:13px;color:var(--muted);margin-bottom:2px}
+    .datos-actions{display:flex;gap:8px;margin-top:12px}
+    .btn-dat{flex:1;padding:10px;border:1.5px solid var(--border);border-radius:9px;background:white;font-family:inherit;font-size:12px;font-weight:600;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s}
+    .btn-dat:hover{border-color:var(--gold);color:var(--gold)}
+    .btn-dat.ok{border-color:var(--green);color:var(--green);background:#E8F5E9}
+    /* OFFLINE */
+    .offline-badge{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
+    .offline-badge.visible{display:block}
   </style>
 </head>
 <body>
 
-<div class="splash">
+<!-- LOGIN -->
+<div class="screen" id="loginScreen">
   <div class="logo">ARP</div>
   <div class="app-name">ARP Inspecciones</div>
-  <div class="app-sub">Sistema de gestión de inspecciones<br>ARP Prevención S.L.</div>
-
-  <button class="btn-login" id="btnLogin" onclick="loginGoogle()">
+  <div class="app-sub">Sistema de gestiè´¸n de inspecciones<br>ARP Prevenciè´¸n S.L.</div>
+  <button class="btn-login" onclick="loginGoogle()">
     <svg width="20" height="20" viewBox="0 0 48 48">
       <path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/>
       <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4c-7.7 0-14.4 4.4-17.7 10.7z"/>
@@ -152,24 +97,113 @@
     </svg>
     Entrar con Google
   </button>
-
-  <div class="user-info" id="userInfo">
-    <img class="user-avatar" id="userAvatar" src="" alt="avatar">
-    <div class="user-name" id="userName"></div>
-    <div class="user-email" id="userEmail"></div>
-    <button class="btn-enter" onclick="enterApp()">Entrar a la app →</button>
-    <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
-  </div>
-
-  <div class="loading" id="loadingMsg">Cargando...</div>
 </div>
 
-<div class="offline-badge" id="offlineBadge">Sin conexión — modo offline</div>
+<!-- CARGANDO -->
+<div class="screen" id="loadingScreen">
+  <div class="spinner"></div>
+  <div style="font-size:14px;color:var(--muted)">Verificando acceso...</div>
+</div>
+
+<!-- ACCESO DENEGADO -->
+<div class="screen" id="deniedScreen">
+  <div class="denied-icon">é¦ƒæ¯‡</div>
+  <div class="denied-title">Acceso no autorizado</div>
+  <div class="denied-sub">Tu cuenta no tiene acceso. Contacta con el administrador.</div>
+  <button class="btn-login" style="background:var(--dark)" onclick="logout()">Cerrar sesiè´¸n</button>
+</div>
+
+<!-- APP -->
+<div class="app-screen" id="appScreen">
+  <div class="app-header">
+    <div class="hdr-l">
+      <div class="hdr-mark">ARP</div>
+      <div>
+        <div class="hdr-title">ARP Inspecciones</div>
+        <div class="hdr-sub">ARP Prevenciè´¸n S.L.</div>
+      </div>
+    </div>
+    <img class="user-avatar-small" id="headerAvatar" src="" onclick="toggleMenu()">
+  </div>
+
+  <div class="user-menu" id="userMenu">
+    <div class="menu-item" id="menuName" style="font-weight:600;cursor:default"></div>
+    <div class="menu-item" id="menuEmail" style="font-size:12px;color:var(--muted);cursor:default"></div>
+    <div class="menu-divider"></div>
+    <div class="menu-item danger" onclick="logout()">é¦ƒæ¯† Cerrar sesiè´¸n</div>
+  </div>
+
+  <div class="content">
+
+    <div class="welcome">
+      <div class="welcome-hi">Bienvenido,</div>
+      <div class="welcome-name" id="welcomeName">éˆ¥?/div>
+      <span class="role-badge" id="welcomeRole">éˆ¥?/span>
+    </div>
+
+    <div class="sec-title">Mè´¸dulos</div>
+    <div class="modules-grid">
+      <div class="mod-card" onclick="location.href='inspecciones.html'">
+        <div class="mod-icon">é¦ƒæµ</div>
+        <div class="mod-name">Inspecciones</div>
+        <div class="mod-desc">Nueva inspecciè´¸n, historial y seguimiento</div>
+        <span class="badge badge-on">Activo</span>
+      </div>
+      <div class="mod-card disabled">
+        <div class="mod-icon">é¦ƒæ•¡</div>
+        <div class="mod-name">Equipos</div>
+        <div class="mod-desc">Inventario y calibraciones por sede</div>
+        <span class="badge badge-off">Prè´¸ximamente</span>
+      </div>
+      <div class="mod-card disabled">
+        <div class="mod-icon">é¦ƒæ‡›</div>
+        <div class="mod-name">Inspectores</div>
+        <div class="mod-desc">Autorizaciones y formaciones</div>
+        <span class="badge badge-off">Prè´¸ximamente</span>
+      </div>
+      <div class="mod-card disabled">
+        <div class="mod-icon">é¦ƒå½ˆé””?/div>
+        <div class="mod-name">Instalaciones</div>
+        <div class="mod-desc">Clientes e historial de NC</div>
+        <span class="badge badge-off">Prè´¸ximamente</span>
+      </div>
+      <div class="mod-card disabled">
+        <div class="mod-icon">é¦ƒæ«</div>
+        <div class="mod-name">Ofertas</div>
+        <div class="mod-desc">Generaciè´¸n de ofertas</div>
+        <span class="badge badge-off">Prè´¸ximamente</span>
+      </div>
+      <div class="mod-card" id="adminCard" style="display:none" onclick="location.href='admin.html'">
+        <div class="mod-icon">éˆ¿æ¬™ç¬</div>
+        <div class="mod-name">Administraciè´¸n</div>
+        <div class="mod-desc">Usuarios y configuraciè´¸n</div>
+        <span class="badge badge-admin">Admin</span>
+      </div>
+    </div>
+
+    <div class="sec-title">Datos de empresa</div>
+    <div class="datos-card">
+      <div class="datos-empresa">Adell Riesgos y Prevenciè´¸n S.L.</div>
+      <div class="datos-line">B64399793</div>
+      <div class="datos-line">C/ Gabriel Mirè´¸ 3, Edificio Wertice, Planta 1é™‹ Puerta 4</div>
+      <div class="datos-line">41704 Dos Hermanas, Sevilla</div>
+      <div class="datos-actions">
+        <button class="btn-dat" id="btnCopiar" onclick="copiarDatos()">é¦ƒæµ Copiar</button>
+        <button class="btn-dat" onclick="compartirDatos()">é¦ƒæ‘› Compartir</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="offline-badge" id="offlineBadge">Sin conexiè´¸n éˆ¥?modo offline</div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc }
+    from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
@@ -182,56 +216,103 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
 
-  onAuthStateChanged(auth, user => {
-    document.getElementById('loadingMsg').style.display = 'none';
-    if (user) {
-      mostrarUsuario(user);
+  const SCREENS = ['loginScreen','loadingScreen','deniedScreen'];
+
+  function show(id) {
+    SCREENS.forEach(s => {
+      document.getElementById(s).classList.remove('visible');
+    });
+    document.getElementById('appScreen').classList.remove('visible');
+    if (id === 'appScreen') {
+      document.getElementById('appScreen').classList.add('visible');
     } else {
-      document.getElementById('btnLogin').style.display = 'flex';
-      document.getElementById('userInfo').classList.remove('visible');
+      document.getElementById(id).classList.add('visible');
+    }
+  }
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { show('loginScreen'); return; }
+    show('loadingScreen');
+    try {
+      const snap = await getDoc(doc(db, 'usuarios', user.email));
+      if (!snap.exists() || !snap.data().activo) { show('deniedScreen'); return; }
+      const ud = snap.data();
+      show('appScreen');
+      document.getElementById('headerAvatar').src = user.photoURL || '';
+      document.getElementById('welcomeName').textContent = ud.nombre || user.displayName;
+      document.getElementById('welcomeRole').textContent = ud.rol || 'inspector';
+      document.getElementById('menuName').textContent = ud.nombre || user.displayName;
+      document.getElementById('menuEmail').textContent = user.email;
+      if (ud.rol === 'admin') document.getElementById('adminCard').style.display = 'flex';
+    } catch(e) {
+      console.error(e);
+      show('deniedScreen');
     }
   });
 
-  function mostrarUsuario(user) {
-    document.getElementById('btnLogin').style.display = 'none';
-    document.getElementById('userInfo').classList.add('visible');
-    document.getElementById('userAvatar').src = user.photoURL || '';
-    document.getElementById('userName').textContent = user.displayName || '';
-    document.getElementById('userEmail').textContent = user.email || '';
-  }
-
   window.loginGoogle = async () => {
     try {
-      const result = await signInWithPopup(auth, provider);
-      mostrarUsuario(result.user);
-    } catch (e) {
-      console.error('Error login:', e.code, e.message);
+      await signInWithPopup(auth, provider);
+    } catch(e) {
       if (e.code === 'auth/popup-blocked') {
-        alert('Tu navegador bloqueó la ventana. Permite popups para este sitio e inténtalo de nuevo.');
+        alert('Permite los popups para este sitio e intèŒ…ntalo de nuevo.');
       } else {
         alert('Error: ' + e.message);
       }
     }
   };
 
-  window.logout = async () => { await signOut(auth); };
-  window.enterApp = () => { window.location.href = 'app.html'; };
+  window.logout = async () => {
+    await signOut(auth);
+    document.getElementById('userMenu').classList.remove('visible');
+  };
+
+  window.toggleMenu = () => {
+    document.getElementById('userMenu').classList.toggle('visible');
+  };
+
+  document.addEventListener('click', e => {
+    const menu = document.getElementById('userMenu');
+    const avatar = document.getElementById('headerAvatar');
+    if (!menu.contains(e.target) && e.target !== avatar) {
+      menu.classList.remove('visible');
+    }
+  });
+
+  const DATOS = `Adell Riesgos y Prevenciè´¸n S.L.\nB64399793\nC/ Gabriel Mirè´¸ 3, Edificio Wertice, Planta 1é™‹ Puerta 4\n41704 Dos Hermanas, Sevilla`;
+
+  window.copiarDatos = async () => {
+    try {
+      await navigator.clipboard.writeText(DATOS);
+      const b = document.getElementById('btnCopiar');
+      b.textContent = 'é‰?Copiado';
+      b.classList.add('ok');
+      setTimeout(() => { b.textContent = 'é¦ƒæµ Copiar'; b.classList.remove('ok'); }, 2000);
+    } catch(e) { alert('No se pudo copiar automè°©ticamente.'); }
+  };
+
+  window.compartirDatos = async () => {
+    if (navigator.share) {
+      await navigator.share({ title: 'Datos ARP', text: DATOS });
+    } else {
+      await navigator.clipboard.writeText(DATOS);
+      alert('Datos copiados al portapapeles');
+    }
+  };
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/arp-inspecciones/sw.js')
-      .catch(e => console.log('SW error:', e));
+    navigator.serviceWorker.register('/arp-inspecciones/sw.js').catch(()=>{});
   }
 
-  function updateOnlineStatus() {
+  function updateOnline() {
     document.getElementById('offlineBadge').classList.toggle('visible', !navigator.onLine);
   }
-  window.addEventListener('online', updateOnlineStatus);
-  window.addEventListener('offline', updateOnlineStatus);
-  updateOnlineStatus();
+  window.addEventListener('online', updateOnline);
+  window.addEventListener('offline', updateOnline);
+  updateOnline();
 </script>
-
-
 </body>
 </html>
