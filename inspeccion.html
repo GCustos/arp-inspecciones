@@ -209,7 +209,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, updateDoc, serverTimestamp }
+  import { getFirestore, enableIndexedDbPersistence, doc, getDoc, updateDoc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -221,21 +221,7 @@
     appId: "1:35880168451:web:090e3c250b4416ed0b3236"
   };
 
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, enableIndexedDbPersistence }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Activar persistencia offline
-enableIndexedDbPersistence(db).catch(e => {
-  console.log('Persistencia offline no disponible:', e.code);
-});
-
+  
   const GEN_ITEMS = [
     {id:"g1",ref:"4.1",sec:"Selecci\u00f3n de Lugar y Entorno",desc:"Evacuaci\u00f3n posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosi\u00f3n)."},
     {id:"g2",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.3 Sistemas de soporte naturales \u2013 \u00c1rboles. Evaluaci\u00f3n de resistencia e idoneidad por experto; diagn\u00f3stico actualizado; protecci\u00f3n de ra\u00edces; medidas correctivas."},
