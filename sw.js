@@ -1,10 +1,11 @@
-const CACHE_NAME = 'arp-inspecciones-v2';
+const CACHE_NAME = 'arp-inspecciones-v3';
 const ASSETS = [
   '/arp-inspecciones/',
   '/arp-inspecciones/index.html',
   '/arp-inspecciones/inspecciones.html',
   '/arp-inspecciones/nueva-inspeccion.html',
   '/arp-inspecciones/inspeccion.html',
+  '/arp-inspecciones/resultado.html',
   '/arp-inspecciones/manifest.json',
   '/arp-inspecciones/sw.js'
 ];
