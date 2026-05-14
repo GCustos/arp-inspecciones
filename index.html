@@ -183,28 +183,25 @@
 
 <div class="offline-badge" id="offlineBadge">Sin conexión — modo offline</div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-    from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-  import { getFirestore, enableIndexedDbPersistence, doc, getDoc }
-    from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-
-  const firebaseConfig = {
+<!-- Firebase SDK v8 compat — scripts clásicos, sin type=module, compatibles con SW cache en móvil -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+  firebase.initializeApp({
     apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
     authDomain: "arp-inspecciones.firebaseapp.com",
     projectId: "arp-inspecciones",
     storageBucket: "arp-inspecciones.firebasestorage.app",
     messagingSenderId: "35880168451",
     appId: "1:35880168451:web:090e3c250b4416ed0b3236"
- };
+  });
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const provider = new GoogleAuthProvider();
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const provider = new firebase.auth.GoogleAuthProvider();
 
-  enableIndexedDbPersistence(db).catch(e => {
+  db.enablePersistence({ synchronizeTabs: true }).catch(e => {
     if (e.code !== 'failed-precondition' && e.code !== 'unimplemented') {
       console.log('Offline persistence error:', e.code);
     }
@@ -248,7 +245,7 @@
     show('loginScreen');
   }, 4000);
 
-  onAuthStateChanged(auth, async user => {
+  auth.onAuthStateChanged(async user => {
     if (authResolved) return; // El timeout ya actuó, no interferir
     authResolved = true;
 
@@ -268,8 +265,8 @@
 
     // Con conexion — verificar en Firestore y guardar cache
     try {
-      const snap = await getDoc(doc(db, 'usuarios', user.email));
-      if (!snap.exists() || !snap.data().activo) { show('deniedScreen'); return; }
+      const snap = await db.collection('usuarios').doc(user.email).get();
+      if (!snap.exists || !snap.data().activo) { show('deniedScreen'); return; }
       const ud = snap.data();
       localStorage.setItem('arpUser_' + user.email, JSON.stringify(ud));
       mostrarApp(user, ud);
@@ -296,7 +293,7 @@
 
   window.loginGoogle = async () => {
     try {
-      await signInWithPopup(auth, provider);
+      await auth.signInWithPopup(provider);
     } catch(e) {
       if (e.code === "auth/popup-blocked") {
         alert("Permite los popups para este sitio e inténtalo de nuevo.");
@@ -307,7 +304,7 @@
   };
 
   window.logout = async () => {
-    await signOut(auth);
+    await auth.signOut();
     document.getElementById("userMenu").classList.remove("visible");
   };
 
@@ -347,8 +344,8 @@ C/ Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4
     }
   };
 
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/arp-inspecciones/sw.js").catch(()=>{});
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/arp-inspecciones/sw.js').catch(()=>{});
   }
 
   function updateOnline() {
