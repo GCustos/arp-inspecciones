@@ -77,7 +77,15 @@
     messagingSenderId: "35880168451",
     appId: "1:35880168451:web:090e3c250b4416ed0b3236"
   };
+const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
+  enableIndexedDbPersistence(db).catch(e => {
+    if (e.code !== 'failed-precondition' && e.code !== 'unimplemented') {
+      console.log('Offline persistence error:', e.code);
+    }
+  });
    let currentUser = null;
   let userRole = null;
 
