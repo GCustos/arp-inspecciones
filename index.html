@@ -223,7 +223,35 @@
     target.classList.add("visible");
   }
 
+  // Mostrar spinner inmediatamente — en móvil real Firebase puede tardar en arrancar
+  show('loadingScreen');
+
+  // Timeout de seguridad: si Firebase Auth no responde en 4s, usar cache de localStorage
+  let authResolved = false;
+  setTimeout(() => {
+    if (authResolved) return;
+    authResolved = true;
+    console.log('[ARP] Firebase Auth timeout — usando cache local');
+    const emails = Object.keys(localStorage).filter(k => k.startsWith('arpUser_'));
+    if (emails.length > 0) {
+      const email = emails[0].replace('arpUser_', '');
+      const cached = localStorage.getItem(emails[0]);
+      if (cached) {
+        // Construir objeto user mínimo con lo que tenemos
+        const ud = JSON.parse(cached);
+        const fakeUser = { email, photoURL: '', displayName: ud.nombre || email };
+        mostrarApp(fakeUser, ud);
+        return;
+      }
+    }
+    // No hay cache — mostrar login
+    show('loginScreen');
+  }, 4000);
+
   onAuthStateChanged(auth, async user => {
+    if (authResolved) return; // El timeout ya actuó, no interferir
+    authResolved = true;
+
     if (!user) { show('loginScreen'); return; }
     show('loadingScreen');
 
