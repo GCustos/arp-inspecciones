@@ -149,7 +149,7 @@
         <span class="badge badge-off">Próximamente</span>
       </div>
       <div class="mod-card disabled">
-        <div class="mod-icon">🏗️</div>
+        <div class="mod-icon">🏟️</div>
         <div class="mod-name">Instalaciones</div>
         <div class="mod-desc">Clientes e historial de NC</div>
         <span class="badge badge-off">Próximamente</span>
@@ -201,13 +201,10 @@
   const db = firebase.firestore();
   const provider = new firebase.auth.GoogleAuthProvider();
 
-  // Detectar móvil: usar redirect en móvil, popup en escritorio
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
 
   db.enablePersistence({ synchronizeTabs: true }).catch(e => {
-    if (e.code !== 'failed-precondition' && e.code !== 'unimplemented') {
-      console.log('Offline persistence error:', e.code);
-    }
+    if (e.code !== 'failed-precondition' && e.code !== 'unimplemented') console.log('Persistence:', e.code);
   });
 
   function show(id) {
@@ -221,54 +218,38 @@
     target.classList.add('visible');
   }
 
-  // Arrancar en loading — esperamos tanto a getRedirectResult como a onAuthStateChanged
+  // Empezar en loading
   show('loadingScreen');
 
-  // Timeout de seguridad offline
-  let authResolved = false;
-  setTimeout(() => {
-    if (authResolved) return;
-    authResolved = true;
-    console.log('[ARP] Auth timeout — usando cache local');
-    const emails = Object.keys(localStorage).filter(k => k.startsWith('arpUser_'));
-    if (emails.length > 0) {
-      const key = emails[0];
-      const cached = localStorage.getItem(key);
-      if (cached) {
-        const email = key.replace('arpUser_', '');
-        const ud = JSON.parse(cached);
-        const fakeUser = { email, photoURL: '', displayName: ud.nombre || email };
-        mostrarApp(fakeUser, ud);
-        return;
+  // ─── FIX AUTH MÓVIL ──────────────────────────────────────
+  // El problema anterior: onAuthStateChanged se ejecutaba antes de que
+  // getRedirectResult resolviera en móvil, marcaba authResolved=true con
+  // user=null y mostraba loginScreen aunque el redirect fue exitoso.
+  //
+  // Solución correcta: esperar a getRedirectResult() PRIMERO.
+  // Solo después escuchar onAuthStateChanged. En móvil con redirect,
+  // getRedirectResult() es la fuente de verdad al volver de Google.
+
+  let authHandled = false;
+
+  async function handleUser(user) {
+    if (authHandled) return;
+    authHandled = true;
+
+    if (!user) {
+      // Sin usuario — comprobar cache offline
+      const keys = Object.keys(localStorage).filter(k => k.startsWith('arpUser_'));
+      if (keys.length && !navigator.onLine) {
+        const email = keys[0].replace('arpUser_', '');
+        const ud = JSON.parse(localStorage.getItem(keys[0]));
+        mostrarApp({ email, photoURL: '', displayName: ud.nombre || email }, ud);
+      } else {
+        show('loginScreen');
       }
+      return;
     }
-    show('loginScreen');
-  }, 6000); // 6s en móvil por el redirect
 
-  // Primero manejar el resultado del redirect (si venimos de uno)
-  auth.getRedirectResult().then(async result => {
-    if (authResolved) return;
-    // Si hay resultado de redirect, el usuario acaba de autenticarse
-    if (result && result.user) {
-      // onAuthStateChanged también disparará — dejamos que él lo maneje
-      console.log('[ARP] Redirect result OK:', result.user.email);
-    }
-    // Si no hay resultado, es carga normal — onAuthStateChanged se encarga
-  }).catch(e => {
-    console.error('[ARP] Redirect error:', e);
-    if (!authResolved) {
-      authResolved = true;
-      show('loginScreen');
-    }
-  });
-
-  auth.onAuthStateChanged(async user => {
-    if (authResolved) return;
-    authResolved = true;
-
-    if (!user) { show('loginScreen'); return; }
-
-    // Sin conexión — usar cache
+    // Sin conexión → usar cache
     if (!navigator.onLine) {
       const cached = localStorage.getItem('arpUser_' + user.email);
       if (cached) {
@@ -279,7 +260,7 @@
       return;
     }
 
-    // Con conexión — verificar en Firestore
+    // Con conexión → verificar en Firestore
     try {
       const snap = await db.collection('usuarios').doc(user.email).get();
       if (!snap.exists || !snap.data().activo) { show('deniedScreen'); return; }
@@ -294,14 +275,47 @@
         show('deniedScreen');
       }
     }
+  }
+
+  // PASO 1: Manejar resultado de redirect (si venimos de uno)
+  // Esto resuelve inmediatamente si no hay redirect pendiente (result.user === null)
+  auth.getRedirectResult().then(async result => {
+    if (result && result.user) {
+      // Venimos de un redirect exitoso — manejar directamente
+      console.log('[ARP] Redirect result OK:', result.user.email);
+      await handleUser(result.user);
+    } else {
+      // No hay redirect pendiente — escuchar onAuthStateChanged normalmente
+      // onAuthStateChanged dispara casi inmediatamente en este caso
+      auth.onAuthStateChanged(async user => {
+        await handleUser(user);
+      });
+
+      // Fallback timeout por si onAuthStateChanged no dispara (ej. offline total)
+      setTimeout(async () => {
+        if (authHandled) return;
+        console.warn('[ARP] Auth timeout — usando cache');
+        await handleUser(null);
+      }, 6000);
+    }
+  }).catch(e => {
+    console.error('[ARP] Redirect error:', e);
+    // Error en redirect → intentar onAuthStateChanged de todas formas
+    auth.onAuthStateChanged(async user => {
+      await handleUser(user);
+    });
+    setTimeout(async () => {
+      if (authHandled) return;
+      await handleUser(null);
+    }, 6000);
   });
 
   function mostrarApp(user, ud) {
     show('appScreen');
     document.getElementById('headerAvatar').src = user.photoURL || '';
-    document.getElementById('welcomeName').textContent = ud.nombre || user.displayName;
+    document.getElementById('welcomeName').textContent = ud.nombre || user.displayName || user.email;
     document.getElementById('welcomeRole').textContent = ud.rol || 'inspector';
-    document.getElementById('menuName').textContent = ud.nombre || user.displayName;
+    document.getElementById('menuName').textContent = ud.nombre || user.displayName || user.email;
     document.getElementById('menuEmail').textContent = user.email;
     if (ud.rol === 'admin') document.getElementById('adminCard').style.display = 'flex';
   }
@@ -312,10 +326,10 @@
     btn.textContent = 'Conectando...';
 
     if (isMobile) {
-      // En móvil: redirect (recarga la página y vuelve con la sesión)
+      // En móvil: siempre redirect — al volver, getRedirectResult() lo captura
       try {
         await auth.signInWithRedirect(provider);
-        // La página se recargará — el código de arriba (getRedirectResult) lo maneja
+        // La página se recarga — el código de arriba lo maneja al volver
       } catch(e) {
         console.error(e);
         btn.disabled = false;
@@ -325,13 +339,14 @@
     } else {
       // En escritorio: popup (más rápido, sin recarga)
       try {
-        await auth.signInWithPopup(provider);
-        // onAuthStateChanged lo maneja
+        const result = await auth.signInWithPopup(provider);
+        // onAuthStateChanged lo maneja automáticamente
       } catch(e) {
         btn.disabled = false;
         btn.innerHTML = 'Entrar con Google';
         if (e.code === 'auth/popup-blocked') {
-          alert('Permite los popups para este sitio e inténtalo de nuevo.');
+          // Fallback a redirect si popup bloqueado
+          await auth.signInWithRedirect(provider);
         } else {
           alert('Error: ' + e.message);
         }
@@ -341,12 +356,11 @@
 
   window.logout = async () => {
     document.getElementById('userMenu').classList.remove('visible');
-    show('loadingScreen');
-    document.getElementById('loadingMsg').textContent = 'Cerrando sesión...';
     // Limpiar cache local
     Object.keys(localStorage).filter(k => k.startsWith('arpUser_')).forEach(k => localStorage.removeItem(k));
     await auth.signOut();
-    // Forzar la pantalla de login directamente — no esperar a onAuthStateChanged
+    // Mostrar login directamente — no esperar a onAuthStateChanged
+    authHandled = false; // reset para permitir nuevo login
     show('loginScreen');
   };
 
@@ -368,8 +382,7 @@
     try {
       await navigator.clipboard.writeText(DATOS);
       const b = document.getElementById('btnCopiar');
-      b.textContent = '✓ Copiado';
-      b.classList.add('ok');
+      b.textContent = '✓ Copiado'; b.classList.add('ok');
       setTimeout(() => { b.textContent = '📋 Copiar'; b.classList.remove('ok'); }, 2000);
     } catch(e) { alert('No se pudo copiar.'); }
   };
@@ -387,9 +400,7 @@
     navigator.serviceWorker.register('/arp-inspecciones/sw.js').catch(() => {});
   }
 
-  function updateOnline() {
-    document.getElementById('offlineBadge').classList.toggle('visible', !navigator.onLine);
-  }
+  function updateOnline() { document.getElementById('offlineBadge').classList.toggle('visible', !navigator.onLine); }
   window.addEventListener('online', updateOnline);
   window.addEventListener('offline', updateOnline);
   updateOnline();
