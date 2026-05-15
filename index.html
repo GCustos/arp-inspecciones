@@ -22,6 +22,7 @@
     .app-sub{font-size:14px;color:var(--muted);text-align:center}
     .btn-login{margin-top:24px;padding:15px 32px;background:var(--gold);color:white;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:0 4px 12px rgba(200,153,58,0.3);transition:all 0.2s}
     .btn-login:hover{transform:translateY(-1px)}
+    .btn-login:disabled{opacity:0.6;cursor:not-allowed;transform:none}
     .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
     .denied-icon{width:72px;height:72px;background:#FFEBEE;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px}
@@ -75,7 +76,7 @@
   <div class="logo">ARP</div>
   <div class="app-name">ARP Inspecciones</div>
   <div class="app-sub">Sistema de gestión de inspecciones<br>ARP Prevención S.L.</div>
-  <button class="btn-login" onclick="loginGoogle()">
+  <button class="btn-login" id="btnLogin" onclick="loginGoogle()">
     <svg width="20" height="20" viewBox="0 0 48 48">
       <path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/>
       <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4c-7.7 0-14.4 4.4-17.7 10.7z"/>
@@ -89,7 +90,7 @@
 <!-- CARGANDO -->
 <div class="screen" id="loadingScreen">
   <div class="spinner"></div>
-  <div style="font-size:14px;color:var(--muted)">Verificando acceso...</div>
+  <div style="font-size:14px;color:var(--muted)" id="loadingMsg">Verificando acceso...</div>
 </div>
 
 <!-- ACCESO DENEGADO -->
@@ -183,7 +184,6 @@
 
 <div class="offline-badge" id="offlineBadge">Sin conexión — modo offline</div>
 
-<!-- Firebase SDK v8 compat — scripts clásicos, sin type=module, compatibles con SW cache en móvil -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -201,6 +201,9 @@
   const db = firebase.firestore();
   const provider = new firebase.auth.GoogleAuthProvider();
 
+  // Detectar móvil: usar redirect en móvil, popup en escritorio
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
+
   db.enablePersistence({ synchronizeTabs: true }).catch(e => {
     if (e.code !== 'failed-precondition' && e.code !== 'unimplemented') {
       console.log('Offline persistence error:', e.code);
@@ -208,51 +211,64 @@
   });
 
   function show(id) {
-    ["loginScreen","loadingScreen","deniedScreen","appScreen"].forEach(s => {
+    ['loginScreen','loadingScreen','deniedScreen','appScreen'].forEach(s => {
       const el = document.getElementById(s);
-      el.classList.remove("visible");
-      if (s === "appScreen") el.style.display = "none";
+      el.classList.remove('visible');
+      if (s === 'appScreen') el.style.display = 'none';
     });
     const target = document.getElementById(id);
-    if (id === "appScreen") {
-      target.style.display = "flex";
-    }
-    target.classList.add("visible");
+    if (id === 'appScreen') target.style.display = 'flex';
+    target.classList.add('visible');
   }
 
-  // Mostrar spinner inmediatamente — en móvil real Firebase puede tardar en arrancar
+  // Arrancar en loading — esperamos tanto a getRedirectResult como a onAuthStateChanged
   show('loadingScreen');
 
-  // Timeout de seguridad: si Firebase Auth no responde en 4s, usar cache de localStorage
+  // Timeout de seguridad offline
   let authResolved = false;
   setTimeout(() => {
     if (authResolved) return;
     authResolved = true;
-    console.log('[ARP] Firebase Auth timeout — usando cache local');
+    console.log('[ARP] Auth timeout — usando cache local');
     const emails = Object.keys(localStorage).filter(k => k.startsWith('arpUser_'));
     if (emails.length > 0) {
-      const email = emails[0].replace('arpUser_', '');
-      const cached = localStorage.getItem(emails[0]);
+      const key = emails[0];
+      const cached = localStorage.getItem(key);
       if (cached) {
-        // Construir objeto user mínimo con lo que tenemos
+        const email = key.replace('arpUser_', '');
         const ud = JSON.parse(cached);
         const fakeUser = { email, photoURL: '', displayName: ud.nombre || email };
         mostrarApp(fakeUser, ud);
         return;
       }
     }
-    // No hay cache — mostrar login
     show('loginScreen');
-  }, 4000);
+  }, 6000); // 6s en móvil por el redirect
+
+  // Primero manejar el resultado del redirect (si venimos de uno)
+  auth.getRedirectResult().then(async result => {
+    if (authResolved) return;
+    // Si hay resultado de redirect, el usuario acaba de autenticarse
+    if (result && result.user) {
+      // onAuthStateChanged también disparará — dejamos que él lo maneje
+      console.log('[ARP] Redirect result OK:', result.user.email);
+    }
+    // Si no hay resultado, es carga normal — onAuthStateChanged se encarga
+  }).catch(e => {
+    console.error('[ARP] Redirect error:', e);
+    if (!authResolved) {
+      authResolved = true;
+      show('loginScreen');
+    }
+  });
 
   auth.onAuthStateChanged(async user => {
-    if (authResolved) return; // El timeout ya actuó, no interferir
+    if (authResolved) return;
     authResolved = true;
 
     if (!user) { show('loginScreen'); return; }
-    show('loadingScreen');
 
-    // Sin conexion — usar datos en cache local
+    // Sin conexión — usar cache
     if (!navigator.onLine) {
       const cached = localStorage.getItem('arpUser_' + user.email);
       if (cached) {
@@ -263,7 +279,7 @@
       return;
     }
 
-    // Con conexion — verificar en Firestore y guardar cache
+    // Con conexión — verificar en Firestore
     try {
       const snap = await db.collection('usuarios').doc(user.email).get();
       if (!snap.exists || !snap.data().activo) { show('deniedScreen'); return; }
@@ -271,7 +287,6 @@
       localStorage.setItem('arpUser_' + user.email, JSON.stringify(ud));
       mostrarApp(user, ud);
     } catch(e) {
-      // Si falla Firestore intentar cache
       const cached = localStorage.getItem('arpUser_' + user.email);
       if (cached) {
         mostrarApp(user, JSON.parse(cached));
@@ -292,67 +307,91 @@
   }
 
   window.loginGoogle = async () => {
-    try {
-      await auth.signInWithPopup(provider);
-    } catch(e) {
-      if (e.code === "auth/popup-blocked") {
-        alert("Permite los popups para este sitio e inténtalo de nuevo.");
-      } else {
-        alert("Error: " + e.message);
+    const btn = document.getElementById('btnLogin');
+    btn.disabled = true;
+    btn.textContent = 'Conectando...';
+
+    if (isMobile) {
+      // En móvil: redirect (recarga la página y vuelve con la sesión)
+      try {
+        await auth.signInWithRedirect(provider);
+        // La página se recargará — el código de arriba (getRedirectResult) lo maneja
+      } catch(e) {
+        console.error(e);
+        btn.disabled = false;
+        btn.innerHTML = 'Entrar con Google';
+        alert('Error al iniciar sesión: ' + e.message);
+      }
+    } else {
+      // En escritorio: popup (más rápido, sin recarga)
+      try {
+        await auth.signInWithPopup(provider);
+        // onAuthStateChanged lo maneja
+      } catch(e) {
+        btn.disabled = false;
+        btn.innerHTML = 'Entrar con Google';
+        if (e.code === 'auth/popup-blocked') {
+          alert('Permite los popups para este sitio e inténtalo de nuevo.');
+        } else {
+          alert('Error: ' + e.message);
+        }
       }
     }
   };
 
   window.logout = async () => {
+    document.getElementById('userMenu').classList.remove('visible');
+    show('loadingScreen');
+    document.getElementById('loadingMsg').textContent = 'Cerrando sesión...';
+    // Limpiar cache local
+    Object.keys(localStorage).filter(k => k.startsWith('arpUser_')).forEach(k => localStorage.removeItem(k));
     await auth.signOut();
-    document.getElementById("userMenu").classList.remove("visible");
+    // Forzar la pantalla de login directamente — no esperar a onAuthStateChanged
+    show('loginScreen');
   };
 
   window.toggleMenu = () => {
-    document.getElementById("userMenu").classList.toggle("visible");
+    document.getElementById('userMenu').classList.toggle('visible');
   };
 
-  document.addEventListener("click", e => {
-    const menu = document.getElementById("userMenu");
-    const avatar = document.getElementById("headerAvatar");
+  document.addEventListener('click', e => {
+    const menu = document.getElementById('userMenu');
+    const avatar = document.getElementById('headerAvatar');
     if (!menu.contains(e.target) && e.target !== avatar) {
-      menu.classList.remove("visible");
+      menu.classList.remove('visible');
     }
   });
 
- const DATOS = `Adell Riesgos y Prevención S.L.
-B64399793
-C/ Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4
-41704 Dos Hermanas, Sevilla`;
+  const DATOS = `Adell Riesgos y Prevención S.L.\nB64399793\nC/ Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4\n41704 Dos Hermanas, Sevilla`;
 
   window.copiarDatos = async () => {
     try {
       await navigator.clipboard.writeText(DATOS);
-      const b = document.getElementById("btnCopiar");
-      b.textContent = "✓ Copiado";
-      b.classList.add("ok");
-      setTimeout(() => { b.textContent = "📋 Copiar"; b.classList.remove("ok"); }, 2000);
-    } catch(e) { alert("No se pudo copiar."); }
+      const b = document.getElementById('btnCopiar');
+      b.textContent = '✓ Copiado';
+      b.classList.add('ok');
+      setTimeout(() => { b.textContent = '📋 Copiar'; b.classList.remove('ok'); }, 2000);
+    } catch(e) { alert('No se pudo copiar.'); }
   };
 
   window.compartirDatos = async () => {
     if (navigator.share) {
-      await navigator.share({ title: "Datos ARP", text: DATOS });
+      await navigator.share({ title: 'Datos ARP', text: DATOS });
     } else {
       await navigator.clipboard.writeText(DATOS);
-      alert("Datos copiados");
+      alert('Datos copiados');
     }
   };
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/arp-inspecciones/sw.js').catch(()=>{});
+    navigator.serviceWorker.register('/arp-inspecciones/sw.js').catch(() => {});
   }
 
   function updateOnline() {
-    document.getElementById("offlineBadge").classList.toggle("visible", !navigator.onLine);
+    document.getElementById('offlineBadge').classList.toggle('visible', !navigator.onLine);
   }
-  window.addEventListener("online", updateOnline);
-  window.addEventListener("offline", updateOnline);
+  window.addEventListener('online', updateOnline);
+  window.addEventListener('offline', updateOnline);
   updateOnline();
 </script>
 </body>
