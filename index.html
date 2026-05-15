@@ -23,6 +23,8 @@
     .btn-login{margin-top:24px;padding:15px 32px;background:var(--gold);color:white;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:0 4px 12px rgba(200,153,58,0.3);transition:all 0.2s}
     .btn-login:hover{transform:translateY(-1px)}
     .btn-login:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+    .login-error{font-size:13px;color:var(--red);text-align:center;max-width:280px;background:#FFEBEE;padding:10px 14px;border-radius:8px;display:none}
+    .login-error.visible{display:block}
     .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
     .denied-icon{width:72px;height:72px;background:#FFEBEE;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px}
@@ -85,6 +87,7 @@
     </svg>
     Entrar con Google
   </button>
+  <div class="login-error" id="loginError"></div>
 </div>
 
 <!-- CARGANDO -->
@@ -201,12 +204,11 @@
   const db = firebase.firestore();
   const provider = new firebase.auth.GoogleAuthProvider();
 
-  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
-
   db.enablePersistence({ synchronizeTabs: true }).catch(e => {
     if (e.code !== 'failed-precondition' && e.code !== 'unimplemented') console.log('Persistence:', e.code);
   });
 
+  // ─── PANTALLAS ──────────────────────────────────────────────────────────────
   function show(id) {
     ['loginScreen','loadingScreen','deniedScreen','appScreen'].forEach(s => {
       const el = document.getElementById(s);
@@ -218,26 +220,35 @@
     target.classList.add('visible');
   }
 
-  // Empezar en loading
+  // Empezar en loading mientras Firebase comprueba el estado
   show('loadingScreen');
 
-  // ─── FIX AUTH MÓVIL ──────────────────────────────────────
-  // El problema anterior: onAuthStateChanged se ejecutaba antes de que
-  // getRedirectResult resolviera en móvil, marcaba authResolved=true con
-  // user=null y mostraba loginScreen aunque el redirect fue exitoso.
-  //
-  // Solución correcta: esperar a getRedirectResult() PRIMERO.
-  // Solo después escuchar onAuthStateChanged. En móvil con redirect,
-  // getRedirectResult() es la fuente de verdad al volver de Google.
+  // ─── AUTH ────────────────────────────────────────────────────────────────────
+  // Lógica simplificada: solo popup (PC y móvil). Sin redirect. Sin authHandled.
+  // onAuthStateChanged es la única fuente de verdad.
+  // Timeout de 6s por si Firebase tarda (red lenta o primer boot).
 
-  let authHandled = false;
+  let authResolved = false;
 
-  async function handleUser(user) {
-    if (authHandled) return;
-    authHandled = true;
+  const authTimeout = setTimeout(() => {
+    if (authResolved) return;
+    console.warn('[ARP] Auth timeout — usando caché');
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('arpUser_'));
+    if (keys.length && !navigator.onLine) {
+      const email = keys[0].replace('arpUser_', '');
+      const ud = JSON.parse(localStorage.getItem(keys[0]));
+      mostrarApp({ email, photoURL: '', displayName: ud.nombre || email }, ud);
+    } else {
+      show('loginScreen');
+    }
+  }, 6000);
+
+  auth.onAuthStateChanged(async user => {
+    authResolved = true;
+    clearTimeout(authTimeout);
 
     if (!user) {
-      // Sin usuario — comprobar cache offline
+      // Comprobar caché offline
       const keys = Object.keys(localStorage).filter(k => k.startsWith('arpUser_'));
       if (keys.length && !navigator.onLine) {
         const email = keys[0].replace('arpUser_', '');
@@ -249,7 +260,7 @@
       return;
     }
 
-    // Sin conexión → usar cache
+    // Sin conexión → usar caché
     if (!navigator.onLine) {
       const cached = localStorage.getItem('arpUser_' + user.email);
       if (cached) {
@@ -275,41 +286,48 @@
         show('deniedScreen');
       }
     }
-  }
-
-  // PASO 1: Manejar resultado de redirect (si venimos de uno)
-  // Esto resuelve inmediatamente si no hay redirect pendiente (result.user === null)
-  auth.getRedirectResult().then(async result => {
-    if (result && result.user) {
-      // Venimos de un redirect exitoso — manejar directamente
-      console.log('[ARP] Redirect result OK:', result.user.email);
-      await handleUser(result.user);
-    } else {
-      // No hay redirect pendiente — escuchar onAuthStateChanged normalmente
-      // onAuthStateChanged dispara casi inmediatamente en este caso
-      auth.onAuthStateChanged(async user => {
-        await handleUser(user);
-      });
-
-      // Fallback timeout por si onAuthStateChanged no dispara (ej. offline total)
-      setTimeout(async () => {
-        if (authHandled) return;
-        console.warn('[ARP] Auth timeout — usando cache');
-        await handleUser(null);
-      }, 6000);
-    }
-  }).catch(e => {
-    console.error('[ARP] Redirect error:', e);
-    // Error en redirect → intentar onAuthStateChanged de todas formas
-    auth.onAuthStateChanged(async user => {
-      await handleUser(user);
-    });
-    setTimeout(async () => {
-      if (authHandled) return;
-      await handleUser(null);
-    }, 6000);
   });
 
+  // ─── LOGIN ───────────────────────────────────────────────────────────────────
+  // Siempre popup. Si el popup está bloqueado, mostramos mensaje claro.
+  window.loginGoogle = async () => {
+    const btn = document.getElementById('btnLogin');
+    const errEl = document.getElementById('loginError');
+    errEl.classList.remove('visible');
+    btn.disabled = true;
+    btn.textContent = 'Conectando...';
+
+    try {
+      await auth.signInWithPopup(provider);
+      // onAuthStateChanged se dispara y maneja el resto
+    } catch(e) {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4c-7.7 0-14.4 4.4-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.8 13.6-4.7l-6.3-5.2C29.4 35.6 26.8 36 24 36c-5.2 0-9.6-2.9-11.7-7.2l-6.5 5C9.5 39.5 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.9 2.4-2.5 4.4-4.6 5.8l6.3 5.2C40.8 35.7 44 30.3 44 24c0-1.3-.1-2.7-.4-4z"/></svg> Entrar con Google`;
+
+      if (e.code === 'auth/popup-blocked') {
+        errEl.textContent = 'El navegador bloqueó la ventana emergente. Permite las ventanas emergentes para esta página y vuelve a intentarlo.';
+        errEl.classList.add('visible');
+      } else if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+        // El usuario cerró el popup — no mostrar error
+      } else {
+        errEl.textContent = 'Error al iniciar sesión: ' + e.message;
+        errEl.classList.add('visible');
+      }
+    }
+  };
+
+  // ─── LOGOUT ──────────────────────────────────────────────────────────────────
+  window.logout = async () => {
+    document.getElementById('userMenu').classList.remove('visible');
+    // Limpiar caché local
+    Object.keys(localStorage).filter(k => k.startsWith('arpUser_')).forEach(k => localStorage.removeItem(k));
+    await auth.signOut();
+    // onAuthStateChanged dispara con user=null → show('loginScreen')
+    // authResolved ya es true, pero el handler funciona correctamente
+    // porque no hay caché y puede estar online
+  };
+
+  // ─── APP ─────────────────────────────────────────────────────────────────────
   function mostrarApp(user, ud) {
     show('appScreen');
     document.getElementById('headerAvatar').src = user.photoURL || '';
@@ -319,50 +337,6 @@
     document.getElementById('menuEmail').textContent = user.email;
     if (ud.rol === 'admin') document.getElementById('adminCard').style.display = 'flex';
   }
-
-  window.loginGoogle = async () => {
-    const btn = document.getElementById('btnLogin');
-    btn.disabled = true;
-    btn.textContent = 'Conectando...';
-
-    if (isMobile) {
-      // En móvil: siempre redirect — al volver, getRedirectResult() lo captura
-      try {
-        await auth.signInWithRedirect(provider);
-        // La página se recarga — el código de arriba lo maneja al volver
-      } catch(e) {
-        console.error(e);
-        btn.disabled = false;
-        btn.innerHTML = 'Entrar con Google';
-        alert('Error al iniciar sesión: ' + e.message);
-      }
-    } else {
-      // En escritorio: popup (más rápido, sin recarga)
-      try {
-        const result = await auth.signInWithPopup(provider);
-        // onAuthStateChanged lo maneja automáticamente
-      } catch(e) {
-        btn.disabled = false;
-        btn.innerHTML = 'Entrar con Google';
-        if (e.code === 'auth/popup-blocked') {
-          // Fallback a redirect si popup bloqueado
-          await auth.signInWithRedirect(provider);
-        } else {
-          alert('Error: ' + e.message);
-        }
-      }
-    }
-  };
-
-  window.logout = async () => {
-    document.getElementById('userMenu').classList.remove('visible');
-    // Limpiar cache local
-    Object.keys(localStorage).filter(k => k.startsWith('arpUser_')).forEach(k => localStorage.removeItem(k));
-    await auth.signOut();
-    // Mostrar login directamente — no esperar a onAuthStateChanged
-    authHandled = false; // reset para permitir nuevo login
-    show('loginScreen');
-  };
 
   window.toggleMenu = () => {
     document.getElementById('userMenu').classList.toggle('visible');

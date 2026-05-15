@@ -40,6 +40,8 @@
     .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;margin:40px auto 12px}
     @keyframes spin{to{transform:rotate(360deg)}}
     .loading-text{text-align:center;color:var(--muted);font-size:14px}
+    .btn-ver-mas{width:100%;padding:11px;background:white;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;margin-top:4px;margin-bottom:20px;transition:all 0.2s}
+    .btn-ver-mas:hover{border-color:var(--gold);color:var(--gold)}
     .offline-badge{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
     .offline-badge.visible{display:block}
   </style>
@@ -53,8 +55,8 @@
 </div>
 
 <div class="content">
-  <button class="btn-nueva" onclick="nuevaInspeccion()">
-    &#43; Nueva inspecci&#243;n
+  <button class="btn-nueva" onclick="location.href='nueva-inspeccion.html'">
+    &#43; Nueva inspección
   </button>
   <div id="listContainer">
     <div class="spinner"></div>
@@ -62,59 +64,62 @@
   </div>
 </div>
 
-<div class="offline-badge" id="offlineBadge">Sin conexi&#243;n &#8212; modo offline</div>
+<div class="offline-badge" id="offlineBadge">Sin conexión — modo offline</div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-  import { getFirestore, enableIndexedDbPersistence, collection, query, where, orderBy, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain: "arp-inspecciones.firebaseapp.com",
+      projectId: "arp-inspecciones",
+      storageBucket: "arp-inspecciones.firebasestorage.app",
+      messagingSenderId: "35880168451",
+      appId: "1:35880168451:web:090e3c250b4416ed0b3236"
+    });
+  }
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
-    authDomain: "arp-inspecciones.firebaseapp.com",
-    projectId: "arp-inspecciones",
-    storageBucket: "arp-inspecciones.firebasestorage.app",
-    messagingSenderId: "35880168451",
-    appId: "1:35880168451:web:090e3c250b4416ed0b3236"
-  };
-const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-  enableIndexedDbPersistence(db).catch(e => {
+  db.enablePersistence({ synchronizeTabs: true }).catch(e => {
     if (e.code !== 'failed-precondition' && e.code !== 'unimplemented') {
       console.log('Offline persistence error:', e.code);
     }
   });
-   let currentUser = null;
-  let userRole = null;
 
-  onAuthStateChanged(auth, async user => {
-    if (!user) { location.href = "index.html"; return; }
+  let currentUser = null;
+  let userRole = null;
+  let listaCompleta = []; // todas las completadas
+  const LIMITE_COMPLETADAS = 5;
+
+  auth.onAuthStateChanged(async user => {
+    if (!user) { location.href = 'index.html'; return; }
     currentUser = user;
     try {
-      const snap = await getDoc(doc(db, "usuarios", user.email));
-      if (!snap.exists() || !snap.data().activo) { location.href = "index.html"; return; }
+      const snap = await db.collection('usuarios').doc(user.email).get();
+      if (!snap.exists || !snap.data().activo) { location.href = 'index.html'; return; }
       userRole = snap.data().rol;
       await cargarInspecciones();
     } catch(e) {
+      console.error(e);
       renderInspecciones([]);
     }
   });
 
   async function cargarInspecciones() {
     try {
-      const col = collection(db, "inspecciones");
       let q;
-      if (userRole === "admin" || userRole === "director") {
-        q = query(col, orderBy("fechaCreacion", "desc"));
+      if (userRole === 'admin' || userRole === 'director') {
+        q = db.collection('inspecciones').orderBy('fechaCreacion', 'desc');
       } else {
-        q = query(col,
-          where("inspectorEmail", "==", currentUser.email),
-          orderBy("fechaCreacion", "desc")
-        );
+        q = db.collection('inspecciones')
+          .where('inspectorEmail', '==', currentUser.email)
+          .orderBy('fechaCreacion', 'desc');
       }
-      const snap = await getDocs(q);
+      const snap = await q.get();
       const lista = [];
       snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
       renderInspecciones(lista);
@@ -125,58 +130,72 @@ const app = initializeApp(firebaseConfig);
   }
 
   function renderInspecciones(lista) {
-    const container = document.getElementById("listContainer");
+    const container = document.getElementById('listContainer');
     if (!lista.length) {
       container.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">&#128203;</div>
-          <div class="empty-text">No hay inspecciones todav&#237;a.<br>Pulsa el bot&#243;n para crear la primera.</div>
+          <div class="empty-text">No hay inspecciones todavía.<br>Pulsa el botón para crear la primera.</div>
         </div>`;
       return;
     }
-    const enCurso = lista.filter(i => i.estado === "en_curso" || i.estado === "borrador");
-    const completadas = lista.filter(i => i.estado === "completada");
-    let html = "";
+
+    const enCurso = lista.filter(i => i.estado === 'en_curso' || i.estado === 'borrador');
+    const completadas = lista.filter(i => i.estado === 'completada');
+    listaCompleta = completadas;
+
+    let html = '';
     if (enCurso.length) {
       html += `<div class="sec-title">En curso</div>`;
       enCurso.forEach(i => { html += cardHTML(i); });
     }
     if (completadas.length) {
       html += `<div class="sec-title" style="margin-top:20px">Completadas</div>`;
-      completadas.forEach(i => { html += cardHTML(i); });
+      // Mostrar solo las últimas LIMITE_COMPLETADAS
+      completadas.slice(0, LIMITE_COMPLETADAS).forEach(i => { html += cardHTML(i); });
+      if (completadas.length > LIMITE_COMPLETADAS) {
+        html += `<button class="btn-ver-mas" id="btnVerMas" onclick="verTodasCompletadas()">
+          Ver todas las completadas (${completadas.length}) ↓
+        </button>`;
+      }
     }
     container.innerHTML = html;
   }
 
+  window.verTodasCompletadas = () => {
+    const btn = document.getElementById('btnVerMas');
+    if (!btn) return;
+    let extra = '';
+    listaCompleta.slice(LIMITE_COMPLETADAS).forEach(i => { extra += cardHTML(i); });
+    btn.insertAdjacentHTML('beforebegin', extra);
+    btn.remove();
+  };
+
   function cardHTML(i) {
-    const icon = i.estado === "completada" ? "&#10003;" : i.estado === "en_curso" ? "&#9203;" : "&#128221;";
-    const cls = i.estado === "completada" ? "status-done" : i.estado === "en_curso" ? "status-curso" : "status-borrador";
-    const tipo = (i.tipoAlcance || "PAA").toLowerCase();
-    const insp = (i.tipoInspeccion || "").toLowerCase();
+    const icon = i.estado === 'completada' ? '&#10003;' : i.estado === 'en_curso' ? '&#9203;' : '&#128221;';
+    const cls = i.estado === 'completada' ? 'status-done' : i.estado === 'en_curso' ? 'status-curso' : 'status-borrador';
+    const tipo = (i.tipoAlcance || 'PAA').toLowerCase();
+    const insp = (i.tipoInspeccion || '').toLowerCase();
     return `
       <div class="insp-card" onclick="location.href='inspeccion.html?id=${i.id}'">
         <div class="insp-status ${cls}">${icon}</div>
         <div class="insp-body">
-          <div class="insp-nombre">${i.nombreInstalacion || "Sin nombre"}</div>
+          <div class="insp-nombre">${i.nombreInstalacion || 'Sin nombre'}</div>
           <div class="insp-meta">
-            <span class="insp-badge badge-${tipo}">${i.tipoAlcance || "PAA"}</span>
-            ${i.tipoInspeccion ? `<span class="insp-badge badge-${insp}">${i.tipoInspeccion}</span>` : ""}
+            <span class="insp-badge badge-${tipo}">${i.tipoAlcance || 'PAA'}</span>
+            ${i.tipoInspeccion ? `<span class="insp-badge badge-${insp}">${i.tipoInspeccion}</span>` : ''}
           </div>
-          <div class="insp-inspector">${i.inspectorNombre || ""}</div>
+          <div class="insp-inspector">${i.inspectorNombre || ''}</div>
         </div>
-        <div class="insp-fecha">${i.fechaInspeccion || ""}</div>
+        <div class="insp-fecha">${i.fechaInspeccion || ''}</div>
       </div>`;
   }
 
-  window.nuevaInspeccion = () => {
-    location.href = "nueva-inspeccion.html";
-  };
-
   function updateOnline() {
-    document.getElementById("offlineBadge").classList.toggle("visible", !navigator.onLine);
+    document.getElementById('offlineBadge').classList.toggle('visible', !navigator.onLine);
   }
-  window.addEventListener("online", updateOnline);
-  window.addEventListener("offline", updateOnline);
+  window.addEventListener('online', updateOnline);
+  window.addEventListener('offline', updateOnline);
   updateOnline();
 </script>
 </body>
