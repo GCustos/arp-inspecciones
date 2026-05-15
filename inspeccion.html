@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#C8993A">
-  <title>Inspecci&#243;n - ARP</title>
+  <title>Inspección - ARP</title>
   <style>
     :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;--orange:#E67E22;--blue:#2980B9;}
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -18,11 +18,18 @@
     .estado-borrador{background:rgba(138,130,120,0.2);color:var(--muted)}
     .estado-curso{background:rgba(230,126,34,0.15);color:var(--orange)}
     .estado-completada{background:rgba(39,174,96,0.15);color:var(--green)}
-    .tabs{display:flex;background:white;border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:100}
-    .tab{flex:1;padding:11px 8px;font-size:12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;text-align:center;transition:all .2s}
+
+    /* TABS — fix PC: sin max-width aquí, z-index correcto, user-select:none */
+    .tabs{display:flex;background:white;border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:100;user-select:none}
+    .tab{flex:1;padding:11px 8px;font-size:12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;text-align:center;transition:all .2s;-webkit-tap-highlight-color:transparent}
+    .tab:hover{color:var(--gold)}
     .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
-    .tab-content{display:none;padding:16px;max-width:680px;margin:0 auto;padding-bottom:100px}
+
+    /* TAB CONTENT — el max-width va en un wrapper interior, no en el display */
+    .tab-content{display:none}
     .tab-content.active{display:block}
+    .tab-inner{padding:16px;max-width:720px;margin:0 auto;padding-bottom:100px}
+
     .card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
     .card-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
     .card-title::after{content:"";flex:1;height:1px;background:var(--border)}
@@ -44,8 +51,10 @@
     .chk-obs input:focus{outline:none}
     .obs-gral{width:100%;padding:10px 12px;border:none;border-top:1px solid var(--border);font-family:inherit;font-size:13px;color:var(--text);resize:vertical;min-height:80px;background:white}
     .obs-gral:focus{outline:none;background:#FFF9F0}
+
+    /* CIRCUITOS */
     .circ-card{background:white;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden}
-    .circ-header{display:flex;align-items:center;padding:12px 14px;cursor:pointer;gap:10px;user-select:none}
+    .circ-header{display:flex;align-items:center;padding:12px 14px;cursor:pointer;gap:10px;user-select:none;-webkit-tap-highlight-color:transparent}
     .circ-toggle{font-size:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
     .circ-toggle.open{transform:rotate(90deg)}
     .circ-nombre{flex:1;font-size:13px;font-weight:700;color:var(--dark);font-family:monospace;text-transform:uppercase;letter-spacing:.05em}
@@ -53,7 +62,7 @@
     .circ-body{display:none;border-top:1px solid var(--border)}
     .circ-body.open{display:block}
     .jt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-    .jt{width:100%;border-collapse:collapse;font-size:11px;min-width:520px}
+    .jt{width:100%;border-collapse:collapse;font-size:11px;min-width:560px}
     .jt th{background:var(--dark);color:white;padding:7px 5px;text-align:center;font-size:9px;font-weight:700;letter-spacing:.04em;line-height:1.3}
     .jt th.tl{text-align:left;padding-left:8px}
     .jt td{border-bottom:1px solid var(--border);vertical-align:middle;padding:0}
@@ -72,10 +81,18 @@
     .rama-inp:focus{outline:none;background:#FFF9F0}
     .del-btn{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:4px 6px}
     .del-btn:hover{color:var(--red)}
+
+    /* Botón foto por juego */
+    .foto-juego-btn{background:none;border:none;font-size:14px;cursor:pointer;padding:4px 6px;color:var(--muted);position:relative}
+    .foto-juego-btn:hover{color:var(--gold)}
+    .foto-juego-btn .foto-count{position:absolute;top:0;right:0;background:var(--gold);color:white;font-size:8px;font-weight:700;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-family:monospace}
+
     .btn-add-juego{display:flex;align-items:center;gap:6px;padding:9px 14px;border:1.5px dashed var(--border);background:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;width:100%;transition:all .2s}
     .btn-add-juego:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
     .btn-add-circ{display:flex;align-items:center;gap:8px;padding:11px 14px;border:1.5px dashed var(--border);border-radius:12px;background:none;color:var(--muted);font-family:inherit;font-size:13px;cursor:pointer;width:100%;transition:all .2s;margin-bottom:12px}
     .btn-add-circ:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
+
+    /* NCs */
     .nc-card{border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:10px;background:#FAFAF9}
     .nc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
     .nc-num{font-size:10px;font-weight:700;color:white;background:var(--dark);padding:2px 8px;border-radius:4px;font-family:monospace}
@@ -95,12 +112,33 @@
     .prio-btn.p-DOCUMENTAL{background:#F3E5F5;border-color:#8E24AA;color:#8E24AA}
     .btn-add-nc{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1.5px dashed var(--border);border-radius:10px;background:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;width:100%;margin-top:8px;transition:all .2s}
     .btn-add-nc:hover{border-color:var(--gold);color:var(--gold)}
+
+    /* FOTOS GRID */
     .foto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
     .foto-thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--surf);border:1px solid var(--border)}
     .foto-thumb img{width:100%;height:100%;object-fit:cover}
     .foto-del{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(0,0,0,.55);border:none;border-radius:50%;color:white;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
     .foto-add{aspect-ratio:1;border-radius:8px;border:1.5px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:none;gap:4px;font-family:inherit;font-size:11px;color:var(--muted);transition:all .2s}
     .foto-add:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
+
+    /* MODAL FOTOS JUEGO */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:none;align-items:flex-end;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal-sheet{background:white;border-radius:16px 16px 0 0;width:100%;max-width:500px;max-height:80vh;overflow-y:auto;padding:20px 16px 32px}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .modal-title{font-size:14px;font-weight:700;color:var(--dark)}
+    .modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1}
+    .modal-fotos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+
+    /* Banner importar circuitos */
+    .import-banner{background:#FFF9F0;border:1.5px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:12px;display:none}
+    .import-banner.vis{display:block}
+    .import-banner p{font-size:12px;color:var(--text);margin-bottom:10px}
+    .import-banner strong{color:var(--gold)}
+    .import-btns{display:flex;gap:8px}
+    .btn-import-si{flex:1;padding:8px;background:var(--gold);color:white;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
+    .btn-import-no{flex:1;padding:8px;background:var(--surf);color:var(--muted);border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer}
+
     .bottom-bar{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px;z-index:150}
     .btn-guardar{flex:1;padding:13px;background:var(--surf);color:var(--text);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
     .btn-guardar:hover{border-color:var(--gold);color:var(--gold)}
@@ -126,7 +164,8 @@
   <span class="hdr-estado estado-borrador" id="hdrEstado">Borrador</span>
 </div>
 
-<div class="tabs">
+<!-- TABS: onclick directo en el div, sin elementos intermedios que interfieran -->
+<div class="tabs" id="tabsBar">
   <div class="tab active" id="tab1" onclick="goTab(1)">General</div>
   <div class="tab" id="tab2" onclick="goTab(2)">Circuitos</div>
   <div class="tab" id="tab3" onclick="goTab(3)">NC y Fotos</div>
@@ -134,51 +173,80 @@
 
 <div class="err-banner" id="errBanner"></div>
 
+<!-- TAB 1: GENERAL -->
 <div class="tab-content active" id="tc1">
-  <div id="genChecklist">
-    <div class="spinner-wrap"><div class="spinner"></div>Cargando inspecci&#243;n...</div>
-  </div>
-  <div class="card" style="padding:0;overflow:hidden">
-    <div style="padding:10px 14px 6px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Observaciones generales</div>
-    <textarea class="obs-gral" id="obsGral" placeholder="Observaciones generales de la inspecci&#243;n..." onchange="markDirty()"></textarea>
-  </div>
-</div>
-
-<div class="tab-content" id="tc2">
-  <button class="btn-add-circ" onclick="addCircuito()">&#43; A&#241;adir circuito</button>
-  <div id="circuitosContainer"></div>
-</div>
-
-<div class="tab-content" id="tc3">
-  <div class="card">
-    <div class="card-title">No conformidades</div>
-    <div id="ncList"></div>
-    <button class="btn-add-nc" onclick="addNC()">&#43; A&#241;adir no conformidad</button>
-  </div>
-  <div class="card">
-    <div class="card-title">Fotos del informe</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:4px">Las fotos seleccionadas aqu&#237; aparecer&#225;n en el informe PDF.</p>
-    <div class="foto-grid" id="fotoGrid">
-      <button class="foto-add" onclick="document.getElementById('fileInput').click()">
-        <span style="font-size:22px">&#128247;</span><span>A&#241;adir foto</span>
-      </button>
+  <div class="tab-inner">
+    <div id="genChecklist">
+      <div class="spinner-wrap"><div class="spinner"></div>Cargando inspección...</div>
     </div>
-    <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFotos(this)">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:10px 14px 6px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Observaciones generales</div>
+      <textarea class="obs-gral" id="obsGral" placeholder="Observaciones generales de la inspección..." onchange="markDirty()"></textarea>
+    </div>
   </div>
-  <div class="card">
-    <div class="card-title">Ensayos no realizados</div>
-    <div class="f">
-      <textarea id="ensayos" placeholder="ej. No se realiza ensayo de inercia." onchange="markDirty()"></textarea>
+</div>
+
+<!-- TAB 2: CIRCUITOS -->
+<div class="tab-content" id="tc2">
+  <div class="tab-inner">
+    <!-- Banner importar circuitos de inspección anterior -->
+    <div class="import-banner" id="importBanner">
+      <p>Esta instalación tiene una inspección anterior. ¿Deseas cargar la <strong>estructura de circuitos y juegos</strong> como punto de partida?</p>
+      <div class="import-btns">
+        <button class="btn-import-si" onclick="importarCircuitos()">✓ Sí, cargar estructura</button>
+        <button class="btn-import-no" onclick="document.getElementById('importBanner').classList.remove('vis')">No, empezar vacío</button>
+      </div>
+    </div>
+    <button class="btn-add-circ" onclick="addCircuito()">&#43; Añadir circuito</button>
+    <div id="circuitosContainer"></div>
+  </div>
+</div>
+
+<!-- TAB 3: NC Y FOTOS -->
+<div class="tab-content" id="tc3">
+  <div class="tab-inner">
+    <div class="card">
+      <div class="card-title">No conformidades</div>
+      <div id="ncList"></div>
+      <button class="btn-add-nc" onclick="addNC()">&#43; Añadir no conformidad</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Fotos del informe</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:4px">Fotos generales de la instalación y de no conformidades para el informe PDF.</p>
+      <div class="foto-grid" id="fotoGrid">
+        <button class="foto-add" onclick="document.getElementById('fileInput').click()">
+          <span style="font-size:22px">&#128247;</span><span>Añadir foto</span>
+        </button>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFotos(this)">
+    </div>
+    <div class="card">
+      <div class="card-title">Ensayos no realizados</div>
+      <div class="f">
+        <textarea id="ensayos" placeholder="ej. No se realiza ensayo de inercia." onchange="markDirty()"></textarea>
+      </div>
     </div>
   </div>
 </div>
 
 <div class="bottom-bar">
   <button class="btn-guardar" onclick="guardar()">&#128190; Guardar</button>
-  <button class="btn-completar" onclick="completar()">Completar inspecci&#243;n &#8594;</button>
+  <button class="btn-completar" onclick="completar()">Completar inspección &#8594;</button>
 </div>
 
-<div class="offline-badge" id="offlineBadge">Sin conexi&#243;n &#8212; modo offline</div>
+<div class="offline-badge" id="offlineBadge">Sin conexión — modo offline</div>
+
+<!-- MODAL FOTOS POR JUEGO -->
+<div class="modal-overlay" id="modalFotos" onclick="cerrarModalFotos(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title" id="modalFotosTitulo">Fotos del juego</span>
+      <button class="modal-close" onclick="cerrarModalFotos()">&#215;</button>
+    </div>
+    <div class="modal-fotos-grid" id="modalFotosGrid"></div>
+    <input type="file" id="fileInputJuego" accept="image/*" multiple style="display:none" onchange="handleFotosJuego(this)">
+  </div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -209,24 +277,30 @@
   let currentUser = null;
   let isDirty = false;
   let cargaIniciada = false;
+  let modalJuegoRef = null; // { ci, ji }
+  let circuitosAnteriores = null; // para importar
 
   const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], fotos:[], ensayos:"" };
 
   const GEN_ITEMS = [
-    {id:"g1",ref:"4.1",sec:"Selecci\u00f3n de Lugar y Entorno",desc:"Evacuaci\u00f3n posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosi\u00f3n)."},
-    {id:"g2",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.3 Sistemas de soporte naturales \u2013 \u00c1rboles. Evaluaci\u00f3n de resistencia e idoneidad por experto; diagn\u00f3stico actualizado; protecci\u00f3n de ra\u00edces; medidas correctivas."},
-    {id:"g3",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.2 Sistemas de soporte artificiales. Adecuaci\u00f3n a cargas; vientos y anclajes protegidos; verificaci\u00f3n de estructuras existentes si aplican; c\u00e1lculos disponibles."},
+    {id:"g1",ref:"4.1",sec:"Selección de Lugar y Entorno",desc:"Evacuación posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosión)."},
+    {id:"g2",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.3 Sistemas de soporte naturales – Árboles. Evaluación de resistencia e idoneidad por experto; diagnóstico actualizado; protección de raíces; medidas correctivas."},
+    {id:"g3",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.2 Sistemas de soporte artificiales. Adecuación a cargas; vientos y anclajes protegidos; verificación de estructuras existentes si aplican; cálculos disponibles."},
     {id:"g4",ref:"4.2",sec:"Materiales y cables",desc:"Maderas, metales, compuestos; cables (galvanizado/inox); terminaciones conforme; criterio de desecho."},
-    {id:"g5",ref:"6",sec:"Se\u00f1alizaci\u00f3n general y control de acceso",desc:"Control de acceso. Codificaci\u00f3n de recorridos y dificultad; pictogramas; ubicaci\u00f3n y legibilidad."},
-    {id:"g6",ref:"7",sec:"EPI y equipos de rescate",desc:"Identificaci\u00f3n y marcados; revisi\u00f3n peri\u00f3dica vigente; prueba funcional si aplica; adecuaci\u00f3n a morfolog\u00eda de usuarios; registros al d\u00eda."},
-    {id:"g7",ref:"8",sec:"Documentaci\u00f3n",desc:"Manual del constructor, mantenimiento, evaluaci\u00f3n arb\u00f3rea, identificaci\u00f3n en planos, marcados."},
+    {id:"g5",ref:"6",sec:"Señalización general y control de acceso",desc:"Control de acceso. Codificación de recorridos y dificultad; pictogramas; ubicación y legibilidad."},
+    {id:"g6",ref:"7",sec:"EPI y equipos de rescate",desc:"Identificación y marcados; revisión periódica vigente; prueba funcional si aplica; adecuación a morfología de usuarios; registros al día."},
+    {id:"g7",ref:"8",sec:"Documentación",desc:"Manual del constructor, mantenimiento, evaluación arbórea, identificación en planos, marcados."},
   ];
 
   const COLS = [
-    {key:"ie",label:"Integ.\nestr."},{key:"af",label:"Anclajes\nfijac."},
-    {key:"ej",label:"Elem.\njuego"},{key:"ra",label:"Riesgos\natrap."},{key:"zs",label:"Zona\nsegur."},
+    {key:"ie",label:"Integ.\nest."},
+    {key:"af",label:"Anclajes\nfijac."},
+    {key:"ej",label:"Elem.\njuego"},
+    {key:"ra",label:"Riesgos\natrap."},
+    {key:"zs",label:"Zona\nsegur."},
   ];
 
+  // ─── ERROR ───────────────────────────────────────────────
   function showError(msg) {
     document.getElementById('genChecklist').innerHTML = '';
     const b = document.getElementById('errBanner');
@@ -234,17 +308,17 @@
     b.classList.add('visible');
   }
 
-  // Timeout: si onAuthStateChanged no dispara en 5s, usar cache
+  // ─── AUTH ─────────────────────────────────────────────────
   let authOk = false;
   setTimeout(() => {
     if (authOk) return;
-    console.warn('[ARP] Auth timeout');
+    console.warn('[ARP] Auth timeout — usando cache');
     const keys = Object.keys(localStorage).filter(k => k.startsWith('arpUser_'));
     if (keys.length) {
       const email = keys[0].replace('arpUser_', '');
       iniciarCarga({ email, photoURL: '', displayName: email });
     } else {
-      showError('Sesi\u00f3n no verificada. <a href="index.html" style="color:var(--red);font-weight:700">Inicia sesi\u00f3n de nuevo</a>.');
+      showError('Sesión no verificada. <a href="index.html" style="color:var(--red);font-weight:700">Inicia sesión de nuevo</a>.');
     }
   }, 5000);
 
@@ -260,16 +334,15 @@
     currentUser = user;
     try {
       const snap = await db.collection("inspecciones").doc(inspeccionId).get();
-      if (!snap.exists) { showError('Inspecci\u00f3n no encontrada. ID: ' + inspeccionId); return; }
+      if (!snap.exists) { showError('Inspección no encontrada. ID: ' + inspeccionId); return; }
       const data = snap.data();
 
       // Verificar rol (tolerante a fallos)
       try {
         const uSnap = await db.collection("usuarios").doc(currentUser.email).get();
         if (uSnap.exists && uSnap.data().rol === "inspector" && data.inspectorEmail !== currentUser.email) {
-          alert("No tienes acceso a esta inspecci\u00f3n.");
-          location.href = "inspecciones.html";
-          return;
+          alert("No tienes acceso a esta inspección.");
+          location.href = "inspecciones.html"; return;
         }
       } catch(e) { console.warn('No se pudo verificar rol:', e.message); }
 
@@ -279,11 +352,17 @@
       if (data.obsGral) S.obsGral = data.obsGral;
       if (data.circuitos) S.circuitos = data.circuitos;
       if (data.ncs) S.ncs = data.ncs;
+      if (data.fotos) S.fotos = data.fotos;
       if (data.ensayos) S.ensayos = data.ensayos;
 
       document.getElementById("hdrTitulo").textContent = data.nombreInstalacion || "Sin nombre";
-      document.getElementById("hdrSub").textContent = (data.tipoAlcance||"PAA") + " \u00b7 " + (data.tipoInspeccion||"") + " \u00b7 " + (data.inspectorNombre||"");
+      document.getElementById("hdrSub").textContent = (data.tipoAlcance||"PAA") + " · " + (data.tipoInspeccion||"") + " · " + (data.inspectorNombre||"");
       actualizarEstado(data.estado || "borrador");
+
+      // Buscar inspecciones anteriores de la misma instalación para ofrecer importar circuitos
+      if (!S.circuitos.length && data.nombreInstalacion) {
+        buscarCircuitosAnteriores(data.nombreInstalacion);
+      }
 
       renderGen();
       renderCircuitos();
@@ -293,8 +372,46 @@
       document.getElementById("ensayos").value = S.ensayos;
 
     } catch(e) {
-      showError('Error al cargar la inspecci\u00f3n: ' + e.message + ' (c\u00f3digo: ' + (e.code||'?') + ')');
+      showError('Error al cargar la inspección: ' + e.message + ' (código: ' + (e.code||'?') + ')');
     }
+  }
+
+  async function buscarCircuitosAnteriores(nombreInstalacion) {
+    try {
+      const q = await db.collection("inspecciones")
+        .where("nombreInstalacion", "==", nombreInstalacion)
+        .where("estado", "==", "completada")
+        .orderBy("fechaCompletada", "desc")
+        .limit(1)
+        .get();
+      if (!q.empty) {
+        const prev = q.docs[0].data();
+        if (prev.circuitos && prev.circuitos.length) {
+          circuitosAnteriores = prev.circuitos;
+          document.getElementById('importBanner').classList.add('vis');
+        }
+      }
+    } catch(e) { console.warn('No se pudieron buscar circuitos anteriores:', e.message); }
+  }
+
+  function importarCircuitos() {
+    if (!circuitosAnteriores) return;
+    // Importar estructura sin valores S/N/NA (se reinician para nueva inspección)
+    S.circuitos = circuitosAnteriores.map(circ => ({
+      nombre: circ.nombre,
+      juegos: circ.juegos.map(j => ({
+        nombre: j.nombre,
+        tipo: j.tipo,
+        rama: j.rama || "",
+        ie: "", af: "", ej: "", ra: "", zs: "",
+        obs: "",
+        fotos: []
+      }))
+    }));
+    document.getElementById('importBanner').classList.remove('vis');
+    markDirty();
+    renderCircuitos();
+    goTab(2);
   }
 
   function actualizarEstado(estado) {
@@ -303,11 +420,20 @@
     el.textContent = {borrador:"Borrador",en_curso:"En curso",completada:"Completada"}[estado] || estado;
   }
 
+  // ─── TABS ─────────────────────────────────────────────────
+  // FIX PC: usamos getElementById explícito para evitar que el event bubbling
+  // desde elementos hijos rompa la lógica. Las tabs y tab-contents están bien
+  // separados en el DOM.
   function goTab(n) {
-    document.querySelectorAll(".tab").forEach((t,i) => t.classList.toggle("active", i===n-1));
-    document.querySelectorAll(".tab-content").forEach((t,i) => t.classList.toggle("active", i===n-1));
+    [1,2,3].forEach(i => {
+      document.getElementById('tab'+i).classList.toggle('active', i===n);
+      document.getElementById('tc'+i).classList.toggle('active', i===n);
+    });
+    // Scroll al top del contenido
+    window.scrollTo({top: 0, behavior: 'smooth'});
   }
 
+  // ─── CHECKLIST GENERAL ────────────────────────────────────
   function renderGen() {
     let lastSec = "", html = "";
     GEN_ITEMS.forEach(item => {
@@ -327,7 +453,7 @@
           </div>
         </div>
         <div class="chk-obs ${v==="N"?"vis":""}" id="go_${item.id}">
-          <input type="text" placeholder="Observaci\u00f3n..." value="${obs}"
+          <input type="text" placeholder="Observación..." value="${obs}"
             onchange="S.genObs['${item.id}']=this.value;checkAutoNC('${item.id}');markDirty()">
         </div>`;
     });
@@ -344,10 +470,11 @@
   function checkAutoNC(itemId) {
     const item = GEN_ITEMS.find(i => i.id === itemId);
     if (!item || S.ncs.find(n => n.autoId === itemId) || S.gen[itemId] !== "N") return;
-    S.ncs.push({ autoId:itemId, elem:item.sec, desc:S.genObs[itemId]||"", norma:"UNE EN 15.567-1:2015+A1:2021, punto "+item.ref, prio:"" });
+    S.ncs.push({ autoId:itemId, elem:item.sec, desc:S.genObs[itemId]||"", norma:"UNE EN 15567-1:2015+A1:2021, punto "+item.ref, prio:"" });
     renderNCs();
   }
 
+  // ─── CIRCUITOS ────────────────────────────────────────────
   function addCircuito() {
     const nombre = prompt("Nombre del circuito:", "Circuito " + (S.circuitos.length + 1));
     if (!nombre) return;
@@ -357,7 +484,7 @@
   }
 
   function addJuegoToCircuito(ci) {
-    S.circuitos[ci].juegos.push({ nombre:"", tipo:"R", rama:"", ie:"", af:"", ej:"", ra:"", zs:"", obs:"" });
+    S.circuitos[ci].juegos.push({ nombre:"", tipo:"R", rama:"", ie:"", af:"", ej:"", ra:"", zs:"", obs:"", fotos:[] });
     markDirty(); renderCircuitos();
   }
 
@@ -372,16 +499,22 @@
     const labels = {ie:"Integridad estructural",af:"Anclajes y fijaciones",ej:"Elementos de juego",ra:"Riesgos y atrapamientos",zs:"Zona de seguridad/Entorno"};
     const autoId = `j_${ci}_${ji}_${col}`;
     if (S.ncs.find(n => n.autoId === autoId)) return;
-    S.ncs.push({ autoId, elem:`${S.circuitos[ci].nombre} \u2014 ${j.nombre||"Juego "+(ji+1)}`, desc:`${labels[col]} no satisfactorio.`, norma:"UNE EN 15.567-1:2015+A1:2021", prio:"" });
+    S.ncs.push({ autoId, elem:`${S.circuitos[ci].nombre} — ${j.nombre||"Juego "+(ji+1)}`, desc:`${labels[col]} no satisfactorio.`, norma:"UNE EN 15.567-1:2015+A1:2021", prio:"" });
     renderNCs();
   }
 
   function delJuego(ci, ji) { S.circuitos[ci].juegos.splice(ji,1); markDirty(); renderCircuitos(); }
-  function toggleCircuito(ci) { document.getElementById("cb_"+ci).classList.toggle("open"); document.getElementById("ct_"+ci).classList.toggle("open"); }
+  function toggleCircuito(ci) {
+    document.getElementById("cb_"+ci).classList.toggle("open");
+    document.getElementById("ct_"+ci).classList.toggle("open");
+  }
 
   function renderCircuitos() {
     const c = document.getElementById("circuitosContainer");
-    if (!S.circuitos.length) { c.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Pulsa el bot\u00f3n para a\u00f1adir el primer circuito.</div>`; return; }
+    if (!S.circuitos.length) {
+      c.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Pulsa el botón para añadir el primer circuito.</div>`;
+      return;
+    }
     c.innerHTML = S.circuitos.map((circ,ci) => {
       const total = circ.juegos.length;
       const ok = circ.juegos.filter(j => COLS.every(col => j[col.key]==="S"||j[col.key]==="NA")).length;
@@ -394,10 +527,12 @@
         <div class="circ-body open" id="cb_${ci}">
           <div class="jt-wrap"><table class="jt">
             <thead><tr>
-              <th class="tl" style="width:28%">Juego</th>
+              <th class="tl" style="width:26%">Juego</th>
               <th style="width:7%">Tipo</th><th style="width:6%">Rama</th>
-              ${COLS.map(col=>`<th style="width:9%">${col.label.replace("\n","<br>")}</th>`).join("")}
-              <th style="min-width:70px">Obs.</th><th style="width:22px"></th>
+              ${COLS.map(col=>`<th style="width:8%">${col.label.replace("\n","<br>")}</th>`).join("")}
+              <th style="min-width:65px">Obs.</th>
+              <th style="width:20px">📷</th>
+              <th style="width:22px"></th>
             </tr></thead>
             <tbody>${circ.juegos.map((j,ji)=>`
               <tr>
@@ -414,33 +549,95 @@
                   <button class="snb-s ${j[col.key]==="NA"?"s-NA":""}" onclick="setJuego(${ci},${ji},'${col.key}','NA');renderCircuitos()">NA</button>
                 </div></td>`).join("")}
                 <td><input class="jt-inp" style="font-size:10px;color:var(--muted)" type="text" value="${(j.obs||'').replace(/"/g,'&quot;')}" placeholder="obs..." onchange="setJuego(${ci},${ji},'obs',this.value)"></td>
+                <td><button class="foto-juego-btn" onclick="abrirModalFotos(${ci},${ji})" title="Fotos de este juego">
+                  📷${(j.fotos&&j.fotos.length)?`<span class="foto-count">${j.fotos.length}</span>`:''}
+                </button></td>
                 <td><button class="del-btn" onclick="delJuego(${ci},${ji})">&#215;</button></td>
               </tr>`).join("")}
             </tbody>
           </table></div>
-          <button class="btn-add-juego" onclick="addJuegoToCircuito(${ci})">&#43; A\u00f1adir juego</button>
+          <button class="btn-add-juego" onclick="addJuegoToCircuito(${ci})">&#43; Añadir juego</button>
         </div>
       </div>`;
     }).join("");
   }
 
+  // ─── MODAL FOTOS POR JUEGO ────────────────────────────────
+  function abrirModalFotos(ci, ji) {
+    modalJuegoRef = { ci, ji };
+    const j = S.circuitos[ci].juegos[ji];
+    document.getElementById('modalFotosTitulo').textContent = '📷 ' + (j.nombre || 'Juego ' + (ji+1));
+    renderModalFotos();
+    document.getElementById('modalFotos').classList.add('open');
+  }
+
+  function cerrarModalFotos(e) {
+    if (!e || e.target === document.getElementById('modalFotos')) {
+      document.getElementById('modalFotos').classList.remove('open');
+      modalJuegoRef = null;
+      renderCircuitos(); // actualiza contador en botón
+    }
+  }
+
+  function renderModalFotos() {
+    if (!modalJuegoRef) return;
+    const { ci, ji } = modalJuegoRef;
+    if (!S.circuitos[ci] || !S.circuitos[ci].juegos[ji]) return;
+    const j = S.circuitos[ci].juegos[ji];
+    if (!j.fotos) j.fotos = [];
+    const g = document.getElementById('modalFotosGrid');
+    g.innerHTML = j.fotos.map((f,i) => `
+      <div class="foto-thumb">
+        <img src="${f.dataUrl}" alt="foto ${i+1}">
+        <button class="foto-del" onclick="delFotoJuego(${i})">&#215;</button>
+      </div>`).join("") +
+      `<button class="foto-add" onclick="document.getElementById('fileInputJuego').click()">
+        <span style="font-size:22px">&#128247;</span><span>Añadir</span>
+      </button>`;
+  }
+
+  function handleFotosJuego(inp) {
+    if (!modalJuegoRef) return;
+    const { ci, ji } = modalJuegoRef;
+    if (!S.circuitos[ci].juegos[ji].fotos) S.circuitos[ci].juegos[ji].fotos = [];
+    Array.from(inp.files).forEach(f => {
+      const r = new FileReader();
+      r.onload = e => {
+        S.circuitos[ci].juegos[ji].fotos.push({ dataUrl: e.target.result, name: f.name });
+        renderModalFotos();
+        markDirty();
+      };
+      r.readAsDataURL(f);
+    });
+    inp.value = "";
+  }
+
+  function delFotoJuego(i) {
+    if (!modalJuegoRef) return;
+    const { ci, ji } = modalJuegoRef;
+    S.circuitos[ci].juegos[ji].fotos.splice(i,1);
+    renderModalFotos();
+    markDirty();
+  }
+
+  // ─── NCs ──────────────────────────────────────────────────
   function renderNCs() {
     const c = document.getElementById("ncList");
     if (!S.ncs.length) { c.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:12px;padding:14px">Sin no conformidades.</div>`; return; }
     c.innerHTML = S.ncs.map((nc,i) => `
       <div class="nc-card">
         <div class="nc-hdr">
-          <span class="nc-num">NC ${i+1}${nc.autoId?" \u2022 auto":""}</span>
+          <span class="nc-num">NC ${i+1}${nc.autoId?" • auto":""}</span>
           <button class="nc-del" onclick="delNC(${i})">&#215;</button>
         </div>
         <div class="f"><label>Elemento afectado</label>
           <input type="text" value="${(nc.elem||'').replace(/"/g,'&quot;')}" placeholder="ej. Tirolina Final" onchange="S.ncs[${i}].elem=this.value;markDirty()">
         </div>
-        <div class="f"><label>Descripci\u00f3n</label>
+        <div class="f"><label>Descripción</label>
           <textarea onchange="S.ncs[${i}].desc=this.value;markDirty()" placeholder="Describe la no conformidad...">${nc.desc||""}</textarea>
         </div>
         <div class="f"><label>Referencia normativa</label>
-          <input type="text" value="${(nc.norma||'').replace(/"/g,'&quot;')}" placeholder="UNE EN 15.567-1:2015+A1:2021, punto X.X" onchange="S.ncs[${i}].norma=this.value;markDirty()">
+          <input type="text" value="${(nc.norma||'').replace(/"/g,'&quot;')}" placeholder="UNE EN 15567-1:2015+A1:2021, punto X.X" onchange="S.ncs[${i}].norma=this.value;markDirty()">
         </div>
         <div class="prio-row">
           ${["GRAVE","MEDIA","LEVE","DOCUMENTAL"].map(p=>`<button class="prio-btn ${nc.prio===p?"p-"+p:""}" onclick="S.ncs[${i}].prio='${p}';markDirty();renderNCs()">${p}</button>`).join("")}
@@ -448,9 +645,10 @@
       </div>`).join("");
   }
 
-  function addNC() { S.ncs.push({elem:"",desc:"",norma:"UNE EN 15.567-1:2015+A1:2021",prio:""}); markDirty(); renderNCs(); goTab(3); }
+  function addNC() { S.ncs.push({elem:"",desc:"",norma:"UNE EN 15567-1:2015+A1:2021",prio:""}); markDirty(); renderNCs(); goTab(3); }
   function delNC(i) { S.ncs.splice(i,1); markDirty(); renderNCs(); }
 
+  // ─── FOTOS GENERALES (informe) ────────────────────────────
   function handleFotos(inp) {
     Array.from(inp.files).forEach(f => {
       const r = new FileReader();
@@ -463,13 +661,24 @@
   function renderFotos() {
     const g = document.getElementById("fotoGrid");
     g.innerHTML = S.fotos.map((f,i) => `<div class="foto-thumb"><img src="${f.dataUrl}" alt="foto ${i+1}"><button class="foto-del" onclick="S.fotos.splice(${i},1);renderFotos();markDirty()">&#215;</button></div>`).join("");
-    g.innerHTML += `<button class="foto-add" onclick="document.getElementById('fileInput').click()"><span style="font-size:22px">&#128247;</span><span>A\u00f1adir</span></button>`;
+    g.innerHTML += `<button class="foto-add" onclick="document.getElementById('fileInput').click()"><span style="font-size:22px">&#128247;</span><span>Añadir</span></button>`;
   }
 
+  // ─── GUARDAR / COMPLETAR ──────────────────────────────────
   function markDirty() { isDirty = true; }
 
   function buildPayload(estado) {
-    return { checklist:S.gen, checklistObs:S.genObs, obsGral:document.getElementById("obsGral").value, circuitos:S.circuitos, ncs:S.ncs, ensayos:document.getElementById("ensayos").value, estado, ultimaModificacion:firebase.firestore.FieldValue.serverTimestamp() };
+    return {
+      checklist: S.gen,
+      checklistObs: S.genObs,
+      obsGral: document.getElementById("obsGral").value,
+      circuitos: S.circuitos,
+      ncs: S.ncs,
+      fotos: S.fotos,
+      ensayos: document.getElementById("ensayos").value,
+      estado,
+      ultimaModificacion: firebase.firestore.FieldValue.serverTimestamp()
+    };
   }
 
   async function guardar() {
@@ -478,7 +687,7 @@
       isDirty = false;
       actualizarEstado("en_curso");
       const btn = document.querySelector(".btn-guardar");
-      btn.textContent = "\u2713 Guardado";
+      btn.textContent = "✓ Guardado";
       setTimeout(() => { btn.innerHTML = "&#128190; Guardar"; }, 2000);
     } catch(e) { alert("Error al guardar: " + e.message); }
   }
@@ -487,11 +696,15 @@
     const graves = S.ncs.filter(n => n.prio==="GRAVE").length;
     const resultado = graves===0 ? "FAVORABLE" : "DESFAVORABLE";
     const msg = graves===0
-      ? "La inspecci\u00f3n tiene resultado FAVORABLE.\n\u00bfDeseas completarla?"
-      : `${graves} NC GRAVE(s). Resultado DESFAVORABLE.\n\u00bfDeseas completarla de todas formas?`;
+      ? "La inspección tiene resultado FAVORABLE.\n¿Deseas completarla?"
+      : `${graves} NC GRAVE(s). Resultado DESFAVORABLE.\n¿Deseas completarla de todas formas?`;
     if (!confirm(msg)) return;
     try {
-      await db.collection("inspecciones").doc(inspeccionId).update({ ...buildPayload("completada"), resultado, fechaCompletada:firebase.firestore.FieldValue.serverTimestamp() });
+      await db.collection("inspecciones").doc(inspeccionId).update({
+        ...buildPayload("completada"),
+        resultado,
+        fechaCompletada: firebase.firestore.FieldValue.serverTimestamp()
+      });
       isDirty = false;
       location.href = "resultado.html?id=" + inspeccionId;
     } catch(e) { alert("Error al completar: " + e.message); }
