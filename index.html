@@ -14,17 +14,15 @@
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
     .screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;gap:16px}
-    .screen.visible{display:flex}
-    .app-screen{display:none;flex-direction:column;min-height:100vh}
-    .app-screen.visible{display:flex}
+    #appScreen{display:none;flex-direction:column;min-height:100vh}
     .logo{width:88px;height:88px;background:var(--gold);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:700;color:white;box-shadow:0 8px 24px rgba(200,153,58,0.3)}
     .app-name{font-size:26px;font-weight:700;color:var(--dark);margin-top:8px}
     .app-sub{font-size:14px;color:var(--muted);text-align:center}
     .btn-login{margin-top:24px;padding:15px 32px;background:var(--gold);color:white;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:0 4px 12px rgba(200,153,58,0.3);transition:all 0.2s}
     .btn-login:hover{transform:translateY(-1px)}
     .btn-login:disabled{opacity:0.6;cursor:not-allowed;transform:none}
-    .login-error{font-size:13px;color:var(--red);text-align:center;max-width:280px;background:#FFEBEE;padding:10px 14px;border-radius:8px;display:none}
-    .login-error.visible{display:block}
+    .login-hint{font-size:12px;color:var(--muted);text-align:center;max-width:260px;margin-top:-8px;padding:10px 14px;background:#FFF8F0;border-radius:8px;border:1px solid var(--border);display:none}
+    .login-hint.vis{display:block}
     .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
     .denied-icon{width:72px;height:72px;background:#FFEBEE;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px}
@@ -35,9 +33,9 @@
     .hdr-mark{width:32px;height:32px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white}
     .hdr-title{color:white;font-size:15px;font-weight:600}
     .hdr-sub{color:var(--muted);font-size:10px}
-    .user-avatar-small{width:34px;height:34px;border-radius:50%;border:2px solid var(--gold);cursor:pointer}
+    .user-avatar-small{width:34px;height:34px;border-radius:50%;border:2px solid var(--gold);cursor:pointer;object-fit:cover}
     .user-menu{display:none;position:fixed;top:62px;right:16px;background:white;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:200;overflow:hidden;min-width:210px}
-    .user-menu.visible{display:block}
+    .user-menu.open{display:block}
     .menu-item{padding:13px 16px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background 0.15s}
     .menu-item:hover{background:var(--surf)}
     .menu-item.danger{color:var(--red)}
@@ -68,12 +66,11 @@
     .btn-dat:hover{border-color:var(--gold);color:var(--gold)}
     .btn-dat.ok{border-color:var(--green);color:var(--green);background:#E8F5E9}
     .offline-badge{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
-    .offline-badge.visible{display:block}
+    .offline-badge.vis{display:block}
   </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div class="screen" id="loginScreen">
   <div class="logo">ARP</div>
   <div class="app-name">ARP Inspecciones</div>
@@ -87,16 +84,14 @@
     </svg>
     Entrar con Google
   </button>
-  <div class="login-error" id="loginError"></div>
+  <div class="login-hint" id="loginHint"></div>
 </div>
 
-<!-- CARGANDO -->
-<div class="screen" id="loadingScreen">
+<div class="screen" id="loadingScreen" style="display:flex">
   <div class="spinner"></div>
-  <div style="font-size:14px;color:var(--muted)" id="loadingMsg">Verificando acceso...</div>
+  <div style="font-size:14px;color:var(--muted)">Verificando acceso...</div>
 </div>
 
-<!-- ACCESO DENEGADO -->
 <div class="screen" id="deniedScreen">
   <div class="denied-icon">🚫</div>
   <div class="denied-title">Acceso no autorizado</div>
@@ -104,8 +99,7 @@
   <button class="btn-login" style="background:var(--dark)" onclick="logout()">Cerrar sesión</button>
 </div>
 
-<!-- APP -->
-<div class="app-screen" id="appScreen">
+<div id="appScreen">
   <div class="app-header">
     <div class="hdr-l">
       <div class="hdr-mark">ARP</div>
@@ -114,23 +108,20 @@
         <div class="hdr-sub">ARP Prevención S.L.</div>
       </div>
     </div>
-    <img class="user-avatar-small" id="headerAvatar" src="" onclick="toggleMenu()">
+    <img class="user-avatar-small" id="headerAvatar" src="" alt="" onclick="toggleMenu()">
   </div>
-
   <div class="user-menu" id="userMenu">
     <div class="menu-item" id="menuName" style="font-weight:600;cursor:default"></div>
     <div class="menu-item" id="menuEmail" style="font-size:12px;color:var(--muted);cursor:default"></div>
     <div class="menu-divider"></div>
     <div class="menu-item danger" onclick="logout()">🚪 Cerrar sesión</div>
   </div>
-
   <div class="content">
     <div class="welcome">
       <div class="welcome-hi">Bienvenido,</div>
       <div class="welcome-name" id="welcomeName"></div>
       <span class="role-badge" id="welcomeRole"></span>
     </div>
-
     <div class="sec-title">Módulos</div>
     <div class="modules-grid">
       <div class="mod-card" onclick="location.href='inspecciones.html'">
@@ -170,7 +161,6 @@
         <span class="badge badge-admin">Admin</span>
       </div>
     </div>
-
     <div class="sec-title">Datos de empresa</div>
     <div class="datos-card">
       <div class="datos-empresa">Adell Riesgos y Prevención S.L.</div>
@@ -203,151 +193,123 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   const provider = new firebase.auth.GoogleAuthProvider();
+  db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 
-  db.enablePersistence({ synchronizeTabs: true }).catch(e => {
-    if (e.code !== 'failed-precondition' && e.code !== 'unimplemented') console.log('Persistence:', e.code);
-  });
-
-  // ─── PANTALLAS ──────────────────────────────────────────────────────────────
+  // ── show() ─────────────────────────────────────────────────────────────────
+  // Manipula style.display directamente. Sin clases. Sin ambigüedad.
   function show(id) {
-    ['loginScreen','loadingScreen','deniedScreen','appScreen'].forEach(s => {
-      const el = document.getElementById(s);
-      el.classList.remove('visible');
-      if (s === 'appScreen') el.style.display = 'none';
-    });
-    const target = document.getElementById(id);
-    if (id === 'appScreen') target.style.display = 'flex';
-    target.classList.add('visible');
+    document.getElementById('loginScreen').style.display  = 'none';
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('deniedScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display    = 'none';
+    document.getElementById(id).style.display = 'flex';
   }
 
-  // Empezar en loading mientras Firebase comprueba el estado
-  show('loadingScreen');
+  // ── AUTH ───────────────────────────────────────────────────────────────────
+  // Un único flag. onAuthStateChanged es la fuente de verdad.
+  // Se resetea antes de login y antes de logout para que el listener
+  // pueda actuar de nuevo en cada transición.
+  let listening = true;
 
-  // ─── AUTH ────────────────────────────────────────────────────────────────────
-  // Lógica simplificada: solo popup (PC y móvil). Sin redirect. Sin authHandled.
-  // onAuthStateChanged es la única fuente de verdad.
-  // Timeout de 6s por si Firebase tarda (red lenta o primer boot).
-
-  let authResolved = false;
-
-  const authTimeout = setTimeout(() => {
-    if (authResolved) return;
-    console.warn('[ARP] Auth timeout — usando caché');
-    const keys = Object.keys(localStorage).filter(k => k.startsWith('arpUser_'));
-    if (keys.length && !navigator.onLine) {
-      const email = keys[0].replace('arpUser_', '');
-      const ud = JSON.parse(localStorage.getItem(keys[0]));
+  // Timeout de seguridad: si Firebase no responde en 5s, ir a login
+  const timer = setTimeout(() => {
+    if (!listening) return;
+    listening = false;
+    const k = Object.keys(localStorage).find(k => k.startsWith('arpUser_'));
+    if (k && !navigator.onLine) {
+      const ud = JSON.parse(localStorage.getItem(k));
+      const email = k.replace('arpUser_', '');
       mostrarApp({ email, photoURL: '', displayName: ud.nombre || email }, ud);
     } else {
       show('loginScreen');
     }
-  }, 6000);
+  }, 5000);
 
   auth.onAuthStateChanged(async user => {
-    authResolved = true;
-    clearTimeout(authTimeout);
+    if (!listening) return;
+    listening = false;
+    clearTimeout(timer);
 
     if (!user) {
-      // Comprobar caché offline
-      const keys = Object.keys(localStorage).filter(k => k.startsWith('arpUser_'));
-      if (keys.length && !navigator.onLine) {
-        const email = keys[0].replace('arpUser_', '');
-        const ud = JSON.parse(localStorage.getItem(keys[0]));
-        mostrarApp({ email, photoURL: '', displayName: ud.nombre || email }, ud);
-      } else {
-        show('loginScreen');
-      }
+      show('loginScreen');
       return;
     }
 
-    // Sin conexión → usar caché
+    show('loadingScreen');
+
     if (!navigator.onLine) {
-      const cached = localStorage.getItem('arpUser_' + user.email);
-      if (cached) {
-        mostrarApp(user, JSON.parse(cached));
-      } else {
-        show('deniedScreen');
-      }
+      const raw = localStorage.getItem('arpUser_' + user.email);
+      if (raw) mostrarApp(user, JSON.parse(raw));
+      else show('deniedScreen');
       return;
     }
 
-    // Con conexión → verificar en Firestore
     try {
       const snap = await db.collection('usuarios').doc(user.email).get();
       if (!snap.exists || !snap.data().activo) { show('deniedScreen'); return; }
       const ud = snap.data();
-      localStorage.setItem('arpUser_' + user.email, JSON.stringify(ud));
+      try { localStorage.setItem('arpUser_' + user.email, JSON.stringify(ud)); } catch(e) {}
       mostrarApp(user, ud);
     } catch(e) {
-      const cached = localStorage.getItem('arpUser_' + user.email);
-      if (cached) {
-        mostrarApp(user, JSON.parse(cached));
-      } else {
-        show('deniedScreen');
-      }
+      const raw = localStorage.getItem('arpUser_' + user.email);
+      if (raw) mostrarApp(user, JSON.parse(raw));
+      else show('deniedScreen');
     }
   });
 
-  // ─── LOGIN ───────────────────────────────────────────────────────────────────
-  // Siempre popup. Si el popup está bloqueado, mostramos mensaje claro.
+  // ── LOGIN ──────────────────────────────────────────────────────────────────
   window.loginGoogle = async () => {
     const btn = document.getElementById('btnLogin');
-    const errEl = document.getElementById('loginError');
-    errEl.classList.remove('visible');
+    const hint = document.getElementById('loginHint');
+    hint.classList.remove('vis');
     btn.disabled = true;
     btn.textContent = 'Conectando...';
 
+    // Abrir el listener antes de llamar al popup
+    listening = true;
+
     try {
       await auth.signInWithPopup(provider);
-      // onAuthStateChanged se dispara y maneja el resto
+      // onAuthStateChanged dispara → listening=false → mostrarApp
     } catch(e) {
+      listening = false; // cancelado o error
       btn.disabled = false;
       btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4c-7.7 0-14.4 4.4-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.8 13.6-4.7l-6.3-5.2C29.4 35.6 26.8 36 24 36c-5.2 0-9.6-2.9-11.7-7.2l-6.5 5C9.5 39.5 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.9 2.4-2.5 4.4-4.6 5.8l6.3 5.2C40.8 35.7 44 30.3 44 24c0-1.3-.1-2.7-.4-4z"/></svg> Entrar con Google`;
-
       if (e.code === 'auth/popup-blocked') {
-        errEl.textContent = 'El navegador bloqueó la ventana emergente. Permite las ventanas emergentes para esta página y vuelve a intentarlo.';
-        errEl.classList.add('visible');
-      } else if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
-        // El usuario cerró el popup — no mostrar error
-      } else {
-        errEl.textContent = 'Error al iniciar sesión: ' + e.message;
-        errEl.classList.add('visible');
+        hint.textContent = '⚠️ El navegador bloqueó la ventana. Permite ventanas emergentes para esta página.';
+        hint.classList.add('vis');
+      } else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+        hint.textContent = 'Error: ' + e.message;
+        hint.classList.add('vis');
       }
     }
   };
 
-  // ─── LOGOUT ──────────────────────────────────────────────────────────────────
+  // ── LOGOUT ─────────────────────────────────────────────────────────────────
   window.logout = async () => {
-    document.getElementById('userMenu').classList.remove('visible');
-    // Limpiar caché local
+    document.getElementById('userMenu').classList.remove('open');
     Object.keys(localStorage).filter(k => k.startsWith('arpUser_')).forEach(k => localStorage.removeItem(k));
+    listening = true; // onAuthStateChanged disparará con null → loginScreen
     await auth.signOut();
-    // onAuthStateChanged dispara con user=null → show('loginScreen')
-    // authResolved ya es true, pero el handler funciona correctamente
-    // porque no hay caché y puede estar online
   };
 
-  // ─── APP ─────────────────────────────────────────────────────────────────────
+  // ── APP ────────────────────────────────────────────────────────────────────
   function mostrarApp(user, ud) {
     show('appScreen');
-    document.getElementById('headerAvatar').src = user.photoURL || '';
-    document.getElementById('welcomeName').textContent = ud.nombre || user.displayName || user.email;
+    document.getElementById('headerAvatar').src = (user.photoURL || '');
+    document.getElementById('welcomeName').textContent = ud.nombre || user.displayName || user.email || '';
     document.getElementById('welcomeRole').textContent = ud.rol || 'inspector';
-    document.getElementById('menuName').textContent = ud.nombre || user.displayName || user.email;
-    document.getElementById('menuEmail').textContent = user.email;
+    document.getElementById('menuName').textContent = ud.nombre || user.displayName || '';
+    document.getElementById('menuEmail').textContent = user.email || '';
     if (ud.rol === 'admin') document.getElementById('adminCard').style.display = 'flex';
   }
 
-  window.toggleMenu = () => {
-    document.getElementById('userMenu').classList.toggle('visible');
-  };
+  window.toggleMenu = () => document.getElementById('userMenu').classList.toggle('open');
 
   document.addEventListener('click', e => {
     const menu = document.getElementById('userMenu');
     const avatar = document.getElementById('headerAvatar');
-    if (!menu.contains(e.target) && e.target !== avatar) {
-      menu.classList.remove('visible');
-    }
+    if (!menu.contains(e.target) && e.target !== avatar) menu.classList.remove('open');
   });
 
   const DATOS = `Adell Riesgos y Prevención S.L.\nB64399793\nC/ Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4\n41704 Dos Hermanas, Sevilla`;
@@ -362,19 +324,13 @@
   };
 
   window.compartirDatos = async () => {
-    if (navigator.share) {
-      await navigator.share({ title: 'Datos ARP', text: DATOS });
-    } else {
-      await navigator.clipboard.writeText(DATOS);
-      alert('Datos copiados');
-    }
+    if (navigator.share) await navigator.share({ title: 'Datos ARP', text: DATOS });
+    else { await navigator.clipboard.writeText(DATOS); alert('Datos copiados'); }
   };
 
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/arp-inspecciones/sw.js').catch(() => {});
-  }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/arp-inspecciones/sw.js').catch(() => {});
 
-  function updateOnline() { document.getElementById('offlineBadge').classList.toggle('visible', !navigator.onLine); }
+  function updateOnline() { document.getElementById('offlineBadge').classList.toggle('vis', !navigator.onLine); }
   window.addEventListener('online', updateOnline);
   window.addEventListener('offline', updateOnline);
   updateOnline();
