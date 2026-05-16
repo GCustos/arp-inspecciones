@@ -15,24 +15,20 @@
     .hdr-title{color:white;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .hdr-sub{color:var(--muted);font-size:10px}
     .hdr-estado{font-size:10px;font-weight:700;padding:3px 9px;border-radius:12px;flex-shrink:0}
-    .estado-borrador{background:rgba(138,130,120,0.2);color:var(--muted)}
-    .estado-curso{background:rgba(230,126,34,0.15);color:var(--orange)}
-    .estado-completada{background:rgba(39,174,96,0.15);color:var(--green)}
-
-    /* TABS — fix PC: sin max-width aquí, z-index correcto, user-select:none */
+    .estado-borrador{background:rgba(138,130,120,.2);color:var(--muted)}
+    .estado-curso{background:rgba(230,126,34,.15);color:var(--orange)}
+    .estado-completada{background:rgba(39,174,96,.15);color:var(--green)}
     .tabs{display:flex;background:white;border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:100;user-select:none}
-    .tab{flex:1;padding:11px 8px;font-size:12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;text-align:center;transition:all .2s;-webkit-tap-highlight-color:transparent}
+    .tab{flex:1;padding:11px 8px;font-size:12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;text-align:center;transition:all .2s}
     .tab:hover{color:var(--gold)}
     .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
-
-    /* TAB CONTENT — el max-width va en un wrapper interior, no en el display */
     .tab-content{display:none}
     .tab-content.active{display:block}
     .tab-inner{padding:16px;max-width:720px;margin:0 auto;padding-bottom:100px}
-
     .card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
     .card-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
     .card-title::after{content:"";flex:1;height:1px;background:var(--border)}
+    /* CHECKLIST GENERAL */
     .chk-wrap{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
     .chk-sec{background:var(--surf);border-bottom:1px solid var(--border);padding:7px 12px;display:flex;align-items:center;gap:8px}
     .chk-ref{font-size:9px;font-weight:700;color:white;background:var(--gold);padding:1px 6px;border-radius:3px;font-family:monospace}
@@ -52,15 +48,17 @@
     .obs-gral{width:100%;padding:10px 12px;border:none;border-top:1px solid var(--border);font-family:inherit;font-size:13px;color:var(--text);resize:vertical;min-height:80px;background:white}
     .obs-gral:focus{outline:none;background:#FFF9F0}
 
-    /* CIRCUITOS */
+    /* ── CIRCUITOS ─────────────────────────────────── */
     .circ-card{background:white;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden}
-    .circ-header{display:flex;align-items:center;padding:12px 14px;cursor:pointer;gap:10px;user-select:none;-webkit-tap-highlight-color:transparent}
+    .circ-header{display:flex;align-items:center;padding:12px 14px;cursor:pointer;gap:10px;user-select:none}
     .circ-toggle{font-size:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
     .circ-toggle.open{transform:rotate(90deg)}
     .circ-nombre{flex:1;font-size:13px;font-weight:700;color:var(--dark);font-family:monospace;text-transform:uppercase;letter-spacing:.05em}
     .circ-stats{font-size:11px;color:var(--muted);flex-shrink:0}
     .circ-body{display:none;border-top:1px solid var(--border)}
     .circ-body.open{display:block}
+
+    /* ── TABLA JUEGOS (PC) ─────────────────────────── */
     .jt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
     .jt{width:100%;border-collapse:collapse;font-size:11px;min-width:560px}
     .jt th{background:var(--dark);color:white;padding:7px 5px;text-align:center;font-size:9px;font-weight:700;letter-spacing:.04em;line-height:1.3}
@@ -81,21 +79,62 @@
     .rama-inp:focus{outline:none;background:#FFF9F0}
     .del-btn{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:4px 6px}
     .del-btn:hover{color:var(--red)}
-
-    /* Botón foto por juego */
     .foto-juego-btn{background:none;border:none;font-size:14px;cursor:pointer;padding:4px 6px;color:var(--muted);position:relative}
     .foto-juego-btn:hover{color:var(--gold)}
-    .foto-juego-btn .foto-count{position:absolute;top:0;right:0;background:var(--gold);color:white;font-size:8px;font-weight:700;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-family:monospace}
+    .foto-count{position:absolute;top:0;right:0;background:var(--gold);color:white;font-size:8px;font-weight:700;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-family:monospace}
+
+    /* ── ACORDEÓN JUEGOS (MÓVIL) ───────────────────── */
+    .juego-card{border-top:1px solid var(--border);background:white}
+    .juego-header{display:flex;align-items:center;padding:10px 14px;cursor:pointer;gap:8px;user-select:none}
+    .juego-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .dot-ok{background:var(--green)}
+    .dot-n{background:var(--orange)}
+    .dot-empty{background:var(--border)}
+    .juego-hdr-name{flex:1;font-size:13px;font-weight:600;color:var(--dark)}
+    .juego-hdr-meta{font-size:10px;color:var(--muted);font-family:monospace}
+    .juego-toggle{font-size:11px;color:var(--muted);transition:transform .2s}
+    .juego-toggle.open{transform:rotate(90deg)}
+    .juego-body{display:none;padding:12px 14px;border-top:1px solid var(--surf);background:#FAFAF9}
+    .juego-body.open{display:block}
+    .juego-field{margin-bottom:10px}
+    .juego-field label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+    .juego-field input,.juego-field select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:white;color:var(--text)}
+    .juego-field input:focus,.juego-field select:focus{outline:none;border-color:var(--gold)}
+    .criterio-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+    .criterio-row:last-child{border-bottom:none}
+    .criterio-label{flex:1;font-size:12px;color:var(--text)}
+    .criterio-btns{display:flex;gap:4px}
+    .criterio-btns .snb-s{padding:4px 8px;font-size:10px}
+    .juego-nav{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+    .btn-nav{flex:1;padding:9px;border:1.5px solid var(--border);border-radius:8px;background:white;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s}
+    .btn-nav:hover{border-color:var(--gold);color:var(--gold)}
+    .btn-nav.primary{background:var(--gold);border-color:var(--gold);color:white}
+    .btn-nav.primary:hover{opacity:.9}
+    .juego-foto-row{display:flex;gap:8px;margin-top:10px}
+    .btn-foto-cam,.btn-foto-gal{flex:1;padding:9px;border:1.5px solid var(--border);border-radius:8px;background:white;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+    .btn-foto-cam:hover,.btn-foto-gal:hover{border-color:var(--gold);color:var(--gold)}
+    .juego-fotos-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+    .juego-foto-thumb{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border)}
+    .juego-foto-thumb img{width:100%;height:100%;object-fit:cover}
+    .juego-foto-del{position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,.55);border:none;border-radius:50%;color:white;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 
     .btn-add-juego{display:flex;align-items:center;gap:6px;padding:9px 14px;border:1.5px dashed var(--border);background:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;width:100%;transition:all .2s}
     .btn-add-juego:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
     .btn-add-circ{display:flex;align-items:center;gap:8px;padding:11px 14px;border:1.5px dashed var(--border);border-radius:12px;background:none;color:var(--muted);font-family:inherit;font-size:13px;cursor:pointer;width:100%;transition:all .2s;margin-bottom:12px}
     .btn-add-circ:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
 
-    /* NCs */
+    /* ── NCs ───────────────────────────────────────── */
     .nc-card{border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:10px;background:#FAFAF9}
+    .nc-card.nc-incompleta{border-color:var(--red);background:#FFF5F5}
     .nc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
     .nc-num{font-size:10px;font-weight:700;color:white;background:var(--dark);padding:2px 8px;border-radius:4px;font-family:monospace}
+    .nc-badges{display:flex;gap:6px;align-items:center}
+    .nc-tipo-badge{font-size:10px;font-weight:600;color:var(--gold);background:rgba(200,153,58,.12);padding:2px 8px;border-radius:10px;border:1px solid rgba(200,153,58,.3)}
+    .nc-prio-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+    .p-GRAVE{background:#FFEBEE;color:var(--red);border:1px solid var(--red)}
+    .p-MEDIA{background:#FFF8E1;color:var(--orange);border:1px solid var(--orange)}
+    .p-LEVE{background:#E3F2FD;color:var(--blue);border:1px solid var(--blue)}
+    .p-DOCUMENTAL{background:#F3E5F5;color:#8E24AA;border:1px solid #8E24AA}
     .nc-del{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer}
     .nc-del:hover{color:var(--red)}
     .f{margin-bottom:10px}
@@ -112,37 +151,41 @@
     .prio-btn.p-DOCUMENTAL{background:#F3E5F5;border-color:#8E24AA;color:#8E24AA}
     .btn-add-nc{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1.5px dashed var(--border);border-radius:10px;background:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;width:100%;margin-top:8px;transition:all .2s}
     .btn-add-nc:hover{border-color:var(--gold);color:var(--gold)}
+    .nc-warn{background:#FFF8E1;border:1px solid var(--orange);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--orange);margin-bottom:10px;display:none}
+    .nc-warn.vis{display:block}
 
-    /* FOTOS GRID */
+    /* ── FOTOS ─────────────────────────────────────── */
     .foto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
     .foto-thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--surf);border:1px solid var(--border)}
     .foto-thumb img{width:100%;height:100%;object-fit:cover}
     .foto-del{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(0,0,0,.55);border:none;border-radius:50%;color:white;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-    .foto-add{aspect-ratio:1;border-radius:8px;border:1.5px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:none;gap:4px;font-family:inherit;font-size:11px;color:var(--muted);transition:all .2s}
-    .foto-add:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
+    .foto-add-row{display:flex;gap:8px;margin-top:8px}
+    .btn-foto{flex:1;padding:10px;border:1.5px dashed var(--border);border-radius:8px;background:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+    .btn-foto:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
 
-    /* MODAL FOTOS JUEGO */
-    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:none;align-items:flex-end;justify-content:center}
+    /* ── MODAL NC (al marcar N) ────────────────────── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:none;align-items:flex-end;justify-content:center}
     .modal-overlay.open{display:flex}
-    .modal-sheet{background:white;border-radius:16px 16px 0 0;width:100%;max-width:500px;max-height:80vh;overflow-y:auto;padding:20px 16px 32px}
+    .modal-sheet{background:white;border-radius:16px 16px 0 0;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;padding:20px 16px 32px}
     .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-    .modal-title{font-size:14px;font-weight:700;color:var(--dark)}
-    .modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1}
+    .modal-title{font-size:15px;font-weight:700;color:var(--dark)}
+    .modal-close-btn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1}
+    .modal-context{font-size:12px;color:var(--muted);background:var(--surf);padding:8px 12px;border-radius:8px;margin-bottom:14px}
+    .modal-context strong{color:var(--text)}
+    .modal-err{font-size:12px;color:var(--red);margin-top:8px;display:none}
+    .modal-err.vis{display:block}
+    .btn-modal-ok{width:100%;padding:14px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;margin-top:16px;box-shadow:0 4px 12px rgba(200,153,58,.3)}
+    .btn-modal-ok:hover{opacity:.9}
+
+    /* ── MODAL FOTOS JUEGO ─────────────────────────── */
     .modal-fotos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .foto-add-btns{display:flex;gap:8px;margin-top:10px}
 
-    /* Banner importar circuitos */
-    .import-banner{background:#FFF9F0;border:1.5px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:12px;display:none}
-    .import-banner.vis{display:block}
-    .import-banner p{font-size:12px;color:var(--text);margin-bottom:10px}
-    .import-banner strong{color:var(--gold)}
-    .import-btns{display:flex;gap:8px}
-    .btn-import-si{flex:1;padding:8px;background:var(--gold);color:white;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
-    .btn-import-no{flex:1;padding:8px;background:var(--surf);color:var(--muted);border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer}
-
+    /* ── BOTTOM BAR ────────────────────────────────── */
     .bottom-bar{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px;z-index:150}
     .btn-guardar{flex:1;padding:13px;background:var(--surf);color:var(--text);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
     .btn-guardar:hover{border-color:var(--gold);color:var(--gold)}
-    .btn-completar{flex:2;padding:13px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 4px 12px rgba(200,153,58,0.3)}
+    .btn-completar{flex:2;padding:13px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 4px 12px rgba(200,153,58,.3)}
     .btn-completar:hover{transform:translateY(-1px)}
     .offline-badge{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
     .offline-badge.visible{display:block}
@@ -151,6 +194,22 @@
     .spinner-wrap{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
     .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
     @keyframes spin{to{transform:rotate(360deg)}}
+    .import-banner{background:#FFF9F0;border:1.5px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:12px;display:none}
+    .import-banner.vis{display:block}
+    .import-banner p{font-size:12px;color:var(--text);margin-bottom:10px}
+    .import-banner strong{color:var(--gold)}
+    .import-btns{display:flex;gap:8px}
+    .btn-import-si{flex:1;padding:8px;background:var(--gold);color:white;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
+    .btn-import-no{flex:1;padding:8px;background:var(--surf);color:var(--muted);border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer}
+
+    /* Detectar móvil via CSS — ocultar tabla en móvil, mostrar acordeón */
+    @media(max-width:600px){
+      .jt-wrap{display:none}
+      .juegos-movil{display:block}
+    }
+    @media(min-width:601px){
+      .juegos-movil{display:none}
+    }
   </style>
 </head>
 <body>
@@ -164,7 +223,6 @@
   <span class="hdr-estado estado-borrador" id="hdrEstado">Borrador</span>
 </div>
 
-<!-- TABS: onclick directo en el div, sin elementos intermedios que interfieran -->
 <div class="tabs" id="tabsBar">
   <div class="tab active" id="tab1" onclick="goTab(1)">General</div>
   <div class="tab" id="tab2" onclick="goTab(2)">Circuitos</div>
@@ -189,7 +247,6 @@
 <!-- TAB 2: CIRCUITOS -->
 <div class="tab-content" id="tc2">
   <div class="tab-inner">
-    <!-- Banner importar circuitos de inspección anterior -->
     <div class="import-banner" id="importBanner">
       <p>Esta instalación tiene una inspección anterior. ¿Deseas cargar la <strong>estructura de circuitos y juegos</strong> como punto de partida?</p>
       <div class="import-btns">
@@ -207,18 +264,20 @@
   <div class="tab-inner">
     <div class="card">
       <div class="card-title">No conformidades</div>
+      <div class="nc-warn" id="ncWarn"></div>
       <div id="ncList"></div>
       <button class="btn-add-nc" onclick="addNC()">&#43; Añadir no conformidad</button>
     </div>
     <div class="card">
       <div class="card-title">Fotos del informe</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:4px">Fotos generales de la instalación y de no conformidades para el informe PDF.</p>
-      <div class="foto-grid" id="fotoGrid">
-        <button class="foto-add" onclick="document.getElementById('fileInput').click()">
-          <span style="font-size:22px">&#128247;</span><span>Añadir foto</span>
-        </button>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:4px">Fotos generales de la instalación para el informe PDF.</p>
+      <div class="foto-grid" id="fotoGrid"></div>
+      <div class="foto-add-row">
+        <button class="btn-foto" onclick="document.getElementById('fileInputCam').click()">📷 Cámara</button>
+        <button class="btn-foto" onclick="document.getElementById('fileInputGal').click()">🖼 Galería</button>
       </div>
-      <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFotos(this)">
+      <input type="file" id="fileInputCam" accept="image/*" capture="environment" multiple style="display:none" onchange="handleFotos(this)">
+      <input type="file" id="fileInputGal" accept="image/*" multiple style="display:none" onchange="handleFotos(this)">
     </div>
     <div class="card">
       <div class="card-title">Ensayos no realizados</div>
@@ -233,18 +292,72 @@
   <button class="btn-guardar" onclick="guardar()">&#128190; Guardar</button>
   <button class="btn-completar" onclick="completar()">Completar inspección &#8594;</button>
 </div>
-
 <div class="offline-badge" id="offlineBadge">Sin conexión — modo offline</div>
+
+<!-- MODAL NC OBLIGATORIO (al marcar N) -->
+<div class="modal-overlay" id="modalNC">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Nueva no conformidad</span>
+    </div>
+    <div class="modal-context" id="modalNCContexto"></div>
+    <div class="f">
+      <label>Tipo de no conformidad *</label>
+      <select id="modalNCTipo" onchange="onTipoNCChange()">
+        <option value="">— Selecciona tipo —</option>
+        <option>Cables con hilos rotos / desgastados</option>
+        <option>Madera deteriorada / podrida</option>
+        <option>Redes rotas / desgastadas</option>
+        <option>Anclajes / fijaciones deficientes</option>
+        <option>Eslinga deteriorada</option>
+        <option>Señalización insuficiente / incorrecta</option>
+        <option>Árbol soporte dañado / inclinado</option>
+        <option>EPI deteriorado / sin revisar</option>
+        <option>Documentación incompleta / ausente</option>
+        <option>Zona de seguridad insuficiente</option>
+        <option value="__otro__">Otro (escribir)</option>
+      </select>
+    </div>
+    <div class="f" id="modalNCTipoLibreWrap" style="display:none">
+      <label>Describe el tipo</label>
+      <input type="text" id="modalNCTipoLibre" placeholder="Describe el tipo de no conformidad...">
+    </div>
+    <div class="f">
+      <label>Gravedad *</label>
+      <div class="prio-row" id="modalNCPrioRow">
+        <button class="prio-btn" onclick="setModalPrio('GRAVE')">GRAVE</button>
+        <button class="prio-btn" onclick="setModalPrio('MEDIA')">MEDIA</button>
+        <button class="prio-btn" onclick="setModalPrio('LEVE')">LEVE</button>
+        <button class="prio-btn" onclick="setModalPrio('DOCUMENTAL')">DOCUMENTAL</button>
+      </div>
+    </div>
+    <div class="f">
+      <label>Observación (opcional)</label>
+      <input type="text" id="modalNCObs" placeholder="Detalle adicional...">
+    </div>
+    <div class="f">
+      <label>Referencia normativa</label>
+      <input type="text" id="modalNCNorma" value="UNE EN 15567-1:2015+A1:2021">
+    </div>
+    <div class="modal-err" id="modalNCErr">Debes seleccionar el tipo y la gravedad.</div>
+    <button class="btn-modal-ok" onclick="confirmarNC()">Confirmar no conformidad</button>
+  </div>
+</div>
 
 <!-- MODAL FOTOS POR JUEGO -->
 <div class="modal-overlay" id="modalFotos" onclick="cerrarModalFotos(event)">
   <div class="modal-sheet" onclick="event.stopPropagation()">
     <div class="modal-header">
       <span class="modal-title" id="modalFotosTitulo">Fotos del juego</span>
-      <button class="modal-close" onclick="cerrarModalFotos()">&#215;</button>
+      <button class="modal-close-btn" onclick="cerrarModalFotos()">&#215;</button>
     </div>
     <div class="modal-fotos-grid" id="modalFotosGrid"></div>
-    <input type="file" id="fileInputJuego" accept="image/*" multiple style="display:none" onchange="handleFotosJuego(this)">
+    <div class="foto-add-btns">
+      <button class="btn-foto" onclick="document.getElementById('fileInputJuegoCam').click()">📷 Cámara</button>
+      <button class="btn-foto" onclick="document.getElementById('fileInputJuegoGal').click()">🖼 Galería</button>
+    </div>
+    <input type="file" id="fileInputJuegoCam" accept="image/*" capture="environment" multiple style="display:none" onchange="handleFotosJuego(this)">
+    <input type="file" id="fileInputJuegoGal" accept="image/*" multiple style="display:none" onchange="handleFotosJuego(this)">
   </div>
 </div>
 
@@ -254,37 +367,35 @@
 <script>
   if (!firebase.apps.length) {
     firebase.initializeApp({
-      apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
-      authDomain: "arp-inspecciones.firebaseapp.com",
-      projectId: "arp-inspecciones",
-      storageBucket: "arp-inspecciones.firebasestorage.app",
-      messagingSenderId: "35880168451",
-      appId: "1:35880168451:web:090e3c250b4416ed0b3236"
+      apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain:"arp-inspecciones.firebaseapp.com",
+      projectId:"arp-inspecciones",
+      storageBucket:"arp-inspecciones.firebasestorage.app",
+      messagingSenderId:"35880168451",
+      appId:"1:35880168451:web:090e3c250b4416ed0b3236"
     });
   }
-
   const auth = firebase.auth();
   const db = firebase.firestore();
-
-  db.enablePersistence({ synchronizeTabs: true }).catch(e => {
-    if (e.code !== 'failed-precondition' && e.code !== 'unimplemented') console.log('Persistence:', e.code);
+  db.enablePersistence({synchronizeTabs:true}).catch(e=>{
+    if(e.code!=='failed-precondition'&&e.code!=='unimplemented') console.log('Persistence:',e.code);
   });
 
   const params = new URLSearchParams(window.location.search);
   const inspeccionId = params.get("id");
-  if (!inspeccionId) { location.href = "inspecciones.html"; }
+  if (!inspeccionId) { location.href="inspecciones.html"; }
 
-  let currentUser = null;
-  let isDirty = false;
-  let cargaIniciada = false;
-  let modalJuegoRef = null; // { ci, ji }
-  let circuitosAnteriores = null; // para importar
+  let currentUser=null, isDirty=false, cargaIniciada=false;
+  let modalJuegoRef=null, circuitosAnteriores=null;
+  // Modal NC state
+  let modalNCRef=null; // {ci,ji,col} o {itemId} para checklist general
+  let modalNCPrio='';
 
   const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], fotos:[], ensayos:"" };
 
   const GEN_ITEMS = [
     {id:"g1",ref:"4.1",sec:"Selección de Lugar y Entorno",desc:"Evacuación posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosión)."},
-    {id:"g2",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.3 Sistemas de soporte naturales – Árboles. Evaluación de resistencia e idoneidad por experto; diagnóstico actualizado; protección de raíces; medidas correctivas."},
+    {id:"g2",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.3 Sistemas de soporte naturales — Árboles. Evaluación de resistencia e idoneidad por experto; diagnóstico actualizado; protección de raíces; medidas correctivas."},
     {id:"g3",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.2 Sistemas de soporte artificiales. Adecuación a cargas; vientos y anclajes protegidos; verificación de estructuras existentes si aplican; cálculos disponibles."},
     {id:"g4",ref:"4.2",sec:"Materiales y cables",desc:"Maderas, metales, compuestos; cables (galvanizado/inox); terminaciones conforme; criterio de desecho."},
     {id:"g5",ref:"6",sec:"Señalización general y control de acceso",desc:"Control de acceso. Codificación de recorridos y dificultad; pictogramas; ubicación y legibilidad."},
@@ -299,151 +410,112 @@
     {key:"ra",label:"Riesgos\natrap."},
     {key:"zs",label:"Zona\nsegur."},
   ];
+  const COL_LABELS = {ie:"Integridad estructural",af:"Anclajes y fijaciones",ej:"Elementos de juego",ra:"Riesgos y atrapamientos",zs:"Zona de seguridad/Entorno"};
 
-  // ─── ERROR ───────────────────────────────────────────────
-  function showError(msg) {
-    document.getElementById('genChecklist').innerHTML = '';
-    const b = document.getElementById('errBanner');
-    b.innerHTML = '&#9888;&#65039; ' + msg + '<br><br><a href="inspecciones.html" style="color:var(--red);font-weight:700">&#8592; Volver a inspecciones</a>';
-    b.classList.add('visible');
-  }
+  // ── AUTH ──────────────────────────────────────────
+  let authOk=false;
+  setTimeout(()=>{
+    if(authOk) return;
+    const keys=Object.keys(localStorage).filter(k=>k.startsWith('arpUser_'));
+    if(keys.length){ iniciarCarga({email:keys[0].replace('arpUser_',''),photoURL:'',displayName:''}); }
+    else { showError('Sesión no verificada. <a href="index.html" style="color:var(--red);font-weight:700">Inicia sesión de nuevo</a>.'); }
+  },5000);
 
-  // ─── AUTH ─────────────────────────────────────────────────
-  let authOk = false;
-  setTimeout(() => {
-    if (authOk) return;
-    console.warn('[ARP] Auth timeout — usando cache');
-    const keys = Object.keys(localStorage).filter(k => k.startsWith('arpUser_'));
-    if (keys.length) {
-      const email = keys[0].replace('arpUser_', '');
-      iniciarCarga({ email, photoURL: '', displayName: email });
-    } else {
-      showError('Sesión no verificada. <a href="index.html" style="color:var(--red);font-weight:700">Inicia sesión de nuevo</a>.');
-    }
-  }, 5000);
-
-  auth.onAuthStateChanged(user => {
-    authOk = true;
-    if (!user) { location.href = 'index.html'; return; }
+  auth.onAuthStateChanged(user=>{
+    authOk=true;
+    if(!user){ location.href='index.html'; return; }
     iniciarCarga(user);
   });
 
   async function iniciarCarga(user) {
-    if (cargaIniciada) return;
-    cargaIniciada = true;
-    currentUser = user;
+    if(cargaIniciada) return;
+    cargaIniciada=true;
+    currentUser=user;
     try {
       const snap = await db.collection("inspecciones").doc(inspeccionId).get();
-      if (!snap.exists) { showError('Inspección no encontrada. ID: ' + inspeccionId); return; }
+      if(!snap.exists){ showError('Inspección no encontrada. ID: '+inspeccionId); return; }
       const data = snap.data();
-
-      // Verificar rol (tolerante a fallos)
       try {
         const uSnap = await db.collection("usuarios").doc(currentUser.email).get();
-        if (uSnap.exists && uSnap.data().rol === "inspector" && data.inspectorEmail !== currentUser.email) {
-          alert("No tienes acceso a esta inspección.");
-          location.href = "inspecciones.html"; return;
+        if(uSnap.exists&&uSnap.data().rol==="inspector"&&data.inspectorEmail!==currentUser.email){
+          alert("No tienes acceso a esta inspección."); location.href="inspecciones.html"; return;
         }
-      } catch(e) { console.warn('No se pudo verificar rol:', e.message); }
-
-      // Cargar datos
-      if (data.checklist) Object.assign(S.gen, data.checklist);
-      if (data.checklistObs) Object.assign(S.genObs, data.checklistObs);
-      if (data.obsGral) S.obsGral = data.obsGral;
-      if (data.circuitos) S.circuitos = data.circuitos;
-      if (data.ncs) S.ncs = data.ncs;
-      if (data.fotos) S.fotos = data.fotos;
-      if (data.ensayos) S.ensayos = data.ensayos;
-
-      document.getElementById("hdrTitulo").textContent = data.nombreInstalacion || "Sin nombre";
-      document.getElementById("hdrSub").textContent = (data.tipoAlcance||"PAA") + " · " + (data.tipoInspeccion||"") + " · " + (data.inspectorNombre||"");
-      actualizarEstado(data.estado || "borrador");
-
-      // Buscar inspecciones anteriores de la misma instalación para ofrecer importar circuitos
-      if (!S.circuitos.length && data.nombreInstalacion) {
-        buscarCircuitosAnteriores(data.nombreInstalacion);
-      }
-
-      renderGen();
-      renderCircuitos();
-      renderNCs();
-      renderFotos();
-      document.getElementById("obsGral").value = S.obsGral;
-      document.getElementById("ensayos").value = S.ensayos;
-
-    } catch(e) {
-      showError('Error al cargar la inspección: ' + e.message + ' (código: ' + (e.code||'?') + ')');
-    }
+      } catch(e){ console.warn('No se pudo verificar rol:',e.message); }
+      if(data.checklist) Object.assign(S.gen,data.checklist);
+      if(data.checklistObs) Object.assign(S.genObs,data.checklistObs);
+      if(data.obsGral) S.obsGral=data.obsGral;
+      if(data.circuitos) S.circuitos=data.circuitos;
+      if(data.ncs) S.ncs=data.ncs;
+      if(data.fotos) S.fotos=data.fotos;
+      if(data.ensayos) S.ensayos=data.ensayos;
+      document.getElementById("hdrTitulo").textContent=data.nombreInstalacion||"Sin nombre";
+      document.getElementById("hdrSub").textContent=(data.tipoAlcance||"PAA")+" · "+(data.tipoInspeccion||"")+" · "+(data.inspectorNombre||"");
+      actualizarEstado(data.estado||"borrador");
+      if(!S.circuitos.length&&data.nombreInstalacion) buscarCircuitosAnteriores(data.nombreInstalacion);
+      renderGen(); renderCircuitos(); renderNCs(); renderFotos();
+      document.getElementById("obsGral").value=S.obsGral;
+      document.getElementById("ensayos").value=S.ensayos;
+    } catch(e){ showError('Error al cargar la inspección: '+e.message+' (código: '+(e.code||'?')+')'); }
   }
 
-  async function buscarCircuitosAnteriores(nombreInstalacion) {
+  function showError(msg){
+    document.getElementById('genChecklist').innerHTML='';
+    const b=document.getElementById('errBanner');
+    b.innerHTML='&#9888;&#65039; '+msg+'<br><br><a href="inspecciones.html" style="color:var(--red);font-weight:700">&#8592; Volver a inspecciones</a>';
+    b.classList.add('visible');
+  }
+
+  async function buscarCircuitosAnteriores(nombre) {
     try {
       const q = await db.collection("inspecciones")
-        .where("nombreInstalacion", "==", nombreInstalacion)
-        .where("estado", "==", "completada")
-        .orderBy("fechaCompletada", "desc")
-        .limit(1)
-        .get();
-      if (!q.empty) {
-        const prev = q.docs[0].data();
-        if (prev.circuitos && prev.circuitos.length) {
-          circuitosAnteriores = prev.circuitos;
+        .where("nombreInstalacion","==",nombre).where("estado","==","completada")
+        .orderBy("fechaCompletada","desc").limit(1).get();
+      if(!q.empty){
+        const prev=q.docs[0].data();
+        if(prev.circuitos&&prev.circuitos.length){
+          circuitosAnteriores=prev.circuitos;
           document.getElementById('importBanner').classList.add('vis');
         }
       }
-    } catch(e) { console.warn('No se pudieron buscar circuitos anteriores:', e.message); }
+    } catch(e){ console.warn('No se pudieron buscar circuitos anteriores:',e.message); }
   }
 
-  function importarCircuitos() {
-    if (!circuitosAnteriores) return;
-    // Importar estructura sin valores S/N/NA (se reinician para nueva inspección)
-    S.circuitos = circuitosAnteriores.map(circ => ({
-      nombre: circ.nombre,
-      juegos: circ.juegos.map(j => ({
-        nombre: j.nombre,
-        tipo: j.tipo,
-        rama: j.rama || "",
-        ie: "", af: "", ej: "", ra: "", zs: "",
-        obs: "",
-        fotos: []
-      }))
+  function importarCircuitos(){
+    if(!circuitosAnteriores) return;
+    S.circuitos=circuitosAnteriores.map(circ=>({
+      nombre:circ.nombre,
+      juegos:circ.juegos.map(j=>({nombre:j.nombre,tipo:j.tipo,rama:j.rama||"",ie:"",af:"",ej:"",ra:"",zs:"",obs:"",fotos:[]}))
     }));
     document.getElementById('importBanner').classList.remove('vis');
-    markDirty();
-    renderCircuitos();
-    goTab(2);
+    markDirty(); renderCircuitos(); goTab(2);
   }
 
-  function actualizarEstado(estado) {
-    const el = document.getElementById("hdrEstado");
-    el.className = "hdr-estado estado-" + (estado === 'en_curso' ? 'curso' : estado);
-    el.textContent = {borrador:"Borrador",en_curso:"En curso",completada:"Completada"}[estado] || estado;
+  function actualizarEstado(estado){
+    const el=document.getElementById("hdrEstado");
+    el.className="hdr-estado estado-"+(estado==='en_curso'?'curso':estado);
+    el.textContent={borrador:"Borrador",en_curso:"En curso",completada:"Completada"}[estado]||estado;
   }
 
-  // ─── TABS ─────────────────────────────────────────────────
-  // FIX PC: usamos getElementById explícito para evitar que el event bubbling
-  // desde elementos hijos rompa la lógica. Las tabs y tab-contents están bien
-  // separados en el DOM.
-  function goTab(n) {
-    [1,2,3].forEach(i => {
-      document.getElementById('tab'+i).classList.toggle('active', i===n);
-      document.getElementById('tc'+i).classList.toggle('active', i===n);
+  // ── TABS ──────────────────────────────────────────
+  function goTab(n){
+    [1,2,3].forEach(i=>{
+      document.getElementById('tab'+i).classList.toggle('active',i===n);
+      document.getElementById('tc'+i).classList.toggle('active',i===n);
     });
-    // Scroll al top del contenido
-    window.scrollTo({top: 0, behavior: 'smooth'});
+    window.scrollTo({top:0,behavior:'smooth'});
   }
 
-  // ─── CHECKLIST GENERAL ────────────────────────────────────
-  function renderGen() {
-    let lastSec = "", html = "";
-    GEN_ITEMS.forEach(item => {
-      if (item.sec !== lastSec) {
-        lastSec = item.sec;
-        html += `<div class="chk-sec"><span class="chk-ref">${item.ref}</span><span class="chk-sec-name">${item.sec}</span></div>`;
+  // ── CHECKLIST GENERAL ─────────────────────────────
+  function renderGen(){
+    let lastSec="",html="";
+    GEN_ITEMS.forEach(item=>{
+      if(item.sec!==lastSec){
+        lastSec=item.sec;
+        html+=`<div class="chk-sec"><span class="chk-ref">${item.ref}</span><span class="chk-sec-name">${item.sec}</span></div>`;
       }
-      const v = S.gen[item.id] || "";
-      const obs = (S.genObs[item.id] || "").replace(/"/g,'&quot;');
-      html += `
+      const v=S.gen[item.id]||"";
+      const obs=(S.genObs[item.id]||"").replace(/"/g,'&quot;');
+      html+=`
         <div class="chk-row">
           <div class="chk-desc">${item.desc}</div>
           <div class="chk-snb">
@@ -454,267 +526,465 @@
         </div>
         <div class="chk-obs ${v==="N"?"vis":""}" id="go_${item.id}">
           <input type="text" placeholder="Observación..." value="${obs}"
-            onchange="S.genObs['${item.id}']=this.value;checkAutoNC('${item.id}');markDirty()">
+            onchange="S.genObs['${item.id}']=this.value;markDirty()">
         </div>`;
     });
-    document.getElementById("genChecklist").innerHTML = `<div class="chk-wrap">${html}</div>`;
+    document.getElementById("genChecklist").innerHTML=`<div class="chk-wrap">${html}</div>`;
   }
 
-  function setGen(id, v) {
-    S.gen[id] = v;
-    if (v === "N") checkAutoNC(id);
+  function setGen(id,v){
+    const prev=S.gen[id];
+    S.gen[id]=v;
     markDirty();
-    renderGen();
+    if(v==="N"&&prev!=="N"){
+      // Abrir modal NC para ítem del checklist general
+      const item=GEN_ITEMS.find(i=>i.id===id);
+      abrirModalNC({itemId:id,contexto:`Checklist general — ${item.ref} ${item.sec}`});
+    } else {
+      renderGen();
+    }
   }
 
-  function checkAutoNC(itemId) {
-    const item = GEN_ITEMS.find(i => i.id === itemId);
-    if (!item || S.ncs.find(n => n.autoId === itemId) || S.gen[itemId] !== "N") return;
-    S.ncs.push({ autoId:itemId, elem:item.sec, desc:S.genObs[itemId]||"", norma:"UNE EN 15567-1:2015+A1:2021, punto "+item.ref, prio:"" });
-    renderNCs();
-  }
-
-  // ─── CIRCUITOS ────────────────────────────────────────────
-  function addCircuito() {
-    const nombre = prompt("Nombre del circuito:", "Circuito " + (S.circuitos.length + 1));
-    if (!nombre) return;
-    S.circuitos.push({ nombre, juegos: [] });
+  // ── CIRCUITOS ─────────────────────────────────────
+  function addCircuito(){
+    const nombre=prompt("Nombre del circuito:","Circuito "+(S.circuitos.length+1));
+    if(!nombre) return;
+    S.circuitos.push({nombre,juegos:[]});
     markDirty(); renderCircuitos();
-    addJuegoToCircuito(S.circuitos.length - 1);
+    addJuegoToCircuito(S.circuitos.length-1);
   }
 
-  function addJuegoToCircuito(ci) {
-    S.circuitos[ci].juegos.push({ nombre:"", tipo:"R", rama:"", ie:"", af:"", ej:"", ra:"", zs:"", obs:"", fotos:[] });
+  function addJuegoToCircuito(ci){
+    S.circuitos[ci].juegos.push({nombre:"",tipo:"R",rama:"",ie:"",af:"",ej:"",ra:"",zs:"",obs:"",fotos:[]});
     markDirty(); renderCircuitos();
+    // Abrir el último juego en móvil
+    const lastJi=S.circuitos[ci].juegos.length-1;
+    abrirJuegoMovil(ci,lastJi);
   }
 
-  function setJuego(ci, ji, col, val) {
-    S.circuitos[ci].juegos[ji][col] = val;
-    if (!["nombre","obs","rama"].includes(col) && val === "N") checkAutoNCJuego(ci, ji, col);
+  function setJuego(ci,ji,col,val){
+    const prev=S.circuitos[ci].juegos[ji][col];
+    S.circuitos[ci].juegos[ji][col]=val;
     markDirty();
+    if(!["nombre","obs","rama"].includes(col)&&val==="N"&&prev!=="N"){
+      const j=S.circuitos[ci].juegos[ji];
+      const circ=S.circuitos[ci];
+      abrirModalNC({
+        ci,ji,col,
+        contexto:`${circ.nombre} — ${j.nombre||"Juego "+(ji+1)} — ${COL_LABELS[col]}`
+      });
+    } else {
+      renderCircuitos();
+    }
   }
 
-  function checkAutoNCJuego(ci, ji, col) {
-    const j = S.circuitos[ci].juegos[ji];
-    const labels = {ie:"Integridad estructural",af:"Anclajes y fijaciones",ej:"Elementos de juego",ra:"Riesgos y atrapamientos",zs:"Zona de seguridad/Entorno"};
-    const autoId = `j_${ci}_${ji}_${col}`;
-    if (S.ncs.find(n => n.autoId === autoId)) return;
-    S.ncs.push({ autoId, elem:`${S.circuitos[ci].nombre} — ${j.nombre||"Juego "+(ji+1)}`, desc:`${labels[col]} no satisfactorio.`, norma:"UNE EN 15.567-1:2015+A1:2021", prio:"" });
-    renderNCs();
-  }
+  function delJuego(ci,ji){ S.circuitos[ci].juegos.splice(ji,1); markDirty(); renderCircuitos(); }
 
-  function delJuego(ci, ji) { S.circuitos[ci].juegos.splice(ji,1); markDirty(); renderCircuitos(); }
-  function toggleCircuito(ci) {
+  function toggleCircuito(ci){
     document.getElementById("cb_"+ci).classList.toggle("open");
     document.getElementById("ct_"+ci).classList.toggle("open");
   }
 
-  function renderCircuitos() {
-    const c = document.getElementById("circuitosContainer");
-    if (!S.circuitos.length) {
-      c.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Pulsa el botón para añadir el primer circuito.</div>`;
+  // Estado del acordeón móvil: qué juego está abierto por circuito
+  const juegoAbierto={};
+
+  function abrirJuegoMovil(ci,ji){
+    juegoAbierto[ci]=ji;
+    renderCircuitos();
+    // Scroll al juego
+    setTimeout(()=>{
+      const el=document.getElementById(`jm_${ci}_${ji}`);
+      if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+    },100);
+  }
+
+  function toggleJuegoMovil(ci,ji){
+    if(juegoAbierto[ci]===ji){ juegoAbierto[ci]=-1; }
+    else { juegoAbierto[ci]=ji; }
+    renderCircuitos();
+  }
+
+  function navJuego(ci,ji,dir){
+    const total=S.circuitos[ci].juegos.length;
+    const siguiente=ji+dir;
+    if(siguiente>=0&&siguiente<total){
+      abrirJuegoMovil(ci,siguiente);
+    } else if(dir>0){
+      // Último juego del circuito — ofrecer opciones
+      const totalCirc=S.circuitos.length;
+      const opciones=['Añadir juego a este circuito'];
+      if(ci+1<totalCirc) opciones.push(`Ir a ${S.circuitos[ci+1].nombre}`);
+      opciones.push('Añadir circuito nuevo');
+      const idx=opciones.findIndex((_,i)=>confirm(opciones.slice(0,i+1).join(' | ')+'\n\n'+opciones[i]));
+      // Usar confirm encadenados no es ideal; usamos un prompt simple
+      const eleccion=prompt(`Fin del circuito.\n0 – Añadir juego aquí\n${ci+1<totalCirc?'1 – Ir al siguiente circuito\n':''}${ci+1<totalCirc?'2':'1'} – Añadir circuito nuevo\n\nEscribe el número:`);
+      if(eleccion==='0'){ addJuegoToCircuito(ci); }
+      else if(eleccion==='1'&&ci+1<totalCirc){ juegoAbierto[ci+1]=0; renderCircuitos(); goTab(2); }
+      else { addCircuito(); }
+    }
+  }
+
+  function renderCircuitos(){
+    const c=document.getElementById("circuitosContainer");
+    if(!S.circuitos.length){
+      c.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Pulsa el botón para añadir el primer circuito.</div>`;
       return;
     }
-    c.innerHTML = S.circuitos.map((circ,ci) => {
-      const total = circ.juegos.length;
-      const ok = circ.juegos.filter(j => COLS.every(col => j[col.key]==="S"||j[col.key]==="NA")).length;
+    c.innerHTML=S.circuitos.map((circ,ci)=>{
+      const total=circ.juegos.length;
+      const ok=circ.juegos.filter(j=>COLS.every(col=>j[col.key]==="S"||j[col.key]==="NA")).length;
+      const hayN=circ.juegos.some(j=>COLS.some(col=>j[col.key]==="N"));
+      // ── Tabla PC ──
+      const tablaPC=`
+        <div class="jt-wrap"><table class="jt">
+          <thead><tr>
+            <th class="tl" style="width:26%">Juego</th>
+            <th style="width:7%">Tipo</th><th style="width:6%">Rama</th>
+            ${COLS.map(col=>`<th style="width:8%">${col.label.replace("\n","<br>")}</th>`).join("")}
+            <th style="min-width:65px">Obs.</th>
+            <th style="width:20px">📷</th>
+            <th style="width:22px"></th>
+          </tr></thead>
+          <tbody>${circ.juegos.map((j,ji)=>`
+            <tr>
+              <td><input class="jt-inp" type="text" value="${(j.nombre||'').replace(/"/g,'&quot;')}" placeholder="Nombre juego" onchange="setJuego(${ci},${ji},'nombre',this.value)"></td>
+              <td><select class="tipo-sel" onchange="setJuego(${ci},${ji},'tipo',this.value)">
+                <option value="R" ${j.tipo==="R"?"selected":""}>R</option>
+                <option value="NR" ${j.tipo==="NR"?"selected":""}>NR</option>
+                <option value="AUX" ${j.tipo==="AUX"?"selected":""}>AUX</option>
+              </select></td>
+              <td><input class="rama-inp" type="text" value="${j.rama||""}" placeholder="-" maxlength="2" onchange="setJuego(${ci},${ji},'rama',this.value)"></td>
+              ${COLS.map(col=>`<td><div class="snb-c">
+                <button class="snb-s ${j[col.key]==="S"?"s-S":""}" onclick="setJuego(${ci},${ji},'${col.key}','S');renderCircuitos()">S</button>
+                <button class="snb-s ${j[col.key]==="N"?"s-N":""}" onclick="setJuego(${ci},${ji},'${col.key}','N');renderCircuitos()">N</button>
+                <button class="snb-s ${j[col.key]==="NA"?"s-NA":""}" onclick="setJuego(${ci},${ji},'${col.key}','NA');renderCircuitos()">NA</button>
+              </div></td>`).join("")}
+              <td><input class="jt-inp" style="font-size:10px;color:var(--muted)" type="text" value="${(j.obs||'').replace(/"/g,'&quot;')}" placeholder="obs..." onchange="setJuego(${ci},${ji},'obs',this.value)"></td>
+              <td><button class="foto-juego-btn" onclick="abrirModalFotos(${ci},${ji})" title="Fotos de este juego">
+                📷${(j.fotos&&j.fotos.length)?`<span class="foto-count">${j.fotos.length}</span>`:''}
+              </button></td>
+              <td><button class="del-btn" onclick="delJuego(${ci},${ji})">&#215;</button></td>
+            </tr>`).join("")}
+          </tbody>
+        </table></div>
+        <button class="btn-add-juego" onclick="addJuegoToCircuito(${ci})">&#43; Añadir juego</button>`;
+
+      // ── Acordeón Móvil ──
+      const jAb=juegoAbierto[ci]??-1;
+      const juegosMovil=circ.juegos.map((j,ji)=>{
+        const todoOk=COLS.every(col=>j[col.key]==="S"||j[col.key]==="NA");
+        const hayNj=COLS.some(col=>j[col.key]==="N");
+        const dotCls=hayNj?'dot-n':todoOk?'dot-ok':'dot-empty';
+        const isOpen=jAb===ji;
+        const cuerpo=isOpen?`
+          <div class="juego-body open" id="jm_${ci}_${ji}">
+            <div class="juego-field">
+              <label>Nombre</label>
+              <input type="text" value="${(j.nombre||'').replace(/"/g,'&quot;')}" placeholder="Nombre del juego" onchange="setJuego(${ci},${ji},'nombre',this.value)">
+            </div>
+            <div style="display:flex;gap:8px">
+              <div class="juego-field" style="flex:1">
+                <label>Tipo</label>
+                <select onchange="setJuego(${ci},${ji},'tipo',this.value)">
+                  <option value="R" ${j.tipo==="R"?"selected":""}>R — Reglado</option>
+                  <option value="NR" ${j.tipo==="NR"?"selected":""}>NR — No reglado</option>
+                  <option value="AUX" ${j.tipo==="AUX"?"selected":""}>AUX — Auxiliar</option>
+                </select>
+              </div>
+              <div class="juego-field" style="width:80px">
+                <label>Rama</label>
+                <input type="text" value="${j.rama||""}" placeholder="-" maxlength="2" onchange="setJuego(${ci},${ji},'rama',this.value)" style="text-align:center">
+              </div>
+            </div>
+            ${COLS.map(col=>`
+              <div class="criterio-row">
+                <span class="criterio-label">${COL_LABELS[col.key]}</span>
+                <div class="criterio-btns">
+                  <button class="snb-s ${j[col.key]==="S"?"s-S":""}" onclick="setJuego(${ci},${ji},'${col.key}','S');renderCircuitos()">S</button>
+                  <button class="snb-s ${j[col.key]==="N"?"s-N":""}" onclick="setJuego(${ci},${ji},'${col.key}','N');renderCircuitos()">N</button>
+                  <button class="snb-s ${j[col.key]==="NA"?"s-NA":""}" onclick="setJuego(${ci},${ji},'${col.key}','NA');renderCircuitos()">NA</button>
+                </div>
+              </div>`).join("")}
+            <div class="juego-field" style="margin-top:10px">
+              <label>Observación</label>
+              <input type="text" value="${(j.obs||'').replace(/"/g,'&quot;')}" placeholder="obs..." onchange="setJuego(${ci},${ji},'obs',this.value)">
+            </div>
+            <div class="juego-foto-row">
+              <button class="btn-foto-cam" onclick="abrirModalFotos(${ci},${ji})">📷 ${j.fotos&&j.fotos.length?j.fotos.length+' foto'+(j.fotos.length>1?'s':''):'Fotos'}</button>
+              <button class="del-btn" style="flex-shrink:0;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px" onclick="delJuego(${ci},${ji})">&#215; Eliminar</button>
+            </div>
+            <div class="juego-nav">
+              <button class="btn-nav" onclick="navJuego(${ci},${ji},-1)" ${ji===0?'disabled style="opacity:.4"':''}>&#8592; Anterior</button>
+              <button class="btn-nav primary" onclick="navJuego(${ci},${ji},1)">${ji===circ.juegos.length-1?'Fin &#8594;':'Siguiente &#8594;'}</button>
+            </div>
+          </div>` : `<div class="juego-body" id="jm_${ci}_${ji}"></div>`;
+        return `
+          <div class="juego-card">
+            <div class="juego-header" onclick="toggleJuegoMovil(${ci},${ji})">
+              <div class="juego-dot ${dotCls}"></div>
+              <div class="juego-hdr-name">${j.nombre||`Juego ${ji+1}`}</div>
+              <span class="juego-hdr-meta">${j.tipo}${j.rama?' · '+j.rama:''}</span>
+              <span class="juego-toggle ${isOpen?'open':''}">&#9654;</span>
+            </div>
+            ${cuerpo}
+          </div>`;
+      }).join("");
+
       return `<div class="circ-card">
         <div class="circ-header" onclick="toggleCircuito(${ci})">
           <span class="circ-toggle open" id="ct_${ci}">&#9654;</span>
           <span class="circ-nombre">${circ.nombre}</span>
-          <span class="circ-stats">${ok}/${total} OK</span>
+          <span class="circ-stats" style="color:${hayN?'var(--orange)':ok===total&&total>0?'var(--green)':'var(--muted)'}">${ok}/${total} OK</span>
         </div>
         <div class="circ-body open" id="cb_${ci}">
-          <div class="jt-wrap"><table class="jt">
-            <thead><tr>
-              <th class="tl" style="width:26%">Juego</th>
-              <th style="width:7%">Tipo</th><th style="width:6%">Rama</th>
-              ${COLS.map(col=>`<th style="width:8%">${col.label.replace("\n","<br>")}</th>`).join("")}
-              <th style="min-width:65px">Obs.</th>
-              <th style="width:20px">📷</th>
-              <th style="width:22px"></th>
-            </tr></thead>
-            <tbody>${circ.juegos.map((j,ji)=>`
-              <tr>
-                <td><input class="jt-inp" type="text" value="${(j.nombre||'').replace(/"/g,'&quot;')}" placeholder="Nombre juego" onchange="setJuego(${ci},${ji},'nombre',this.value)"></td>
-                <td><select class="tipo-sel" onchange="setJuego(${ci},${ji},'tipo',this.value)">
-                  <option value="R" ${j.tipo==="R"?"selected":""}>R</option>
-                  <option value="NR" ${j.tipo==="NR"?"selected":""}>NR</option>
-                  <option value="AUX" ${j.tipo==="AUX"?"selected":""}>AUX</option>
-                </select></td>
-                <td><input class="rama-inp" type="text" value="${j.rama||""}" placeholder="-" maxlength="2" onchange="setJuego(${ci},${ji},'rama',this.value)"></td>
-                ${COLS.map(col=>`<td><div class="snb-c">
-                  <button class="snb-s ${j[col.key]==="S"?"s-S":""}" onclick="setJuego(${ci},${ji},'${col.key}','S');renderCircuitos()">S</button>
-                  <button class="snb-s ${j[col.key]==="N"?"s-N":""}" onclick="setJuego(${ci},${ji},'${col.key}','N');renderCircuitos()">N</button>
-                  <button class="snb-s ${j[col.key]==="NA"?"s-NA":""}" onclick="setJuego(${ci},${ji},'${col.key}','NA');renderCircuitos()">NA</button>
-                </div></td>`).join("")}
-                <td><input class="jt-inp" style="font-size:10px;color:var(--muted)" type="text" value="${(j.obs||'').replace(/"/g,'&quot;')}" placeholder="obs..." onchange="setJuego(${ci},${ji},'obs',this.value)"></td>
-                <td><button class="foto-juego-btn" onclick="abrirModalFotos(${ci},${ji})" title="Fotos de este juego">
-                  📷${(j.fotos&&j.fotos.length)?`<span class="foto-count">${j.fotos.length}</span>`:''}
-                </button></td>
-                <td><button class="del-btn" onclick="delJuego(${ci},${ji})">&#215;</button></td>
-              </tr>`).join("")}
-            </tbody>
-          </table></div>
-          <button class="btn-add-juego" onclick="addJuegoToCircuito(${ci})">&#43; Añadir juego</button>
+          ${tablaPC}
+          <div class="juegos-movil">${juegosMovil}
+            <button class="btn-add-juego" onclick="addJuegoToCircuito(${ci})">&#43; Añadir juego</button>
+          </div>
         </div>
       </div>`;
     }).join("");
   }
 
-  // ─── MODAL FOTOS POR JUEGO ────────────────────────────────
-  function abrirModalFotos(ci, ji) {
-    modalJuegoRef = { ci, ji };
-    const j = S.circuitos[ci].juegos[ji];
-    document.getElementById('modalFotosTitulo').textContent = '📷 ' + (j.nombre || 'Juego ' + (ji+1));
+  // ── MODAL FOTOS POR JUEGO ─────────────────────────
+  function abrirModalFotos(ci,ji){
+    modalJuegoRef={ci,ji};
+    const j=S.circuitos[ci].juegos[ji];
+    document.getElementById('modalFotosTitulo').textContent='📷 '+(j.nombre||'Juego '+(ji+1));
     renderModalFotos();
     document.getElementById('modalFotos').classList.add('open');
   }
-
-  function cerrarModalFotos(e) {
-    if (!e || e.target === document.getElementById('modalFotos')) {
+  function cerrarModalFotos(e){
+    if(!e||e.target===document.getElementById('modalFotos')){
       document.getElementById('modalFotos').classList.remove('open');
-      modalJuegoRef = null;
-      renderCircuitos(); // actualiza contador en botón
+      modalJuegoRef=null;
+      renderCircuitos();
     }
   }
-
-  function renderModalFotos() {
-    if (!modalJuegoRef) return;
-    const { ci, ji } = modalJuegoRef;
-    if (!S.circuitos[ci] || !S.circuitos[ci].juegos[ji]) return;
-    const j = S.circuitos[ci].juegos[ji];
-    if (!j.fotos) j.fotos = [];
-    const g = document.getElementById('modalFotosGrid');
-    g.innerHTML = j.fotos.map((f,i) => `
+  function renderModalFotos(){
+    if(!modalJuegoRef) return;
+    const{ci,ji}=modalJuegoRef;
+    if(!S.circuitos[ci]||!S.circuitos[ci].juegos[ji]) return;
+    const j=S.circuitos[ci].juegos[ji];
+    if(!j.fotos) j.fotos=[];
+    const g=document.getElementById('modalFotosGrid');
+    g.innerHTML=j.fotos.map((f,i)=>`
       <div class="foto-thumb">
         <img src="${f.dataUrl}" alt="foto ${i+1}">
         <button class="foto-del" onclick="delFotoJuego(${i})">&#215;</button>
-      </div>`).join("") +
-      `<button class="foto-add" onclick="document.getElementById('fileInputJuego').click()">
-        <span style="font-size:22px">&#128247;</span><span>Añadir</span>
-      </button>`;
+      </div>`).join("");
   }
-
-  function handleFotosJuego(inp) {
-    if (!modalJuegoRef) return;
-    const { ci, ji } = modalJuegoRef;
-    if (!S.circuitos[ci].juegos[ji].fotos) S.circuitos[ci].juegos[ji].fotos = [];
-    Array.from(inp.files).forEach(f => {
-      const r = new FileReader();
-      r.onload = e => {
-        S.circuitos[ci].juegos[ji].fotos.push({ dataUrl: e.target.result, name: f.name });
-        renderModalFotos();
-        markDirty();
-      };
+  function handleFotosJuego(inp){
+    if(!modalJuegoRef) return;
+    const{ci,ji}=modalJuegoRef;
+    if(!S.circuitos[ci].juegos[ji].fotos) S.circuitos[ci].juegos[ji].fotos=[];
+    Array.from(inp.files).forEach(f=>{
+      const r=new FileReader();
+      r.onload=e=>{ S.circuitos[ci].juegos[ji].fotos.push({dataUrl:e.target.result,name:f.name}); renderModalFotos(); markDirty(); };
       r.readAsDataURL(f);
     });
-    inp.value = "";
+    inp.value="";
   }
-
-  function delFotoJuego(i) {
-    if (!modalJuegoRef) return;
-    const { ci, ji } = modalJuegoRef;
+  function delFotoJuego(i){
+    if(!modalJuegoRef) return;
+    const{ci,ji}=modalJuegoRef;
     S.circuitos[ci].juegos[ji].fotos.splice(i,1);
-    renderModalFotos();
-    markDirty();
+    renderModalFotos(); markDirty();
   }
 
-  // ─── NCs ──────────────────────────────────────────────────
-  function renderNCs() {
-    const c = document.getElementById("ncList");
-    if (!S.ncs.length) { c.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:12px;padding:14px">Sin no conformidades.</div>`; return; }
-    c.innerHTML = S.ncs.map((nc,i) => `
-      <div class="nc-card">
-        <div class="nc-hdr">
-          <span class="nc-num">NC ${i+1}${nc.autoId?" • auto":""}</span>
-          <button class="nc-del" onclick="delNC(${i})">&#215;</button>
-        </div>
-        <div class="f"><label>Elemento afectado</label>
-          <input type="text" value="${(nc.elem||'').replace(/"/g,'&quot;')}" placeholder="ej. Tirolina Final" onchange="S.ncs[${i}].elem=this.value;markDirty()">
-        </div>
-        <div class="f"><label>Descripción</label>
-          <textarea onchange="S.ncs[${i}].desc=this.value;markDirty()" placeholder="Describe la no conformidad...">${nc.desc||""}</textarea>
-        </div>
-        <div class="f"><label>Referencia normativa</label>
-          <input type="text" value="${(nc.norma||'').replace(/"/g,'&quot;')}" placeholder="UNE EN 15567-1:2015+A1:2021, punto X.X" onchange="S.ncs[${i}].norma=this.value;markDirty()">
-        </div>
-        <div class="prio-row">
-          ${["GRAVE","MEDIA","LEVE","DOCUMENTAL"].map(p=>`<button class="prio-btn ${nc.prio===p?"p-"+p:""}" onclick="S.ncs[${i}].prio='${p}';markDirty();renderNCs()">${p}</button>`).join("")}
-        </div>
+  // ── MODAL NC OBLIGATORIO ──────────────────────────
+  function abrirModalNC(ref){
+    modalNCRef=ref;
+    modalNCPrio='';
+    document.getElementById('modalNCContexto').innerHTML=`<strong>${ref.contexto}</strong>`;
+    document.getElementById('modalNCTipo').value='';
+    document.getElementById('modalNCTipoLibre').value='';
+    document.getElementById('modalNCTipoLibreWrap').style.display='none';
+    document.getElementById('modalNCObs').value='';
+    document.getElementById('modalNCNorma').value='UNE EN 15567-1:2015+A1:2021';
+    document.getElementById('modalNCErr').classList.remove('vis');
+    // Reset prio buttons
+    document.querySelectorAll('#modalNCPrioRow .prio-btn').forEach(b=>{
+      b.className='prio-btn';
+    });
+    document.getElementById('modalNC').classList.add('open');
+  }
+
+  window.onTipoNCChange=()=>{
+    const v=document.getElementById('modalNCTipo').value;
+    document.getElementById('modalNCTipoLibreWrap').style.display=v==='__otro__'?'block':'none';
+  };
+
+  window.setModalPrio=(p)=>{
+    modalNCPrio=p;
+    document.querySelectorAll('#modalNCPrioRow .prio-btn').forEach(b=>{
+      b.className='prio-btn'+(b.textContent.trim()===p?' p-'+p:'');
+    });
+  };
+
+  window.confirmarNC=()=>{
+    const tipoSel=document.getElementById('modalNCTipo').value;
+    const tipoLibre=document.getElementById('modalNCTipoLibre').value.trim();
+    const tipo=tipoSel==='__otro__'?tipoLibre:tipoSel;
+    const obs=document.getElementById('modalNCObs').value.trim();
+    const norma=document.getElementById('modalNCNorma').value.trim();
+
+    if(!tipo||!modalNCPrio){
+      document.getElementById('modalNCErr').classList.add('vis');
+      return;
+    }
+
+    // Crear NC
+    const ref=modalNCRef;
+    let elem='',autoId='';
+    if(ref.itemId){
+      // Checklist general
+      const item=GEN_ITEMS.find(i=>i.id===ref.itemId);
+      elem=item.sec; autoId=ref.itemId;
+    } else {
+      // Juego
+      const j=S.circuitos[ref.ci].juegos[ref.ji];
+      const circ=S.circuitos[ref.ci];
+      elem=`${circ.nombre} — ${j.nombre||'Juego '+(ref.ji+1)}`;
+      autoId=`j_${ref.ci}_${ref.ji}_${ref.col}`;
+    }
+    // Evitar duplicado de autoId
+    if(!S.ncs.find(n=>n.autoId===autoId)){
+      S.ncs.push({autoId,tipo,elem,desc:obs,norma,prio:modalNCPrio});
+    }
+
+    document.getElementById('modalNC').classList.remove('open');
+    modalNCRef=null;
+    markDirty();
+    renderGen(); renderCircuitos(); renderNCs();
+  };
+
+  // ── NCs ───────────────────────────────────────────
+  function renderNCs(){
+    const c=document.getElementById("ncList");
+    const warn=document.getElementById("ncWarn");
+    const incompletas=S.ncs.filter(n=>!n.tipo||!n.prio);
+    if(incompletas.length){
+      warn.textContent=`⚠️ ${incompletas.length} NC${incompletas.length>1?'s':''} sin tipo o gravedad. Completa los campos marcados en rojo antes de finalizar.`;
+      warn.classList.add('vis');
+    } else {
+      warn.classList.remove('vis');
+    }
+    if(!S.ncs.length){ c.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:12px;padding:14px">Sin no conformidades.</div>`; return; }
+    c.innerHTML=S.ncs.map((nc,i)=>{
+      const incompleta=!nc.tipo||!nc.prio;
+      return `
+        <div class="nc-card ${incompleta?'nc-incompleta':''}">
+          <div class="nc-hdr">
+            <span class="nc-num">NC ${i+1}${nc.autoId?" · auto":""}</span>
+            <div class="nc-badges">
+              ${nc.tipo?`<span class="nc-tipo-badge">${nc.tipo}</span>`:'<span style="font-size:11px;color:var(--red)">Sin tipo</span>'}
+              ${nc.prio?`<span class="nc-prio-badge p-${nc.prio}">${nc.prio}</span>`:'<span style="font-size:11px;color:var(--red)">Sin gravedad</span>'}
+            </div>
+            <button class="nc-del" onclick="delNC(${i})">&#215;</button>
+          </div>
+          <div class="f"><label>Tipo de no conformidad</label>
+            <select onchange="S.ncs[${i}].tipo=this.value;markDirty();renderNCs()">
+              <option value="">— Selecciona —</option>
+              ${["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente"].map(t=>`<option ${nc.tipo===t?'selected':''}>${t}</option>`).join('')}
+              <option value="${nc.tipo&&!["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente"].includes(nc.tipo)?nc.tipo:'__otro__'}" ${nc.tipo&&!["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente"].includes(nc.tipo)?'selected':''}>Otro: ${nc.tipo||'...'}</option>
+            </select>
+          </div>
+          <div class="f"><label>Elemento afectado</label>
+            <input type="text" value="${(nc.elem||'').replace(/"/g,'&quot;')}" placeholder="ej. Tirolina Final" onchange="S.ncs[${i}].elem=this.value;markDirty()">
+          </div>
+          <div class="f"><label>Descripción / observación</label>
+            <textarea onchange="S.ncs[${i}].desc=this.value;markDirty()" placeholder="Describe la no conformidad...">${nc.desc||""}</textarea>
+          </div>
+          <div class="f"><label>Referencia normativa</label>
+            <input type="text" value="${(nc.norma||'').replace(/"/g,'&quot;')}" placeholder="UNE EN 15567-1:2015+A1:2021, punto X.X" onchange="S.ncs[${i}].norma=this.value;markDirty()">
+          </div>
+          <div class="f"><label>Gravedad</label>
+            <div class="prio-row">
+              ${["GRAVE","MEDIA","LEVE","DOCUMENTAL"].map(p=>`<button class="prio-btn ${nc.prio===p?'p-'+p:''}" onclick="S.ncs[${i}].prio='${p}';markDirty();renderNCs()">${p}</button>`).join("")}
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  function addNC(){ S.ncs.push({elem:"",tipo:"",desc:"",norma:"UNE EN 15567-1:2015+A1:2021",prio:""}); markDirty(); renderNCs(); goTab(3); }
+  function delNC(i){ S.ncs.splice(i,1); markDirty(); renderNCs(); }
+
+  // ── FOTOS GENERALES ───────────────────────────────
+  function handleFotos(inp){
+    Array.from(inp.files).forEach(f=>{
+      const r=new FileReader();
+      r.onload=e=>{ S.fotos.push({dataUrl:e.target.result,name:f.name}); renderFotos(); markDirty(); };
+      r.readAsDataURL(f);
+    });
+    inp.value="";
+  }
+  function renderFotos(){
+    const g=document.getElementById("fotoGrid");
+    g.innerHTML=S.fotos.map((f,i)=>`
+      <div class="foto-thumb">
+        <img src="${f.dataUrl}" alt="foto ${i+1}">
+        <button class="foto-del" onclick="S.fotos.splice(${i},1);renderFotos();markDirty()">&#215;</button>
       </div>`).join("");
   }
 
-  function addNC() { S.ncs.push({elem:"",desc:"",norma:"UNE EN 15567-1:2015+A1:2021",prio:""}); markDirty(); renderNCs(); goTab(3); }
-  function delNC(i) { S.ncs.splice(i,1); markDirty(); renderNCs(); }
+  // ── GUARDAR / COMPLETAR ───────────────────────────
+  function markDirty(){ isDirty=true; }
 
-  // ─── FOTOS GENERALES (informe) ────────────────────────────
-  function handleFotos(inp) {
-    Array.from(inp.files).forEach(f => {
-      const r = new FileReader();
-      r.onload = e => { S.fotos.push({dataUrl:e.target.result,name:f.name}); renderFotos(); markDirty(); };
-      r.readAsDataURL(f);
-    });
-    inp.value = "";
-  }
-
-  function renderFotos() {
-    const g = document.getElementById("fotoGrid");
-    g.innerHTML = S.fotos.map((f,i) => `<div class="foto-thumb"><img src="${f.dataUrl}" alt="foto ${i+1}"><button class="foto-del" onclick="S.fotos.splice(${i},1);renderFotos();markDirty()">&#215;</button></div>`).join("");
-    g.innerHTML += `<button class="foto-add" onclick="document.getElementById('fileInput').click()"><span style="font-size:22px">&#128247;</span><span>Añadir</span></button>`;
-  }
-
-  // ─── GUARDAR / COMPLETAR ──────────────────────────────────
-  function markDirty() { isDirty = true; }
-
-  function buildPayload(estado) {
+  function buildPayload(estado){
     return {
-      checklist: S.gen,
-      checklistObs: S.genObs,
-      obsGral: document.getElementById("obsGral").value,
-      circuitos: S.circuitos,
-      ncs: S.ncs,
-      fotos: S.fotos,
-      ensayos: document.getElementById("ensayos").value,
+      checklist:S.gen,
+      checklistObs:S.genObs,
+      obsGral:document.getElementById("obsGral").value,
+      circuitos:S.circuitos,
+      ncs:S.ncs,
+      fotos:S.fotos,
+      ensayos:document.getElementById("ensayos").value,
       estado,
-      ultimaModificacion: firebase.firestore.FieldValue.serverTimestamp()
+      ultimaModificacion:firebase.firestore.FieldValue.serverTimestamp()
     };
   }
 
-  async function guardar() {
+  async function guardar(){
     try {
       await db.collection("inspecciones").doc(inspeccionId).update(buildPayload("en_curso"));
-      isDirty = false;
-      actualizarEstado("en_curso");
-      const btn = document.querySelector(".btn-guardar");
-      btn.textContent = "✓ Guardado";
-      setTimeout(() => { btn.innerHTML = "&#128190; Guardar"; }, 2000);
-    } catch(e) { alert("Error al guardar: " + e.message); }
+      isDirty=false; actualizarEstado("en_curso");
+      const btn=document.querySelector(".btn-guardar");
+      btn.textContent="✓ Guardado";
+      setTimeout(()=>{ btn.innerHTML="&#128190; Guardar"; },2000);
+    } catch(e){ alert("Error al guardar: "+e.message); }
   }
 
-  async function completar() {
-    const graves = S.ncs.filter(n => n.prio==="GRAVE").length;
-    const resultado = graves===0 ? "FAVORABLE" : "DESFAVORABLE";
-    const msg = graves===0
-      ? "La inspección tiene resultado FAVORABLE.\n¿Deseas completarla?"
-      : `${graves} NC GRAVE(s). Resultado DESFAVORABLE.\n¿Deseas completarla de todas formas?`;
-    if (!confirm(msg)) return;
+  async function completar(){
+    // Validar NCs incompletas
+    const incompletas=S.ncs.filter(n=>!n.tipo||!n.prio);
+    if(incompletas.length){
+      goTab(3);
+      alert(`Hay ${incompletas.length} no conformidad${incompletas.length>1?'es':''} sin tipo o gravedad asignada. Completa los campos antes de finalizar.`);
+      return;
+    }
+    const graves=S.ncs.filter(n=>n.prio==="GRAVE").length;
+    const resultado=graves===0?"FAVORABLE":"DESFAVORABLE";
+    const msg=graves===0
+      ?"La inspección tiene resultado FAVORABLE.\n¿Deseas completarla?"
+      :`${graves} NC GRAVE${graves>1?'s':''}. Resultado DESFAVORABLE.\n¿Deseas completarla de todas formas?`;
+    if(!confirm(msg)) return;
     try {
       await db.collection("inspecciones").doc(inspeccionId).update({
         ...buildPayload("completada"),
         resultado,
-        fechaCompletada: firebase.firestore.FieldValue.serverTimestamp()
+        fechaCompletada:firebase.firestore.FieldValue.serverTimestamp()
       });
-      isDirty = false;
-      location.href = "resultado.html?id=" + inspeccionId;
-    } catch(e) { alert("Error al completar: " + e.message); }
+      isDirty=false;
+      location.href="resultado.html?id="+inspeccionId;
+    } catch(e){ alert("Error al completar: "+e.message); }
   }
 
-  window.addEventListener("beforeunload", e => { if (isDirty) { e.preventDefault(); e.returnValue=""; } });
-
-  function updateOnline() { document.getElementById("offlineBadge").classList.toggle("visible", !navigator.onLine); }
-  window.addEventListener("online", updateOnline);
-  window.addEventListener("offline", updateOnline);
+  window.addEventListener("beforeunload",e=>{ if(isDirty){ e.preventDefault(); e.returnValue=""; } });
+  function updateOnline(){ document.getElementById("offlineBadge").classList.toggle("visible",!navigator.onLine); }
+  window.addEventListener("online",updateOnline);
+  window.addEventListener("offline",updateOnline);
   updateOnline();
 </script>
 </body>
