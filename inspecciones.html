@@ -44,6 +44,9 @@
     .btn-ver-mas:hover{border-color:var(--gold);color:var(--gold)}
     .offline-badge{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
     .offline-badge.visible{display:block}
+    /* FIX: banner offline con datos cacheados */
+    .offline-info{background:#FFF9F0;border:1px solid var(--gold);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--text);display:none}
+    .offline-info.visible{display:block}
   </style>
 </head>
 <body>
@@ -58,13 +61,15 @@
   <button class="btn-nueva" onclick="location.href='nueva-inspeccion.html'">
     &#43; Nueva inspección
   </button>
+  <!-- FIX: banner offline visible -->
+  <div class="offline-info" id="offlineInfo">&#128317; Sin conexión — mostrando datos guardados localmente</div>
   <div id="listContainer">
     <div class="spinner"></div>
     <div class="loading-text">Cargando inspecciones...</div>
   </div>
 </div>
 
-<div class="offline-badge" id="offlineBadge">Sin conexión — modo offline</div>
+<div class="offline-badge" id="offlineBadge">Sin conexión &#8212; modo offline</div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -92,22 +97,72 @@
 
   let currentUser = null;
   let userRole = null;
-  let listaCompleta = []; // todas las completadas
+  let listaCompleta = [];
   const LIMITE_COMPLETADAS = 5;
+  let cargaIniciada = false;
+
+  // FIX: fallback offline — si onAuthStateChanged no dispara en 3s, usar localStorage
+  let authOk = false;
+  setTimeout(() => {
+    if (authOk || cargaIniciada) return;
+    // Intentar con usuario de localStorage
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('arpUser_'));
+    if (keys.length) {
+      const email = keys[0].replace('arpUser_', '');
+      console.log('Auth timeout — usando usuario cacheado:', email);
+      iniciarCarga({ email, photoURL: '', displayName: '' });
+    } else {
+      // No hay usuario guardado, redirigir a login
+      location.href = 'index.html';
+    }
+  }, 3000); // 3s es suficiente, antes eran 5s
 
   auth.onAuthStateChanged(async user => {
+    authOk = true;
     if (!user) { location.href = 'index.html'; return; }
+    iniciarCarga(user);
+  });
+
+  async function iniciarCarga(user) {
+    if (cargaIniciada) return;
+    cargaIniciada = true;
     currentUser = user;
+
+    // FIX: offline banner
+    if (!navigator.onLine) {
+      document.getElementById('offlineInfo').classList.add('visible');
+    }
+
     try {
-      const snap = await db.collection('usuarios').doc(user.email).get();
-      if (!snap.exists || !snap.data().activo) { location.href = 'index.html'; return; }
-      userRole = snap.data().rol;
+      // FIX: intentar cargar rol — si falla offline, continuar con rol inspector
+      try {
+        const snap = await db.collection('usuarios').doc(user.email).get();
+        if (snap.exists) {
+          if (!snap.data().activo) { location.href = 'index.html'; return; }
+          userRole = snap.data().rol;
+          // Guardar en localStorage para offline
+          localStorage.setItem('arpUser_' + user.email, JSON.stringify({ rol: userRole }));
+          localStorage.setItem('arpUserEmail', user.email);
+        } else {
+          // No existe en BD — puede ser offline con caché vacía
+          userRole = 'inspector'; // asumir inspector por seguridad
+        }
+      } catch(e) {
+        console.warn('No se pudo verificar usuario (posiblemente offline):', e.message);
+        // Intentar recuperar rol de localStorage
+        const saved = localStorage.getItem('arpUser_' + user.email);
+        if (saved) {
+          try { userRole = JSON.parse(saved).rol; } catch(e2) {}
+        }
+        userRole = userRole || 'inspector';
+      }
+
       await cargarInspecciones();
     } catch(e) {
       console.error(e);
       renderInspecciones([]);
     }
-  });
+  }
 
   async function cargarInspecciones() {
     try {
@@ -119,13 +174,24 @@
           .where('inspectorEmail', '==', currentUser.email)
           .orderBy('fechaCreacion', 'desc');
       }
+      // FIX: Firestore con persistencia usa caché automáticamente offline
+      // No necesita source:'cache' explícito — funciona solo
       const snap = await q.get();
       const lista = [];
       snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
       renderInspecciones(lista);
     } catch(e) {
-      console.error(e);
-      renderInspecciones([]);
+      console.error('Error cargando inspecciones:', e.message);
+      // FIX: mostrar error útil en lugar de lista vacía silenciosa
+      if (!navigator.onLine) {
+        document.getElementById('listContainer').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">&#128317;</div>
+            <div class="empty-text">Sin conexión.<br>Las inspecciones se cargarán cuando vuelvas a conectarte.<br><br>Si tienes inspecciones en curso, accede directamente desde el enlace guardado.</div>
+          </div>`;
+      } else {
+        renderInspecciones([]);
+      }
     }
   }
 
@@ -151,11 +217,10 @@
     }
     if (completadas.length) {
       html += `<div class="sec-title" style="margin-top:20px">Completadas</div>`;
-      // Mostrar solo las últimas LIMITE_COMPLETADAS
       completadas.slice(0, LIMITE_COMPLETADAS).forEach(i => { html += cardHTML(i); });
       if (completadas.length > LIMITE_COMPLETADAS) {
         html += `<button class="btn-ver-mas" id="btnVerMas" onclick="verTodasCompletadas()">
-          Ver todas las completadas (${completadas.length}) ↓
+          Ver todas las completadas (${completadas.length}) &#8594;
         </button>`;
       }
     }
@@ -192,7 +257,9 @@
   }
 
   function updateOnline() {
-    document.getElementById('offlineBadge').classList.toggle('visible', !navigator.onLine);
+    const offline = !navigator.onLine;
+    document.getElementById('offlineBadge').classList.toggle('visible', offline);
+    document.getElementById('offlineInfo').classList.toggle('visible', offline);
   }
   window.addEventListener('online', updateOnline);
   window.addEventListener('offline', updateOnline);

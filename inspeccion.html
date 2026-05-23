@@ -28,7 +28,6 @@
     .card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
     .card-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
     .card-title::after{content:"";flex:1;height:1px;background:var(--border)}
-    /* CHECKLIST GENERAL */
     .chk-wrap{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
     .chk-sec{background:var(--surf);border-bottom:1px solid var(--border);padding:7px 12px;display:flex;align-items:center;gap:8px}
     .chk-ref{font-size:9px;font-weight:700;color:white;background:var(--gold);padding:1px 6px;border-radius:3px;font-family:monospace}
@@ -47,8 +46,6 @@
     .chk-obs input:focus{outline:none}
     .obs-gral{width:100%;padding:10px 12px;border:none;border-top:1px solid var(--border);font-family:inherit;font-size:13px;color:var(--text);resize:vertical;min-height:80px;background:white}
     .obs-gral:focus{outline:none;background:#FFF9F0}
-
-    /* ── CIRCUITOS ─────────────────────────────────── */
     .circ-card{background:white;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden}
     .circ-header{display:flex;align-items:center;padding:12px 14px;cursor:pointer;gap:10px;user-select:none}
     .circ-toggle{font-size:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
@@ -57,8 +54,6 @@
     .circ-stats{font-size:11px;color:var(--muted);flex-shrink:0}
     .circ-body{display:none;border-top:1px solid var(--border)}
     .circ-body.open{display:block}
-
-    /* ── TABLA JUEGOS (PC) ─────────────────────────── */
     .jt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
     .jt{width:100%;border-collapse:collapse;font-size:11px;min-width:560px}
     .jt th{background:var(--dark);color:white;padding:7px 5px;text-align:center;font-size:9px;font-weight:700;letter-spacing:.04em;line-height:1.3}
@@ -82,8 +77,6 @@
     .foto-juego-btn{background:none;border:none;font-size:14px;cursor:pointer;padding:4px 6px;color:var(--muted);position:relative}
     .foto-juego-btn:hover{color:var(--gold)}
     .foto-count{position:absolute;top:0;right:0;background:var(--gold);color:white;font-size:8px;font-weight:700;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-family:monospace}
-
-    /* ── ACORDEÓN JUEGOS (MÓVIL) ───────────────────── */
     .juego-card{border-top:1px solid var(--border);background:white}
     .juego-header{display:flex;align-items:center;padding:10px 14px;cursor:pointer;gap:8px;user-select:none}
     .juego-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
@@ -113,17 +106,11 @@
     .juego-foto-row{display:flex;gap:8px;margin-top:10px}
     .btn-foto-cam,.btn-foto-gal{flex:1;padding:9px;border:1.5px solid var(--border);border-radius:8px;background:white;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
     .btn-foto-cam:hover,.btn-foto-gal:hover{border-color:var(--gold);color:var(--gold)}
-    .juego-fotos-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
-    .juego-foto-thumb{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border)}
-    .juego-foto-thumb img{width:100%;height:100%;object-fit:cover}
-    .juego-foto-del{position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,.55);border:none;border-radius:50%;color:white;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-
     .btn-add-juego{display:flex;align-items:center;gap:6px;padding:9px 14px;border:1.5px dashed var(--border);background:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;width:100%;transition:all .2s}
     .btn-add-juego:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
     .btn-add-circ{display:flex;align-items:center;gap:8px;padding:11px 14px;border:1.5px dashed var(--border);border-radius:12px;background:none;color:var(--muted);font-family:inherit;font-size:13px;cursor:pointer;width:100%;transition:all .2s;margin-bottom:12px}
     .btn-add-circ:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
-
-    /* ── NCs ───────────────────────────────────────── */
+    /* FIX COLORES NC — GRAVE=rojo MEDIA=naranja/amarillo LEVE=verde DOCUMENTAL=azul OBSERVACION=gris */
     .nc-card{border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:10px;background:#FAFAF9}
     .nc-card.nc-incompleta{border-color:var(--red);background:#FFF5F5}
     .nc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -132,9 +119,10 @@
     .nc-tipo-badge{font-size:10px;font-weight:600;color:var(--gold);background:rgba(200,153,58,.12);padding:2px 8px;border-radius:10px;border:1px solid rgba(200,153,58,.3)}
     .nc-prio-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
     .p-GRAVE{background:#FFEBEE;color:var(--red);border:1px solid var(--red)}
-    .p-MEDIA{background:#FFF8E1;color:var(--orange);border:1px solid var(--orange)}
-    .p-LEVE{background:#E3F2FD;color:var(--blue);border:1px solid var(--blue)}
-    .p-DOCUMENTAL{background:#F3E5F5;color:#8E24AA;border:1px solid #8E24AA}
+    .p-MEDIA{background:#FFF8E1;color:#E65100;border:1px solid #E65100}
+    .p-LEVE{background:#E8F5E9;color:var(--green);border:1px solid var(--green)}
+    .p-DOCUMENTAL{background:#E3F2FD;color:var(--blue);border:1px solid var(--blue)}
+    .p-OBSERVACION{background:#F5F5F5;color:#666;border:1px solid #999}
     .nc-del{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer}
     .nc-del:hover{color:var(--red)}
     .f{margin-bottom:10px}
@@ -146,15 +134,14 @@
     .prio-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
     .prio-btn{padding:5px 10px;border-radius:14px;font-size:10px;font-weight:700;border:1.5px solid var(--border);cursor:pointer;background:white;color:var(--muted);font-family:inherit;transition:all .15s}
     .prio-btn.p-GRAVE{background:#FFEBEE;border-color:var(--red);color:var(--red)}
-    .prio-btn.p-MEDIA{background:#FFF8E1;border-color:var(--orange);color:var(--orange)}
-    .prio-btn.p-LEVE{background:#E3F2FD;border-color:var(--blue);color:var(--blue)}
-    .prio-btn.p-DOCUMENTAL{background:#F3E5F5;border-color:#8E24AA;color:#8E24AA}
+    .prio-btn.p-MEDIA{background:#FFF8E1;border-color:#E65100;color:#E65100}
+    .prio-btn.p-LEVE{background:#E8F5E9;border-color:var(--green);color:var(--green)}
+    .prio-btn.p-DOCUMENTAL{background:#E3F2FD;border-color:var(--blue);color:var(--blue)}
+    .prio-btn.p-OBSERVACION{background:#F5F5F5;border-color:#999;color:#666}
     .btn-add-nc{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1.5px dashed var(--border);border-radius:10px;background:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;width:100%;margin-top:8px;transition:all .2s}
     .btn-add-nc:hover{border-color:var(--gold);color:var(--gold)}
     .nc-warn{background:#FFF8E1;border:1px solid var(--orange);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--orange);margin-bottom:10px;display:none}
     .nc-warn.vis{display:block}
-
-    /* ── FOTOS ─────────────────────────────────────── */
     .foto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
     .foto-thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--surf);border:1px solid var(--border)}
     .foto-thumb img{width:100%;height:100%;object-fit:cover}
@@ -162,26 +149,22 @@
     .foto-add-row{display:flex;gap:8px;margin-top:8px}
     .btn-foto{flex:1;padding:10px;border:1.5px dashed var(--border);border-radius:8px;background:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
     .btn-foto:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
-
-    /* ── MODAL NC (al marcar N) ────────────────────── */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:none;align-items:flex-end;justify-content:center}
     .modal-overlay.open{display:flex}
     .modal-sheet{background:white;border-radius:16px 16px 0 0;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;padding:20px 16px 32px}
     .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
     .modal-title{font-size:15px;font-weight:700;color:var(--dark)}
-    .modal-close-btn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1}
     .modal-context{font-size:12px;color:var(--muted);background:var(--surf);padding:8px 12px;border-radius:8px;margin-bottom:14px}
     .modal-context strong{color:var(--text)}
     .modal-err{font-size:12px;color:var(--red);margin-top:8px;display:none}
     .modal-err.vis{display:block}
     .btn-modal-ok{width:100%;padding:14px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;margin-top:16px;box-shadow:0 4px 12px rgba(200,153,58,.3)}
     .btn-modal-ok:hover{opacity:.9}
-
-    /* ── MODAL FOTOS JUEGO ─────────────────────────── */
+    /* FIX: Botón cancelar NC */
+    .btn-modal-cancel{width:100%;padding:12px;background:var(--surf);color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px}
+    .btn-modal-cancel:hover{border-color:var(--red);color:var(--red)}
     .modal-fotos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
     .foto-add-btns{display:flex;gap:8px;margin-top:10px}
-
-    /* ── BOTTOM BAR ────────────────────────────────── */
     .bottom-bar{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px;z-index:150}
     .btn-guardar{flex:1;padding:13px;background:var(--surf);color:var(--text);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
     .btn-guardar:hover{border-color:var(--gold);color:var(--gold)}
@@ -189,6 +172,9 @@
     .btn-completar:hover{transform:translateY(-1px)}
     .offline-badge{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
     .offline-badge.visible{display:block}
+    /* FIX: autosave badge */
+    .autosave-badge{position:fixed;bottom:70px;right:16px;background:var(--green);color:white;padding:6px 12px;border-radius:20px;font-size:11px;display:none;z-index:300}
+    .autosave-badge.visible{display:block}
     .err-banner{background:#FFEBEE;border:1px solid #FFCDD2;border-radius:10px;padding:12px 14px;margin:16px;font-size:12px;color:var(--red);line-height:1.5;display:none}
     .err-banner.visible{display:block}
     .spinner-wrap{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
@@ -201,15 +187,8 @@
     .import-btns{display:flex;gap:8px}
     .btn-import-si{flex:1;padding:8px;background:var(--gold);color:white;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
     .btn-import-no{flex:1;padding:8px;background:var(--surf);color:var(--muted);border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer}
-
-    /* Detectar móvil via CSS — ocultar tabla en móvil, mostrar acordeón */
-    @media(max-width:600px){
-      .jt-wrap{display:none}
-      .juegos-movil{display:block}
-    }
-    @media(min-width:601px){
-      .juegos-movil{display:none}
-    }
+    @media(max-width:600px){.jt-wrap{display:none}.juegos-movil{display:block}}
+    @media(min-width:601px){.juegos-movil{display:none}}
   </style>
 </head>
 <body>
@@ -250,7 +229,7 @@
     <div class="import-banner" id="importBanner">
       <p>Esta instalación tiene una inspección anterior. ¿Deseas cargar la <strong>estructura de circuitos y juegos</strong> como punto de partida?</p>
       <div class="import-btns">
-        <button class="btn-import-si" onclick="importarCircuitos()">✓ Sí, cargar estructura</button>
+        <button class="btn-import-si" onclick="importarCircuitos()">&#10003; Sí, cargar estructura</button>
         <button class="btn-import-no" onclick="document.getElementById('importBanner').classList.remove('vis')">No, empezar vacío</button>
       </div>
     </div>
@@ -273,8 +252,8 @@
       <p style="font-size:12px;color:var(--muted);margin-bottom:4px">Fotos generales de la instalación para el informe PDF.</p>
       <div class="foto-grid" id="fotoGrid"></div>
       <div class="foto-add-row">
-        <button class="btn-foto" onclick="document.getElementById('fileInputCam').click()">📷 Cámara</button>
-        <button class="btn-foto" onclick="document.getElementById('fileInputGal').click()">🖼 Galería</button>
+        <button class="btn-foto" onclick="document.getElementById('fileInputCam').click()">&#128247; Cámara</button>
+        <button class="btn-foto" onclick="document.getElementById('fileInputGal').click()">&#128444; Galería</button>
       </div>
       <input type="file" id="fileInputCam" accept="image/*" capture="environment" multiple style="display:none" onchange="handleFotos(this)">
       <input type="file" id="fileInputGal" accept="image/*" multiple style="display:none" onchange="handleFotos(this)">
@@ -292,9 +271,10 @@
   <button class="btn-guardar" onclick="guardar()">&#128190; Guardar</button>
   <button class="btn-completar" onclick="completar()">Completar inspección &#8594;</button>
 </div>
-<div class="offline-badge" id="offlineBadge">Sin conexión — modo offline</div>
+<div class="offline-badge" id="offlineBadge">Sin conexión &#8212; modo offline</div>
+<div class="autosave-badge" id="autosaveBadge">&#10003; Guardado</div>
 
-<!-- MODAL NC OBLIGATORIO (al marcar N) -->
+<!-- MODAL NC OBLIGATORIO -->
 <div class="modal-overlay" id="modalNC">
   <div class="modal-sheet" onclick="event.stopPropagation()">
     <div class="modal-header">
@@ -304,12 +284,13 @@
     <div class="f">
       <label>Tipo de no conformidad *</label>
       <select id="modalNCTipo" onchange="onTipoNCChange()">
-        <option value="">— Selecciona tipo —</option>
+        <option value="">&#8212; Selecciona tipo &#8212;</option>
         <option>Cables con hilos rotos / desgastados</option>
         <option>Madera deteriorada / podrida</option>
         <option>Redes rotas / desgastadas</option>
         <option>Anclajes / fijaciones deficientes</option>
         <option>Eslinga deteriorada</option>
+        <option>Elemento punzante / cortante expuesto</option>
         <option>Señalización insuficiente / incorrecta</option>
         <option>Árbol soporte dañado / inclinado</option>
         <option>EPI deteriorado / sin revisar</option>
@@ -324,11 +305,13 @@
     </div>
     <div class="f">
       <label>Gravedad *</label>
+      <!-- FIX: 5 niveles con colores correctos -->
       <div class="prio-row" id="modalNCPrioRow">
         <button class="prio-btn" onclick="setModalPrio('GRAVE')">GRAVE</button>
         <button class="prio-btn" onclick="setModalPrio('MEDIA')">MEDIA</button>
         <button class="prio-btn" onclick="setModalPrio('LEVE')">LEVE</button>
         <button class="prio-btn" onclick="setModalPrio('DOCUMENTAL')">DOCUMENTAL</button>
+        <button class="prio-btn" onclick="setModalPrio('OBSERVACION')">OBSERVACIÓN</button>
       </div>
     </div>
     <div class="f">
@@ -337,10 +320,12 @@
     </div>
     <div class="f">
       <label>Referencia normativa</label>
-      <input type="text" id="modalNCNorma" value="UNE EN 15567-1:2015+A1:2021">
+      <input type="text" id="modalNCNorma" value="UNE-EN 15567-1:2015+A1:2021">
     </div>
     <div class="modal-err" id="modalNCErr">Debes seleccionar el tipo y la gravedad.</div>
     <button class="btn-modal-ok" onclick="confirmarNC()">Confirmar no conformidad</button>
+    <!-- FIX: Botón cancelar que revierte el N -->
+    <button class="btn-modal-cancel" onclick="cancelarNC()">Cancelar &#8212; no crear NC</button>
   </div>
 </div>
 
@@ -349,12 +334,12 @@
   <div class="modal-sheet" onclick="event.stopPropagation()">
     <div class="modal-header">
       <span class="modal-title" id="modalFotosTitulo">Fotos del juego</span>
-      <button class="modal-close-btn" onclick="cerrarModalFotos()">&#215;</button>
+      <button style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)" onclick="cerrarModalFotos()">&#215;</button>
     </div>
     <div class="modal-fotos-grid" id="modalFotosGrid"></div>
     <div class="foto-add-btns">
-      <button class="btn-foto" onclick="document.getElementById('fileInputJuegoCam').click()">📷 Cámara</button>
-      <button class="btn-foto" onclick="document.getElementById('fileInputJuegoGal').click()">🖼 Galería</button>
+      <button class="btn-foto" onclick="document.getElementById('fileInputJuegoCam').click()">&#128247; Cámara</button>
+      <button class="btn-foto" onclick="document.getElementById('fileInputJuegoGal').click()">&#128444; Galería</button>
     </div>
     <input type="file" id="fileInputJuegoCam" accept="image/*" capture="environment" multiple style="display:none" onchange="handleFotosJuego(this)">
     <input type="file" id="fileInputJuegoGal" accept="image/*" multiple style="display:none" onchange="handleFotosJuego(this)">
@@ -387,15 +372,15 @@
 
   let currentUser=null, isDirty=false, cargaIniciada=false;
   let modalJuegoRef=null, circuitosAnteriores=null;
-  // Modal NC state
-  let modalNCRef=null; // {ci,ji,col} o {itemId} para checklist general
+  let modalNCRef=null;
   let modalNCPrio='';
+  let modalNCPrevVal=''; // FIX: guardar valor previo para revertir si cancela
 
   const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], fotos:[], ensayos:"" };
 
   const GEN_ITEMS = [
     {id:"g1",ref:"4.1",sec:"Selección de Lugar y Entorno",desc:"Evacuación posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosión)."},
-    {id:"g2",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.3 Sistemas de soporte naturales — Árboles. Evaluación de resistencia e idoneidad por experto; diagnóstico actualizado; protección de raíces; medidas correctivas."},
+    {id:"g2",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.3 Sistemas de soporte naturales – Árboles. Evaluación de resistencia e idoneidad por experto; diagnóstico actualizado; protección de raíces; medidas correctivas."},
     {id:"g3",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.2 Sistemas de soporte artificiales. Adecuación a cargas; vientos y anclajes protegidos; verificación de estructuras existentes si aplican; cálculos disponibles."},
     {id:"g4",ref:"4.2",sec:"Materiales y cables",desc:"Maderas, metales, compuestos; cables (galvanizado/inox); terminaciones conforme; criterio de desecho."},
     {id:"g5",ref:"6",sec:"Señalización general y control de acceso",desc:"Control de acceso. Codificación de recorridos y dificultad; pictogramas; ubicación y legibilidad."},
@@ -412,7 +397,43 @@
   ];
   const COL_LABELS = {ie:"Integridad estructural",af:"Anclajes y fijaciones",ej:"Elementos de juego",ra:"Riesgos y atrapamientos",zs:"Zona de seguridad/Entorno"};
 
-  // ── AUTH ──────────────────────────────────────────
+  // FIX: Función sanitizar — elimina undefined/null antes de enviar a Firestore
+  function sanitizar(obj) {
+    if (Array.isArray(obj)) return obj.map(sanitizar);
+    if (obj !== null && typeof obj === 'object') {
+      const clean = {};
+      for (const k of Object.keys(obj)) {
+        const v = obj[k];
+        if (v === undefined || v === null) {
+          clean[k] = "";
+        } else if (typeof v === 'object' && !(v instanceof Date)) {
+          clean[k] = sanitizar(v);
+        } else {
+          clean[k] = v;
+        }
+      }
+      return clean;
+    }
+    if (obj === undefined || obj === null) return "";
+    return obj;
+  }
+
+  // FIX: Comprimir imagen antes de guardar
+  function comprimirImagen(dataUrl, callback, maxWidth=1200, quality=0.72) {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      callback(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => callback(dataUrl); // fallback sin comprimir
+    img.src = dataUrl;
+  }
+
+  // AUTH
   let authOk=false;
   setTimeout(()=>{
     if(authOk) return;
@@ -483,8 +504,8 @@
   function importarCircuitos(){
     if(!circuitosAnteriores) return;
     S.circuitos=circuitosAnteriores.map(circ=>({
-      nombre:circ.nombre,
-      juegos:circ.juegos.map(j=>({nombre:j.nombre,tipo:j.tipo,rama:j.rama||"",ie:"",af:"",ej:"",ra:"",zs:"",obs:"",fotos:[]}))
+      nombre:circ.nombre||"",
+      juegos:(circ.juegos||[]).map(j=>({nombre:j.nombre||"",tipo:j.tipo||"R",rama:j.rama||"",ie:"",af:"",ej:"",ra:"",zs:"",obs:"",fotos:[]}))
     }));
     document.getElementById('importBanner').classList.remove('vis');
     markDirty(); renderCircuitos(); goTab(2);
@@ -496,7 +517,7 @@
     el.textContent={borrador:"Borrador",en_curso:"En curso",completada:"Completada"}[estado]||estado;
   }
 
-  // ── TABS ──────────────────────────────────────────
+  // TABS
   function goTab(n){
     [1,2,3].forEach(i=>{
       document.getElementById('tab'+i).classList.toggle('active',i===n);
@@ -505,7 +526,7 @@
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
-  // ── CHECKLIST GENERAL ─────────────────────────────
+  // CHECKLIST GENERAL
   function renderGen(){
     let lastSec="",html="";
     GEN_ITEMS.forEach(item=>{
@@ -533,19 +554,19 @@
   }
 
   function setGen(id,v){
-    const prev=S.gen[id];
+    const prev=S.gen[id]||"";
     S.gen[id]=v;
     markDirty();
     if(v==="N"&&prev!=="N"){
-      // Abrir modal NC para ítem del checklist general
       const item=GEN_ITEMS.find(i=>i.id===id);
+      modalNCPrevVal=prev;
       abrirModalNC({itemId:id,contexto:`Checklist general — ${item.ref} ${item.sec}`});
     } else {
       renderGen();
     }
   }
 
-  // ── CIRCUITOS ─────────────────────────────────────
+  // CIRCUITOS
   function addCircuito(){
     const nombre=prompt("Nombre del circuito:","Circuito "+(S.circuitos.length+1));
     if(!nombre) return;
@@ -557,18 +578,18 @@
   function addJuegoToCircuito(ci){
     S.circuitos[ci].juegos.push({nombre:"",tipo:"R",rama:"",ie:"",af:"",ej:"",ra:"",zs:"",obs:"",fotos:[]});
     markDirty(); renderCircuitos();
-    // Abrir el último juego en móvil
     const lastJi=S.circuitos[ci].juegos.length-1;
     abrirJuegoMovil(ci,lastJi);
   }
 
   function setJuego(ci,ji,col,val){
-    const prev=S.circuitos[ci].juegos[ji][col];
+    const prev=S.circuitos[ci].juegos[ji][col]||"";
     S.circuitos[ci].juegos[ji][col]=val;
     markDirty();
     if(!["nombre","obs","rama"].includes(col)&&val==="N"&&prev!=="N"){
       const j=S.circuitos[ci].juegos[ji];
       const circ=S.circuitos[ci];
+      modalNCPrevVal=prev;
       abrirModalNC({
         ci,ji,col,
         contexto:`${circ.nombre} — ${j.nombre||"Juego "+(ji+1)} — ${COL_LABELS[col]}`
@@ -585,13 +606,11 @@
     document.getElementById("ct_"+ci).classList.toggle("open");
   }
 
-  // Estado del acordeón móvil: qué juego está abierto por circuito
   const juegoAbierto={};
 
   function abrirJuegoMovil(ci,ji){
     juegoAbierto[ci]=ji;
     renderCircuitos();
-    // Scroll al juego
     setTimeout(()=>{
       const el=document.getElementById(`jm_${ci}_${ji}`);
       if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
@@ -610,14 +629,8 @@
     if(siguiente>=0&&siguiente<total){
       abrirJuegoMovil(ci,siguiente);
     } else if(dir>0){
-      // Último juego del circuito — ofrecer opciones
       const totalCirc=S.circuitos.length;
-      const opciones=['Añadir juego a este circuito'];
-      if(ci+1<totalCirc) opciones.push(`Ir a ${S.circuitos[ci+1].nombre}`);
-      opciones.push('Añadir circuito nuevo');
-      const idx=opciones.findIndex((_,i)=>confirm(opciones.slice(0,i+1).join(' | ')+'\n\n'+opciones[i]));
-      // Usar confirm encadenados no es ideal; usamos un prompt simple
-      const eleccion=prompt(`Fin del circuito.\n0 – Añadir juego aquí\n${ci+1<totalCirc?'1 – Ir al siguiente circuito\n':''}${ci+1<totalCirc?'2':'1'} – Añadir circuito nuevo\n\nEscribe el número:`);
+      const eleccion=prompt(`Fin del circuito "${S.circuitos[ci].nombre}".\n0 — Añadir juego aquí\n${ci+1<totalCirc?'1 — Ir al siguiente circuito\n':''}${ci+1<totalCirc?'2':'1'} — Añadir circuito nuevo\n\nEscribe el número:`);
       if(eleccion==='0'){ addJuegoToCircuito(ci); }
       else if(eleccion==='1'&&ci+1<totalCirc){ juegoAbierto[ci+1]=0; renderCircuitos(); goTab(2); }
       else { addCircuito(); }
@@ -634,7 +647,6 @@
       const total=circ.juegos.length;
       const ok=circ.juegos.filter(j=>COLS.every(col=>j[col.key]==="S"||j[col.key]==="NA")).length;
       const hayN=circ.juegos.some(j=>COLS.some(col=>j[col.key]==="N"));
-      // ── Tabla PC ──
       const tablaPC=`
         <div class="jt-wrap"><table class="jt">
           <thead><tr>
@@ -642,7 +654,7 @@
             <th style="width:7%">Tipo</th><th style="width:6%">Rama</th>
             ${COLS.map(col=>`<th style="width:8%">${col.label.replace("\n","<br>")}</th>`).join("")}
             <th style="min-width:65px">Obs.</th>
-            <th style="width:20px">📷</th>
+            <th style="width:20px">&#128247;</th>
             <th style="width:22px"></th>
           </tr></thead>
           <tbody>${circ.juegos.map((j,ji)=>`
@@ -661,7 +673,7 @@
               </div></td>`).join("")}
               <td><input class="jt-inp" style="font-size:10px;color:var(--muted)" type="text" value="${(j.obs||'').replace(/"/g,'&quot;')}" placeholder="obs..." onchange="setJuego(${ci},${ji},'obs',this.value)"></td>
               <td><button class="foto-juego-btn" onclick="abrirModalFotos(${ci},${ji})" title="Fotos de este juego">
-                📷${(j.fotos&&j.fotos.length)?`<span class="foto-count">${j.fotos.length}</span>`:''}
+                &#128247;${(j.fotos&&j.fotos.length)?`<span class="foto-count">${j.fotos.length}</span>`:''}
               </button></td>
               <td><button class="del-btn" onclick="delJuego(${ci},${ji})">&#215;</button></td>
             </tr>`).join("")}
@@ -669,13 +681,13 @@
         </table></div>
         <button class="btn-add-juego" onclick="addJuegoToCircuito(${ci})">&#43; Añadir juego</button>`;
 
-      // ── Acordeón Móvil ──
       const jAb=juegoAbierto[ci]??-1;
       const juegosMovil=circ.juegos.map((j,ji)=>{
         const todoOk=COLS.every(col=>j[col.key]==="S"||j[col.key]==="NA");
         const hayNj=COLS.some(col=>j[col.key]==="N");
         const dotCls=hayNj?'dot-n':todoOk?'dot-ok':'dot-empty';
         const isOpen=jAb===ji;
+        const esUltimo=ji===circ.juegos.length-1;
         const cuerpo=isOpen?`
           <div class="juego-body open" id="jm_${ci}_${ji}">
             <div class="juego-field">
@@ -710,12 +722,12 @@
               <input type="text" value="${(j.obs||'').replace(/"/g,'&quot;')}" placeholder="obs..." onchange="setJuego(${ci},${ji},'obs',this.value)">
             </div>
             <div class="juego-foto-row">
-              <button class="btn-foto-cam" onclick="abrirModalFotos(${ci},${ji})">📷 ${j.fotos&&j.fotos.length?j.fotos.length+' foto'+(j.fotos.length>1?'s':''):'Fotos'}</button>
+              <button class="btn-foto-cam" onclick="abrirModalFotos(${ci},${ji})">&#128247; ${j.fotos&&j.fotos.length?j.fotos.length+' foto'+(j.fotos.length>1?'s':''):'Fotos'}</button>
               <button class="del-btn" style="flex-shrink:0;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px" onclick="delJuego(${ci},${ji})">&#215; Eliminar</button>
             </div>
             <div class="juego-nav">
               <button class="btn-nav" onclick="navJuego(${ci},${ji},-1)" ${ji===0?'disabled style="opacity:.4"':''}>&#8592; Anterior</button>
-              <button class="btn-nav primary" onclick="navJuego(${ci},${ji},1)">${ji===circ.juegos.length-1?'Fin &#8594;':'Siguiente &#8594;'}</button>
+              <button class="btn-nav primary" onclick="navJuego(${ci},${ji},1)">${esUltimo?'Fin circuito &#8594;':'Siguiente &#8594;'}</button>
             </div>
           </div>` : `<div class="juego-body" id="jm_${ci}_${ji}"></div>`;
         return `
@@ -746,7 +758,7 @@
     }).join("");
   }
 
-  // ── MODAL FOTOS POR JUEGO ─────────────────────────
+  // MODAL FOTOS POR JUEGO
   function abrirModalFotos(ci,ji){
     modalJuegoRef={ci,ji};
     const j=S.circuitos[ci].juegos[ji];
@@ -770,17 +782,23 @@
     const g=document.getElementById('modalFotosGrid');
     g.innerHTML=j.fotos.map((f,i)=>`
       <div class="foto-thumb">
-        <img src="${f.dataUrl}" alt="foto ${i+1}">
+        <img src="${f.dataUrl||f.url||''}" alt="foto ${i+1}">
         <button class="foto-del" onclick="delFotoJuego(${i})">&#215;</button>
       </div>`).join("");
   }
+  // FIX: comprimir fotos de juego antes de guardar
   function handleFotosJuego(inp){
     if(!modalJuegoRef) return;
     const{ci,ji}=modalJuegoRef;
     if(!S.circuitos[ci].juegos[ji].fotos) S.circuitos[ci].juegos[ji].fotos=[];
     Array.from(inp.files).forEach(f=>{
       const r=new FileReader();
-      r.onload=e=>{ S.circuitos[ci].juegos[ji].fotos.push({dataUrl:e.target.result,name:f.name}); renderModalFotos(); markDirty(); };
+      r.onload=e=>{
+        comprimirImagen(e.target.result, compressed=>{
+          S.circuitos[ci].juegos[ji].fotos.push({dataUrl:compressed, name:String(f.name||'foto.jpg')});
+          renderModalFotos(); markDirty();
+        });
+      };
       r.readAsDataURL(f);
     });
     inp.value="";
@@ -792,7 +810,7 @@
     renderModalFotos(); markDirty();
   }
 
-  // ── MODAL NC OBLIGATORIO ──────────────────────────
+  // MODAL NC OBLIGATORIO
   function abrirModalNC(ref){
     modalNCRef=ref;
     modalNCPrio='';
@@ -801,14 +819,27 @@
     document.getElementById('modalNCTipoLibre').value='';
     document.getElementById('modalNCTipoLibreWrap').style.display='none';
     document.getElementById('modalNCObs').value='';
-    document.getElementById('modalNCNorma').value='UNE EN 15567-1:2015+A1:2021';
+    document.getElementById('modalNCNorma').value='UNE-EN 15567-1:2015+A1:2021';
     document.getElementById('modalNCErr').classList.remove('vis');
-    // Reset prio buttons
-    document.querySelectorAll('#modalNCPrioRow .prio-btn').forEach(b=>{
-      b.className='prio-btn';
-    });
+    document.querySelectorAll('#modalNCPrioRow .prio-btn').forEach(b=>{ b.className='prio-btn'; });
     document.getElementById('modalNC').classList.add('open');
   }
+
+  // FIX: Cancelar NC — revierte el valor al anterior
+  window.cancelarNC = ()=>{
+    if(!modalNCRef) { document.getElementById('modalNC').classList.remove('open'); return; }
+    const ref=modalNCRef;
+    // Revertir valor
+    if(ref.itemId){
+      S.gen[ref.itemId]=modalNCPrevVal;
+      renderGen();
+    } else if(ref.ci!==undefined){
+      S.circuitos[ref.ci].juegos[ref.ji][ref.col]=modalNCPrevVal;
+      renderCircuitos();
+    }
+    document.getElementById('modalNC').classList.remove('open');
+    modalNCRef=null;
+  };
 
   window.onTipoNCChange=()=>{
     const v=document.getElementById('modalNCTipo').value;
@@ -818,7 +849,7 @@
   window.setModalPrio=(p)=>{
     modalNCPrio=p;
     document.querySelectorAll('#modalNCPrioRow .prio-btn').forEach(b=>{
-      b.className='prio-btn'+(b.textContent.trim()===p?' p-'+p:'');
+      b.className='prio-btn'+(b.textContent.trim().replace('Ó','O')===p||b.textContent.trim()===p?' p-'+p:'');
     });
   };
 
@@ -834,23 +865,23 @@
       return;
     }
 
-    // Crear NC
     const ref=modalNCRef;
-    let elem='',autoId='';
+    let elem='',autoId='',origen='auto';
     if(ref.itemId){
-      // Checklist general
       const item=GEN_ITEMS.find(i=>i.id===ref.itemId);
       elem=item.sec; autoId=ref.itemId;
     } else {
-      // Juego
       const j=S.circuitos[ref.ci].juegos[ref.ji];
       const circ=S.circuitos[ref.ci];
       elem=`${circ.nombre} — ${j.nombre||'Juego '+(ref.ji+1)}`;
       autoId=`j_${ref.ci}_${ref.ji}_${ref.col}`;
     }
+    // FIX: marcar origen campo si fue tipo libre
+    if(tipoSel==='__otro__') origen='campo';
+
     // Evitar duplicado de autoId
     if(!S.ncs.find(n=>n.autoId===autoId)){
-      S.ncs.push({autoId,tipo,elem,desc:obs,norma,prio:modalNCPrio});
+      S.ncs.push({autoId,tipo,elem,desc:obs,norma,prio:modalNCPrio,origen,fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false});
     }
 
     document.getElementById('modalNC').classList.remove('open');
@@ -859,7 +890,7 @@
     renderGen(); renderCircuitos(); renderNCs();
   };
 
-  // ── NCs ───────────────────────────────────────────
+  // NCs
   function renderNCs(){
     const c=document.getElementById("ncList");
     const warn=document.getElementById("ncWarn");
@@ -885,9 +916,8 @@
           </div>
           <div class="f"><label>Tipo de no conformidad</label>
             <select onchange="S.ncs[${i}].tipo=this.value;markDirty();renderNCs()">
-              <option value="">— Selecciona —</option>
-              ${["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente"].map(t=>`<option ${nc.tipo===t?'selected':''}>${t}</option>`).join('')}
-              <option value="${nc.tipo&&!["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente"].includes(nc.tipo)?nc.tipo:'__otro__'}" ${nc.tipo&&!["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente"].includes(nc.tipo)?'selected':''}>Otro: ${nc.tipo||'...'}</option>
+              <option value="">&#8212; Selecciona &#8212;</option>
+              ${["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente"].map(t=>`<option ${nc.tipo===t?'selected':''}>${t}</option>`).join('')}
             </select>
           </div>
           <div class="f"><label>Elemento afectado</label>
@@ -897,25 +927,30 @@
             <textarea onchange="S.ncs[${i}].desc=this.value;markDirty()" placeholder="Describe la no conformidad...">${nc.desc||""}</textarea>
           </div>
           <div class="f"><label>Referencia normativa</label>
-            <input type="text" value="${(nc.norma||'').replace(/"/g,'&quot;')}" placeholder="UNE EN 15567-1:2015+A1:2021, punto X.X" onchange="S.ncs[${i}].norma=this.value;markDirty()">
+            <input type="text" value="${(nc.norma||'').replace(/"/g,'&quot;')}" placeholder="UNE-EN 15567-1:2015+A1:2021, punto X.X" onchange="S.ncs[${i}].norma=this.value;markDirty()">
           </div>
           <div class="f"><label>Gravedad</label>
             <div class="prio-row">
-              ${["GRAVE","MEDIA","LEVE","DOCUMENTAL"].map(p=>`<button class="prio-btn ${nc.prio===p?'p-'+p:''}" onclick="S.ncs[${i}].prio='${p}';markDirty();renderNCs()">${p}</button>`).join("")}
+              ${["GRAVE","MEDIA","LEVE","DOCUMENTAL","OBSERVACION"].map(p=>`<button class="prio-btn ${nc.prio===p?'p-'+p:''}" onclick="S.ncs[${i}].prio='${p}';markDirty();renderNCs()">${p}</button>`).join("")}
             </div>
           </div>
         </div>`;
     }).join("");
   }
 
-  function addNC(){ S.ncs.push({elem:"",tipo:"",desc:"",norma:"UNE EN 15567-1:2015+A1:2021",prio:""}); markDirty(); renderNCs(); goTab(3); }
+  function addNC(){ S.ncs.push({elem:"",tipo:"",desc:"",norma:"UNE-EN 15567-1:2015+A1:2021",prio:"",origen:"manual",fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false}); markDirty(); renderNCs(); goTab(3); }
   function delNC(i){ S.ncs.splice(i,1); markDirty(); renderNCs(); }
 
-  // ── FOTOS GENERALES ───────────────────────────────
+  // FOTOS GENERALES — FIX: comprimir
   function handleFotos(inp){
     Array.from(inp.files).forEach(f=>{
       const r=new FileReader();
-      r.onload=e=>{ S.fotos.push({dataUrl:e.target.result,name:f.name}); renderFotos(); markDirty(); };
+      r.onload=e=>{
+        comprimirImagen(e.target.result, compressed=>{
+          S.fotos.push({dataUrl:compressed, name:String(f.name||'foto.jpg')});
+          renderFotos(); markDirty();
+        });
+      };
       r.readAsDataURL(f);
     });
     inp.value="";
@@ -924,27 +959,46 @@
     const g=document.getElementById("fotoGrid");
     g.innerHTML=S.fotos.map((f,i)=>`
       <div class="foto-thumb">
-        <img src="${f.dataUrl}" alt="foto ${i+1}">
+        <img src="${f.dataUrl||f.url||''}" alt="foto ${i+1}">
         <button class="foto-del" onclick="S.fotos.splice(${i},1);renderFotos();markDirty()">&#215;</button>
       </div>`).join("");
   }
 
-  // ── GUARDAR / COMPLETAR ───────────────────────────
+  // GUARDAR / COMPLETAR
   function markDirty(){ isDirty=true; }
 
   function buildPayload(estado){
-    return {
+    // FIX: sanitizar TODO antes de enviar a Firestore
+    const payload = sanitizar({
       checklist:S.gen,
       checklistObs:S.genObs,
-      obsGral:document.getElementById("obsGral").value,
+      obsGral:document.getElementById("obsGral").value||"",
       circuitos:S.circuitos,
       ncs:S.ncs,
       fotos:S.fotos,
-      ensayos:document.getElementById("ensayos").value,
+      ensayos:document.getElementById("ensayos").value||"",
       estado,
       ultimaModificacion:firebase.firestore.FieldValue.serverTimestamp()
-    };
+    });
+    // serverTimestamp no se puede sanitizar — restaurar
+    payload.ultimaModificacion = firebase.firestore.FieldValue.serverTimestamp();
+    return payload;
   }
+
+  // FIX: guardar silencioso para autoguardado
+  async function guardarSilencioso(){
+    try {
+      await db.collection("inspecciones").doc(inspeccionId).update(buildPayload("en_curso"));
+      isDirty=false;
+      actualizarEstado("en_curso");
+      const badge=document.getElementById('autosaveBadge');
+      badge.classList.add('visible');
+      setTimeout(()=>badge.classList.remove('visible'),2000);
+    } catch(e){ console.warn('Autoguardado falló:',e.message); }
+  }
+
+  // FIX: autoguardado cada 30s
+  setInterval(()=>{ if(isDirty) guardarSilencioso(); }, 30000);
 
   async function guardar(){
     try {
@@ -957,18 +1011,19 @@
   }
 
   async function completar(){
-    // Validar NCs incompletas
     const incompletas=S.ncs.filter(n=>!n.tipo||!n.prio);
     if(incompletas.length){
       goTab(3);
       alert(`Hay ${incompletas.length} no conformidad${incompletas.length>1?'es':''} sin tipo o gravedad asignada. Completa los campos antes de finalizar.`);
       return;
     }
+    // FIX: OBSERVACION no bloquea certificado ni cuenta como NC para resultado
+    const ncsBloqueantes=S.ncs.filter(n=>n.prio&&n.prio!=="OBSERVACION");
     const graves=S.ncs.filter(n=>n.prio==="GRAVE").length;
-    const resultado=graves===0?"FAVORABLE":"DESFAVORABLE";
-    const msg=graves===0
+    const resultado=ncsBloqueantes.length===0?"FAVORABLE":"DESFAVORABLE";
+    const msg=ncsBloqueantes.length===0
       ?"La inspección tiene resultado FAVORABLE.\n¿Deseas completarla?"
-      :`${graves} NC GRAVE${graves>1?'s':''}. Resultado DESFAVORABLE.\n¿Deseas completarla de todas formas?`;
+      :`${ncsBloqueantes.length} NC(s) con gravedad GRAVE/MEDIA/LEVE/DOCUMENTAL. Resultado DESFAVORABLE.\n¿Deseas completarla de todas formas?`;
     if(!confirm(msg)) return;
     try {
       await db.collection("inspecciones").doc(inspeccionId).update({
