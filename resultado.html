@@ -25,73 +25,63 @@
     .res-instalacion{color:rgba(255,255,255,0.8);font-size:14px;margin-top:8px}
     .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
     .stat-box{background:white;border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
-    .stat-val{font-size:24px;font-weight:700;color:var(--dark)}
-    .stat-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+    .stat-num{font-size:28px;font-weight:700;color:var(--gold)}
+    .stat-label{font-size:11px;color:var(--muted);margin-top:2px}
     .card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
     .card-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
     .card-title::after{content:"";flex:1;height:1px;background:var(--border)}
-    .nc-item{border-left:3px solid var(--border);padding:10px 12px;background:var(--surf);border-radius:0 8px 8px 0;margin-bottom:8px}
-    .nc-item.grave{border-color:var(--red)}
-    .nc-item.media{border-color:var(--orange)}
-    .nc-item.leve{border-color:var(--blue)}
-    .nc-item.documental{border-color:#8E24AA}
-    .nc-item.observacion{border-color:#78909C}
-    .nc-titulo{font-size:13px;font-weight:600;margin-bottom:3px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-    .nc-desc{font-size:12px;color:var(--muted)}
-    .nc-norma{font-size:11px;color:var(--muted);margin-top:4px;font-style:italic}
-    .prio-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;flex-shrink:0;text-transform:uppercase}
-    .prio-badge.grave{background:#FFEBEE;color:var(--red)}
-    .prio-badge.media{background:#FFF8E1;color:var(--orange)}
-    .prio-badge.leve{background:#E3F2FD;color:var(--blue)}
-    .prio-badge.documental{background:#F3E5F5;color:#8E24AA}
-    .prio-badge.observacion{background:#ECEFF1;color:#546E7A}
-    /* NC editable (corrección) */
-    .nc-correccion{margin-top:10px;border-top:1px solid var(--border);padding-top:10px;display:none}
-    .nc-correccion.vis{display:block}
-    .nc-correccion label{font-size:10px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
-    .nc-correccion textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px;resize:vertical;min-height:60px}
-    .nc-correccion input[type=date]{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px;margin-bottom:8px}
-    .nc-correccion-fotos{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
-    .foto-mini{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border)}
-    .foto-mini img{width:100%;height:100%;object-fit:cover}
-    .foto-mini-del{position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,.6);border:none;border-radius:50%;color:white;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-    .btn-add-correccion{background:none;border:1.5px dashed var(--border);border-radius:6px;padding:6px;font-size:11px;color:var(--muted);cursor:pointer;width:100%;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:4px}
-    .btn-add-correccion:hover{border-color:var(--gold);color:var(--gold)}
-    .btn-toggle-correccion{font-size:10px;font-weight:600;color:var(--gold);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:6px;display:block}
-    .doc-item{display:flex;align-items:center;gap:12px;padding:13px;background:var(--surf);border-radius:10px;margin-bottom:8px}
-    .doc-icon{font-size:24px;flex-shrink:0}
-    .doc-info{flex:1}
-    .doc-nombre{font-size:13px;font-weight:600;color:var(--dark)}
-    .doc-desc{font-size:11px;color:var(--muted);margin-top:2px}
-    .doc-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:14px;flex-shrink:0}
-    .doc-badge.listo{background:#E8F5E9;color:var(--green)}
-    .doc-badge.no{background:#FFEBEE;color:var(--red)}
-    .doc-badge.pendiente{background:var(--surf);color:var(--muted);border:1px solid var(--border)}
-    .btn-pdf{width:100%;padding:15px;background:var(--gold);color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;margin-bottom:10px;box-shadow:0 4px 12px rgba(200,153,58,0.3);display:flex;align-items:center;justify-content:center;gap:8px}
-    .btn-pdf:hover{transform:translateY(-1px)}
-    .btn-pdf:disabled{opacity:0.5;cursor:not-allowed;transform:none}
-    .btn-sec{width:100%;padding:13px;background:white;color:var(--text);border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px}
-    .btn-sec:hover{border-color:var(--gold);color:var(--gold)}
-    .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
+    .nc-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+    .nc-item:last-child{border-bottom:none}
+    .nc-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;flex-shrink:0}
+    .p-GRAVE{background:#FFEBEE;color:var(--red);border:1px solid var(--red)}
+    .p-MEDIA{background:#FFF8E1;color:#E65100;border:1px solid #E65100}
+    .p-LEVE{background:#E8F5E9;color:var(--green);border:1px solid var(--green)}
+    .p-DOCUMENTAL{background:#E3F2FD;color:var(--blue);border:1px solid var(--blue)}
+    .p-OBSERVACION{background:#F5F5F5;color:#666;border:1px solid #999}
+    .btn-pdf{width:100%;padding:15px;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s}
+    .btn-informe{background:var(--gold);color:white;box-shadow:0 4px 12px rgba(200,153,58,.3)}
+    .btn-informe:hover{opacity:.9}
+    .btn-certificado{background:#1e4d35;color:white;box-shadow:0 4px 12px rgba(39,174,96,.2)}
+    .btn-certificado:hover{opacity:.9}
+    .btn-registro{background:var(--dark);color:white}
+    .btn-registro:hover{opacity:.9}
+    .btn-disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
+    .spinner-wrap{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
+    .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .offline-badge{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
-    .offline-badge.visible{display:block}
-    .aviso-banner{background:#FFF8E1;border:1px solid #FFE082;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:#795548;display:none}
-    .aviso-banner.vis{display:block}
+    .info-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--surf);font-size:13px}
+    .info-label{color:var(--muted);font-size:12px}
+    .sesion-item{font-size:12px;color:var(--muted);padding:3px 0}
+    .alert-offline{background:#FFF9F0;border:1px solid var(--gold);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;display:none}
+    .alert-offline.vis{display:block}
+    .generating{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+    .generating.vis{display:flex}
+    .generating-text{color:white;font-size:15px;font-weight:600}
+    .generating-sub{color:rgba(255,255,255,.6);font-size:12px}
   </style>
 </head>
 <body>
 
 <div class="app-header">
-  <button class="btn-back" onclick="location.href='inspecciones.html'">&#8592;</button>
-  <div class="hdr-title">Resultado de inspección</div>
+  <button class="btn-back" onclick="volverAtras()">&#8592;</button>
+  <div class="hdr-title" id="hdrTitulo">Resultado</div>
 </div>
 
 <div class="content">
-  <div id="mainContent"><div class="spinner"></div></div>
+  <div class="alert-offline" id="alertOffline">
+    &#128317; Sin conexión — datos cargados desde memoria local
+  </div>
+  <div id="mainContent">
+    <div class="spinner-wrap"><div class="spinner"></div>Cargando resultado...</div>
+  </div>
 </div>
 
-<div class="offline-badge" id="offlineBadge">Sin conexión — modo offline</div>
+<!-- Overlay generando PDF -->
+<div class="generating" id="generatingOverlay">
+  <div class="spinner" style="border-color:rgba(255,255,255,.3);border-top-color:var(--gold);width:40px;height:40px"></div>
+  <div class="generating-text" id="generatingText">Generando PDF...</div>
+  <div class="generating-sub" id="generatingSub">Esto puede tardar unos segundos</div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -99,591 +89,1526 @@
 <script>
   if (!firebase.apps.length) {
     firebase.initializeApp({
-      apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
-      authDomain: "arp-inspecciones.firebaseapp.com",
-      projectId: "arp-inspecciones",
-      storageBucket: "arp-inspecciones.firebasestorage.app",
-      messagingSenderId: "35880168451",
-      appId: "1:35880168451:web:090e3c250b4416ed0b3236"
+      apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain:"arp-inspecciones.firebaseapp.com",
+      projectId:"arp-inspecciones",
+      storageBucket:"arp-inspecciones.firebasestorage.app",
+      messagingSenderId:"35880168451",
+      appId:"1:35880168451:web:090e3c250b4416ed0b3236"
     });
   }
   const auth = firebase.auth();
   const db = firebase.firestore();
-  db.enablePersistence({ synchronizeTabs: true }).catch(e => {});
+  db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 
   const params = new URLSearchParams(window.location.search);
   const inspeccionId = params.get("id");
-  if (!inspeccionId) location.href = "inspecciones.html";
+  if (!inspeccionId) { location.href="inspecciones.html"; }
 
-  let D = null; // inspeccion data
+  // Logo ARP en base64
+  const LOGO_B64 = "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";
 
-  const LOGO_B64 = "data:image/jpeg;base64,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";
+  let D = null; // datos de la inspección
+  let CONFIG = null; // config empresa + formato
 
-  const PRIO_COLORS = {
-    GRAVE:      { bg:[192,57,43],   light:[255,235,238], text:[192,57,43] },
-    MEDIA:      { bg:[230,126,34],  light:[255,248,225], text:[230,126,34] },
-    LEVE:       { bg:[41,128,185],  light:[227,242,253], text:[41,128,185] },
-    DOCUMENTAL: { bg:[142,36,170],  light:[243,229,245], text:[142,36,170] },
-    OBSERVACION:{ bg:[84,110,122],  light:[236,239,241], text:[84,110,122] }
+  // ── CONFIG POR DEFECTO (si Firestore falla offline) ──
+  const CONFIG_DEFAULT = {
+    empresa: {
+      nombre: "Adell Riesgos y Prevención S.L.",
+      nombreCorto: "Arp Prevención S.L.",
+      sedeSocial: "C/ Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4, 41704 Dos Hermanas, Sevilla",
+      sedeFiscal: "Calle Collblanc, nº 150, 08028 Barcelona",
+      telefono: "93 377 67 95",
+      email: "info@arpprevencion.com",
+      web: "www.arpprevencion.com",
+      acreditacion: "Nº 489 / EI 558"
+    },
+    paa: {
+      formatoRevision: 9,
+      formatoFecha: "26/02/2026"
+    }
   };
 
-  // ─── AUTH ──────────────────────────────────────────────
-  let authOk = false;
-  setTimeout(() => {
-    if (authOk) return;
-    const keys = Object.keys(localStorage).filter(k => k.startsWith('arpUser_'));
-    if (keys.length) {
-      iniciarCarga({ email: keys[0].replace('arpUser_',''), photoURL:'', displayName:'' });
-    } else { location.href = 'index.html'; }
-  }, 5000);
-
-  auth.onAuthStateChanged(user => {
-    authOk = true;
-    if (!user) { location.href = 'index.html'; return; }
-    iniciarCarga(user);
+  // ── CARGA ──
+  auth.onAuthStateChanged(async user => {
+    if (!user) { location.href='index.html'; return; }
+    await cargarDatos();
   });
 
-  async function iniciarCarga(user) {
-    try {
-      const snap = await db.collection("inspecciones").doc(inspeccionId).get();
-      if (!snap.exists) { location.href = "inspecciones.html"; return; }
-      D = { id: snap.id, ...snap.data() };
-      renderResultado();
-    } catch(e) { console.error(e); }
-  }
-
-  // ─── REFERENCIA ────────────────────────────────────────
-  function generarRef() {
-    const inst = D.nombreInstalacion || "XXX";
-    const fecha = (D.fechaInspeccion || "").replace(/-/g,"").slice(2);
-    const sig = inst.split(" ").map(w => w[0]).join("").toUpperCase().slice(0,3);
-    return `${sig}/PAA/${fecha} Rev 0`;
-  }
-
-  // ─── RENDER RESULTADO ──────────────────────────────────
-  function renderResultado() {
-    const favorable = D.resultado === "FAVORABLE";
-    const ref = generarRef();
-    const ncs = D.ncs || [];
-    const graves = ncs.filter(n => n.prio === "GRAVE").length;
-    const totalJuegos = (D.circuitos || []).reduce((a,c) => a + (c.juegos||[]).length, 0);
-    const nsGen = Object.values(D.checklist || {}).filter(v => v === "N").length;
-    const nsJuegos = (D.circuitos || []).reduce((a,c) =>
-      a + (c.juegos||[]).reduce((b,j) =>
-        b + ["ie","af","ej","ra","zs"].filter(k => j[k]==="N").length, 0), 0);
-
-    let ncHtml = "";
-    if (ncs.length) {
-      ncHtml = ncs.map((nc,i) => {
-        const cl = (nc.prio||"observacion").toLowerCase();
-        const corrFotos = (nc.fotosCorreccion || []).map((f,fi) =>
-          `<div class="foto-mini"><img src="${f.dataUrl}"><button class="foto-mini-del" onclick="delFotoCorreccion(${i},${fi})">&#215;</button></div>`
-        ).join("");
-        return `<div class="nc-item ${cl}" id="nc_${i}">
-          <div class="nc-titulo">
-            <span>NC ${i+1}${nc.autoId?" · auto":""} — ${nc.elem||"Sin elemento"}</span>
-            <span class="prio-badge ${cl}">${nc.prio||"—"}</span>
-          </div>
-          <div class="nc-desc">${nc.desc||""}</div>
-          ${nc.norma ? `<div class="nc-norma">${nc.norma}</div>` : ""}
-          <button class="btn-toggle-correccion" onclick="toggleCorreccion(${i})">
-            ${nc.resolucion || nc.fechaCorreccion ? "✓ Corrección registrada — editar" : "+ Registrar corrección"}
-          </button>
-          <div class="nc-correccion ${nc.resolucion||nc.fechaCorreccion?"vis":""}" id="cor_${i}">
-            <label>Fecha corrección</label>
-            <input type="date" value="${nc.fechaCorreccion||""}" onchange="D.ncs[${i}].fechaCorreccion=this.value;markDirty()">
-            <label>Descripción de la corrección</label>
-            <textarea placeholder="Describe cómo se resolvió..." onchange="D.ncs[${i}].resolucion=this.value;markDirty()">${nc.resolucion||""}</textarea>
-            <label>Fotos de corrección</label>
-            <div class="nc-correccion-fotos" id="cfoto_${i}">${corrFotos}
-              <button class="btn-add-correccion" onclick="addFotoCorreccion(${i})">📷 Foto</button>
-            </div>
-          </div>
-        </div>`;
-      }).join("");
+  setTimeout(async () => {
+    if (D) return;
+    // Intentar desde localStorage si auth tarda
+    const local = localStorage.getItem('insp_' + inspeccionId);
+    if (local) {
+      try {
+        D = JSON.parse(local);
+        document.getElementById('alertOffline').classList.add('vis');
+        CONFIG = CONFIG_DEFAULT;
+        renderResultado();
+      } catch(e) {}
     }
+  }, 3000);
 
-    document.getElementById("mainContent").innerHTML = `
-      <div class="res-header ${favorable ? "favorable" : "desfavorable"}">
-        <div class="res-icon">${favorable ? "&#10003;" : "&#10007;"}</div>
-        <div class="res-titulo">Resultado ${favorable ? "FAVORABLE" : "DESFAVORABLE"}</div>
-        <div class="res-ref">${ref}</div>
-        <div class="res-instalacion">${D.nombreInstalacion||""}</div>
+  async function cargarDatos() {
+    try {
+      // Cargar configuración
+      try {
+        const [ceSnap, paaSnap] = await Promise.all([
+          db.collection('config').doc('empresa').get(),
+          db.collection('config').doc('paa').get()
+        ]);
+        CONFIG = {
+          empresa: ceSnap.exists ? ceSnap.data() : CONFIG_DEFAULT.empresa,
+          paa: paaSnap.exists ? paaSnap.data() : CONFIG_DEFAULT.paa
+        };
+      } catch(e) {
+        CONFIG = CONFIG_DEFAULT;
+      }
+
+      // Cargar inspección
+      const snap = await db.collection('inspecciones').doc(inspeccionId).get();
+      if (!snap.exists) { document.getElementById('mainContent').innerHTML = '<p style="color:var(--red);padding:20px">Inspección no encontrada.</p>'; return; }
+      D = { id: snap.id, ...snap.data() };
+
+      // Guardar snapshot en localStorage (triple backup)
+      try { localStorage.setItem('insp_' + inspeccionId, JSON.stringify(D)); } catch(e) {}
+
+      if (!navigator.onLine) document.getElementById('alertOffline').classList.add('vis');
+      renderResultado();
+    } catch(e) {
+      // Intentar desde localStorage
+      const local = localStorage.getItem('insp_' + inspeccionId);
+      if (local) {
+        try {
+          D = JSON.parse(local);
+          CONFIG = CONFIG_DEFAULT;
+          document.getElementById('alertOffline').classList.add('vis');
+          renderResultado();
+        } catch(e2) {
+          document.getElementById('mainContent').innerHTML = '<p style="color:var(--red);padding:20px">Error cargando datos: ' + e.message + '</p>';
+        }
+      }
+    }
+  }
+
+  function volverAtras() {
+    if (D) location.href = 'inspeccion.html?id=' + inspeccionId;
+    else location.href = 'inspecciones.html';
+  }
+
+  function renderResultado() {
+    if (!D) return;
+    const favorable = D.resultado === 'FAVORABLE';
+    const ncs = (D.ncs || []).filter(n => n.prio && n.prio !== 'OBSERVACION');
+    const obs = (D.ncs || []).filter(n => n.prio === 'OBSERVACION');
+    const totalJuegos = (D.circuitos || []).reduce((s,c) => s + (c.juegos||[]).length, 0);
+    const juegosOk = (D.circuitos || []).reduce((s,c) =>
+      s + (c.juegos||[]).filter(j => ['ie','af','ej','ra','zs'].every(k => j[k]==='S'||j[k]==='NA')).length, 0);
+
+    document.getElementById('hdrTitulo').textContent = D.nombreInstalacion || 'Resultado';
+
+    const sesiones = D.sesiones && D.sesiones.length
+      ? D.sesiones.map(s => `<div class="sesion-item">📅 ${s.fecha} · ${s.horaInicio||'--'}–${s.horaFin||'--'}</div>`).join('')
+      : `<div class="sesion-item">📅 ${D.fechaInspeccion||'Sin fecha'}</div>`;
+
+    // Agrupar NCs por tipo+prio para mostrar resumen
+    const ncGrupos = {};
+    ncs.forEach(nc => {
+      const key = (nc.tipo||'Sin tipo') + '|' + nc.prio;
+      if (!ncGrupos[key]) ncGrupos[key] = { tipo: nc.tipo||'Sin tipo', prio: nc.prio, items: [] };
+      ncGrupos[key].items.push(nc.elem||'');
+    });
+
+    const ncHtml = Object.values(ncGrupos).map(g => `
+      <div class="nc-item">
+        <span class="nc-badge p-${g.prio}">${g.prio}</span>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:12px">${g.tipo}</div>
+          <div style="font-size:11px;color:var(--muted)">${g.items.filter(Boolean).join(' · ')}</div>
+        </div>
+      </div>`).join('') || '<div style="font-size:13px;color:var(--muted);padding:8px 0">Sin no conformidades.</div>';
+
+    document.getElementById('mainContent').innerHTML = `
+      <div class="res-header ${favorable?'favorable':'desfavorable'}">
+        <div class="res-icon">${favorable?'✓':'!'}</div>
+        <div class="res-titulo">${favorable?'FAVORABLE':'DESFAVORABLE'}</div>
+        <div class="res-ref">${D.nRegistro||D.id}</div>
+        <div class="res-instalacion">${D.nombreInstalacion||''}</div>
       </div>
 
       <div class="stats-grid">
-        <div class="stat-box"><div class="stat-val">${totalJuegos}</div><div class="stat-lbl">Juegos inspeccionados</div></div>
-        <div class="stat-box"><div class="stat-val" style="color:var(--orange)">${nsGen+nsJuegos}</div><div class="stat-lbl">No satisfactorios</div></div>
-        <div class="stat-box"><div class="stat-val" style="color:${graves?"var(--red)":"var(--muted)"}">${ncs.length}</div><div class="stat-lbl">No conformidades</div></div>
+        <div class="stat-box"><div class="stat-num">${totalJuegos}</div><div class="stat-label">Juegos</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${juegosOk}</div><div class="stat-label">Conformes</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:${ncs.length?'var(--red)':'var(--green)'}">${ncs.length}</div><div class="stat-label">No Conform.</div></div>
       </div>
-
-      ${ncs.length ? `<div class="card"><div class="card-title">No conformidades</div>${ncHtml}</div>` : ""}
-
-      <div id="avisoBanner" class="aviso-banner"></div>
 
       <div class="card">
-        <div class="card-title">Documentos</div>
-        <div class="doc-item">
-          <div class="doc-icon">&#128196;</div>
-          <div class="doc-info"><div class="doc-nombre">Informe de inspección</div><div class="doc-desc">${ref}</div></div>
-          <span class="doc-badge listo">Listo</span>
-        </div>
-        <div class="doc-item">
-          <div class="doc-icon">&#127885;</div>
-          <div class="doc-info">
-            <div class="doc-nombre">Certificado de conformidad</div>
-            <div class="doc-desc">${favorable ? "Resultado favorable — se emite" : "No se emite — existen NC graves"}</div>
-          </div>
-          <span class="doc-badge ${favorable ? "listo" : "no"}">${favorable ? "Se emite" : "No se emite"}</span>
-        </div>
+        <div class="card-title">Sesiones</div>
+        ${sesiones}
       </div>
 
-      <button class="btn-pdf" onclick="generarPDF()" id="btnPDF">&#128229; Descargar informe PDF</button>
-      ${favorable ? `<button class="btn-sec" onclick="generarCertificado()">&#127885; Descargar certificado</button>` : ""}
-      ${isDirty() ? `<button class="btn-sec" onclick="guardarCorrecciones()" id="btnGuardar">&#128190; Guardar correcciones</button>` : ""}
-      <button class="btn-sec" onclick="location.href='inspeccion.html?id=${inspeccionId}'">&#9998; Editar inspección</button>
-    `;
+      <div class="card">
+        <div class="card-title">No conformidades</div>
+        ${ncHtml}
+        ${obs.length?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)">${obs.length} observación${obs.length>1?'es':''} (no bloquean certificado)</div>`:''}
+      </div>
 
-    // Input file oculto para fotos de corrección
-    const inp = document.createElement('input');
-    inp.type='file'; inp.id='fileCorreccion'; inp.accept='image/*'; inp.multiple=true; inp.style.display='none';
-    inp.onchange = e => handleFotoCorreccion(e);
-    document.body.appendChild(inp);
+      <div class="card">
+        <div class="card-title">Generar documentos</div>
+        <button class="btn-pdf btn-informe" onclick="generarInforme()">
+          &#128196; Generar Informe PDF
+        </button>
+        <button class="btn-pdf ${favorable?'btn-certificado':'btn-disabled'}" onclick="${favorable?'generarCertificado()':'void(0)'}">
+          &#127941; ${favorable?'Generar Certificado PDF':'Certificado (solo FAVORABLE)'}
+        </button>
+        <button class="btn-pdf btn-registro" onclick="generarRegistro()">
+          &#128203; Generar Registro ENAC
+        </button>
+      </div>`;
   }
 
-  let _activeNcIdx = null;
-  let _dirty = false;
-  function isDirty() { return _dirty; }
-  function markDirty() { _dirty = true; }
+  // ═══════════════════════════════════════════════════
+  //   GENERACIÓN PDF — INFORME
+  // ═══════════════════════════════════════════════════
 
-  function toggleCorreccion(i) {
-    const el = document.getElementById('cor_'+i);
-    el.classList.toggle('vis');
+  const { jsPDF } = window.jspdf;
+
+  // Colores
+  const GOLD = [200, 153, 58];
+  const DARK = [26, 26, 26];
+  const MUTED = [138, 130, 120];
+  const BORDER = [226, 221, 213];
+  const SURF = [245, 243, 239];
+  const RED = [192, 57, 43];
+  const ORANGE = [230, 126, 34];
+  const GREEN_C = [39, 174, 96];
+  const BLUE_C = [41, 128, 185];
+  const WHITE = [255, 255, 255];
+  const BLACK = [0, 0, 0];
+
+  // Dimensiones A4
+  const PW = 210, PH = 297;
+  const ML = 20, MR = 20, MT = 15, MB = 15;
+  const CW = PW - ML - MR;
+
+  function showGenerating(text, sub) {
+    document.getElementById('generatingText').textContent = text;
+    document.getElementById('generatingSub').textContent = sub || '';
+    document.getElementById('generatingOverlay').classList.add('vis');
+  }
+  function hideGenerating() {
+    document.getElementById('generatingOverlay').classList.remove('vis');
   }
 
-  function addFotoCorreccion(i) {
-    _activeNcIdx = i;
-    document.getElementById('fileCorreccion').click();
+  // Cabecera de página (desde p.3 en adelante)
+  function addCabecera(doc, pg, tot, ref, fmtRev, fmtFecha) {
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.3);
+    doc.line(ML, 10, PW-MR, 10);
+    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+    const emp = CONFIG?.empresa?.nombreCorto || 'Arp Prevención S.L.';
+    doc.text(emp, ML, 8);
+    doc.text('INFORME DE INSPECCIÓN — INSTALACIONES PAA', PW/2, 8, {align:'center'});
+    doc.text(`Rev. ${fmtRev||9}   Fecha: ${fmtFecha||'26/02/2026'}`, PW-MR, 8, {align:'right'});
+    // Pie
+    doc.line(ML, PH-10, PW-MR, PH-10);
+    doc.setFontSize(7); doc.setTextColor(...MUTED);
+    const refStr = ref || '';
+    doc.text('S.: Satisfactorio; N.S.: no satisfactorio; N.A.: no aplica', ML, PH-7);
+    doc.setTextColor(...GOLD); doc.setFont('helvetica','bold');
+    doc.text(refStr, PW/2, PH-7, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+    doc.text(`Página ${pg} de ${tot}`, PW-MR, PH-7, {align:'right'});
   }
 
-  function handleFotoCorreccion(e) {
-    const i = _activeNcIdx;
-    if (i === null) return;
-    if (!D.ncs[i].fotosCorreccion) D.ncs[i].fotosCorreccion = [];
-    Array.from(e.target.files).forEach(f => {
-      const r = new FileReader();
-      r.onload = ev => {
-        D.ncs[i].fotosCorreccion.push({ dataUrl: ev.target.result, name: f.name });
-        renderFotosCorreccion(i);
-        markDirty();
-      };
-      r.readAsDataURL(f);
-    });
-    e.target.value = "";
+  // Pie de portada
+  function addPiePagina(doc, nombreCorto) {
+    doc.setDrawColor(...GOLD); doc.setLineWidth(0.5);
+    doc.line(ML, PH-18, PW-MR, PH-18);
+    doc.setFillColor(...GOLD);
+    doc.rect(ML, PH-18, CW, 0.5, 'F');
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+    const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
+    doc.text(`${c.sedeSocial}`, PW/2, PH-13, {align:'center'});
+    doc.text(`${c.sedeFiscal}`, PW/2, PH-9, {align:'center'});
+    doc.setFont('helvetica','normal');
+    doc.text(`${c.web}   ${c.email}`, PW/2, PH-5, {align:'center'});
+    // "Arp Prevención S.L" izquierda + "Página X de Y" derecha — igual que Harriartean
   }
 
-  function renderFotosCorreccion(i) {
-    const nc = D.ncs[i];
-    const fotos = nc.fotosCorreccion || [];
-    const g = document.getElementById('cfoto_'+i);
-    if (!g) return;
-    g.innerHTML = fotos.map((f,fi) =>
-      `<div class="foto-mini"><img src="${f.dataUrl}"><button class="foto-mini-del" onclick="delFotoCorreccion(${i},${fi})">&#215;</button></div>`
-    ).join("") + `<button class="btn-add-correccion" onclick="addFotoCorreccion(${i})">📷 Foto</button>`;
+  function fmtFecha(str) {
+    if (!str) return '';
+    // YYYY-MM-DD → DD/MM/YYYY
+    const m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+    return str;
   }
 
-  function delFotoCorreccion(i, fi) {
-    D.ncs[i].fotosCorreccion.splice(fi,1);
-    renderFotosCorreccion(i);
-    markDirty();
-  }
-
-  async function guardarCorrecciones() {
-    try {
-      await db.collection("inspecciones").doc(inspeccionId).update({ ncs: D.ncs, ultimaModificacion: firebase.firestore.FieldValue.serverTimestamp() });
-      _dirty = false;
-      const btn = document.getElementById('btnGuardar');
-      if (btn) { btn.textContent = '✓ Guardado'; setTimeout(() => btn.innerHTML = '&#128190; Guardar correcciones', 2000); }
-    } catch(e) { alert('Error al guardar: ' + e.message); }
-  }
-
-  // ─── PDF ───────────────────────────────────────────────
-  async function generarPDF() {
-    if (typeof window.jspdf === 'undefined') {
-      alert('El generador de PDF está cargando. Espera un momento e inténtalo de nuevo.');
-      return;
+  function getSesionesStr() {
+    if (D.sesiones && D.sesiones.length) {
+      return D.sesiones.map(s => `Fecha inspección: ${fmtFecha(s.fecha)} – Inspector: ${D.inspectorNombre||''}`).join('\n');
     }
-    const btn = document.getElementById('btnPDF');
-    btn.disabled = true; btn.textContent = 'Generando...';
-    try { await buildInformePDF(); }
-    catch(e) { console.error(e); alert('Error al generar el PDF: ' + e.message); }
-    btn.disabled = false; btn.innerHTML = '&#128229; Descargar informe PDF';
+    return `Fecha inspección: ${fmtFecha(D.fechaInspeccion||'')} – Inspector: ${D.inspectorNombre||''}`;
   }
 
-  function pdfAddLogo(doc, W, M) {
-    try {
-      doc.addImage(LOGO_B64, 'JPEG', W-M-22, 8, 22, 14);
-    } catch(e) { /* logo no disponible */ }
+  function getNRegistro() {
+    return D.nRegistro || (D.id ? D.id.substring(0,12) : 'ARP/PAA/000000');
   }
 
-  async function buildInformePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const W=210, M=18;
-    const G=[200,153,58], D2=[26,26,26], MU=[138,130,120];
-    const ref = generarRef();
-    const favorable = D.resultado === "FAVORABLE";
-    const ncs = D.ncs || [];
-    const circuitos = D.circuitos || [];
-    const fechaFmt = (D.fechaInspeccion||"").split("-").reverse().join("/");
-    const dias=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
-    const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-    let fechaLarga = "";
-    if (D.fechaInspeccion) {
-      const dt = new Date(D.fechaInspeccion+"T12:00:00");
-      fechaLarga = `${dias[dt.getDay()]}, ${dt.getDate()} de ${meses[dt.getMonth()]} de ${dt.getFullYear()}`;
-    }
-    const hw = W-M*2;
+  function colorNC(prio) {
+    if (prio==='GRAVE') return RED;
+    if (prio==='MEDIA') return ORANGE;
+    if (prio==='LEVE') return GREEN_C;
+    if (prio==='DOCUMENTAL') return BLUE_C;
+    return MUTED;
+  }
+  function bgNC(prio) {
+    if (prio==='GRAVE') return [255,235,238];
+    if (prio==='MEDIA') return [255,248,225];
+    if (prio==='LEVE') return [232,245,233];
+    if (prio==='DOCUMENTAL') return [227,242,253];
+    return [245,245,245];
+  }
+  function textNC(prio) {
+    if (prio==='GRAVE') return 'NO CONFORMIDAD GRAVE — NECESITA ACCIÓN CORRECTORA URGENTE';
+    if (prio==='MEDIA') return 'NO CONFORMIDAD MEDIA — NECESITA ACCIÓN CORRECTORA';
+    if (prio==='LEVE') return 'NO CONFORMIDAD LEVE — NECESITA ACCIÓN, EL RIESGO DE DAÑO ES BAJO';
+    if (prio==='DOCUMENTAL') return 'NO CONFORMIDAD DOCUMENTAL — FALTA DOCUMENTACIÓN';
+    return 'OBSERVACIÓN';
+  }
 
-    const addHdr = () => {
-      // Logo
-      try { doc.addImage(LOGO_B64,"JPEG",M,8,18,12); } catch(e){}
-      doc.setTextColor(...D2); doc.setFontSize(8); doc.setFont("helvetica","bold");
-      doc.text("Arp Prevención S.L.", M+20, 12);
-      doc.setFont("helvetica","normal"); doc.setFontSize(6.5); doc.setTextColor(...MU);
-      doc.text("C/ Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4 — 41704 Dos Hermanas, Sevilla", M+20, 16);
-      doc.setTextColor(...G); doc.setFontSize(7.5); doc.setFont("helvetica","bold");
-      doc.text(ref, W-M, 14, {align:"right"});
-      doc.setDrawColor(...G); doc.setLineWidth(0.4); doc.line(M,22,W-M,22);
-    };
-
-    const addFtr = (pg, tot) => {
-      doc.setDrawColor(...G); doc.setLineWidth(0.3); doc.line(M,284,W-M,284);
-      doc.setFontSize(7); doc.setFont("helvetica","bold"); doc.setTextColor(...G);
-      doc.text("Arp Prevención S.L.", M, 289);
-      doc.setTextColor(...MU); doc.setFont("helvetica","normal");
-      doc.text(ref, W/2, 289, {align:"center"});
-      doc.text(`Página ${pg} de ${tot}`, W-M, 289, {align:"right"});
-    };
-
-    const fld = (lbl, val, x, y, w) => {
-      doc.setFillColor(245,243,239); doc.rect(x,y,w,10,"F");
-      doc.setDrawColor(...G); doc.setLineWidth(0.15); doc.rect(x,y,w,10);
-      doc.setTextColor(...MU); doc.setFontSize(6.5); doc.setFont("helvetica","bold");
-      doc.text(lbl, x+2, y+4);
-      doc.setTextColor(...D2); doc.setFontSize(8.5); doc.setFont("helvetica","normal");
-      doc.text(String(val||"—"), x+2, y+8.5, {maxWidth:w-4});
-    };
-
-    // Calcular total páginas estimado
-    const pgNCs = ncs.length > 0 ? 1 : 0;
-    const pgCirc = circuitos.length > 0 ? 1 : 0;
-    const TOTAL_PAGES = 3 + pgCirc + pgNCs;
-
-    // ── PORTADA ──────────────────────────────────────────
-    addHdr(); let y=28;
-    doc.setFontSize(18); doc.setFont("helvetica","bold"); doc.setTextColor(...D2);
-    doc.text("Inspección de Parque Acrobático en Altura", W/2, y, {align:"center"}); y+=8;
-    doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.setTextColor(...MU);
-    doc.text("según UNE-EN 15.567-1:2015+A1:2021", W/2, y, {align:"center"}); y+=10;
-    doc.setDrawColor(...G); doc.setLineWidth(0.5); doc.line(M,y,W-M,y); y+=8;
-    doc.setFontSize(18); doc.setFont("helvetica","bold"); doc.setTextColor(...D2);
-    doc.text(D.nombreInstalacion||"", W-M, y, {align:"right"}); y+=7;
-    doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.setTextColor(...MU);
-    doc.text(`${D.municipio||""} ${D.provincia?", "+D.provincia:""}`, W-M, y, {align:"right"}); y+=8;
-    doc.setDrawColor(...G); doc.line(M,y,W-M,y); y+=8;
-    doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(...G);
-    doc.text(ref, W-M, y, {align:"right"}); y+=8;
-    doc.setDrawColor(...G); doc.line(M,y,W-M,y); y+=8;
-    doc.setFontSize(9); doc.setFont("helvetica","italic"); doc.setTextColor(...MU);
-    doc.text(`Fecha inspección: ${fechaFmt}  —  Inspector: ${D.inspectorNombre||""}`, W/2, y, {align:"center"});
-    // Resultado en portada
-    y+=12; const pColor = favorable ? [39,174,96] : [192,57,43];
-    doc.setFillColor(...pColor); doc.roundedRect(M,y,hw,14,3,3,"F");
-    doc.setTextColor(255,255,255); doc.setFontSize(13); doc.setFont("helvetica","bold");
-    doc.text(`Resultado: ${D.resultado}`, W/2, y+9, {align:"center"});
-    addFtr(1, TOTAL_PAGES);
-
-    // ── DATOS GENERALES ──────────────────────────────────
-    doc.addPage(); addHdr(); y=28;
-    doc.setFillColor(...D2); doc.rect(M,y,hw,7,"F");
-    doc.setTextColor(255,255,255); doc.setFontSize(8.5); doc.setFont("helvetica","bold");
-    doc.text("PROPIETARIO DE LAS INSTALACIONES", M+4, y+5); y+=9;
-    fld("EMPRESA", D.propietario, M, y, hw*0.6);
-    fld("CIF", D.cif, M+hw*0.6+1, y, hw*0.4); y+=12;
-    fld("GESTOR", D.gestor, M, y, hw); y+=12;
-    doc.setFillColor(...D2); doc.rect(M,y,hw,7,"F");
-    doc.setTextColor(255,255,255); doc.setFontSize(8.5); doc.setFont("helvetica","bold");
-    doc.text("SOLICITANTE DE LA INSPECCIÓN", M+4, y+5); y+=9;
-    fld("SOLICITANTE", D.solicitante||D.propietario, M, y, hw*0.6);
-    fld("TIPO DE INSPECCIÓN", D.tipoInspeccion, M+hw*0.6+1, y, hw*0.4); y+=12;
-    doc.setFillColor(...D2); doc.rect(M,y,hw,7,"F");
-    doc.setTextColor(255,255,255); doc.setFontSize(8.5); doc.setFont("helvetica","bold");
-    doc.text("ORGANISMO DE INSPECCIÓN", M+4, y+5); y+=9;
-    doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(...D2);
-    doc.text("ARP PREVENCIÓN S.L.", M, y+5); y+=8;
-    doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...MU);
-    doc.text("C/ Gabriel Miró 3, Edificio Wertice Planta 1ª Puerta 4 — 41703 Dos Hermanas, Sevilla", M, y+5); y+=6;
-    doc.text("Teléfono: 93 377 67 95  ·  info@arpprevencion.com  ·  www.arpprevencion.com", M, y+5);
-    addFtr(2, TOTAL_PAGES);
-
-    // ── CHECKLIST GENERAL ────────────────────────────────
-    doc.addPage(); addHdr(); y=28;
-    const GEN_ITEMS = [
-      {id:"g1",ref:"4.1",sec:"General",desc:"4.1 Selección de Lugar y Entorno. Evacuación posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosión)."},
-      {id:"g2",ref:"4.3.3",sec:"4.3.3 Sistemas de Soporte",desc:"4.3.3.3 Sistemas de soporte naturales – Árboles. Evaluación de resistencia e idoneidad por experto; diagnóstico actualizado; protección de raíces; medidas correctivas."},
-      {id:"g3",ref:"4.3.3",sec:"4.3.3 Sistemas de Soporte",desc:"4.3.3.2 Sistemas de soporte artificiales. Adecuación a cargas; vientos y anclajes protegidos; verificación de estructuras existentes si aplican; cálculos disponibles."},
-      {id:"g4",ref:"4.2",sec:"4.2 Materiales y cables",desc:"Maderas, metales, compuestos; cables (galvanizado/inox); terminaciones conforme; criterio de desecho."},
-      {id:"g5",ref:"6",sec:"6 Señalización",desc:"Control de acceso. Codificación de recorridos y dificultad; pictogramas; ubicación y legibilidad."},
-      {id:"g6",ref:"7",sec:"7 EPI y equipos de rescate",desc:"Identificación y marcados; revisión periódica vigente; prueba funcional si aplica; adecuación a morfología de usuarios; registros al día."},
-      {id:"g7",ref:"8",sec:"8 Documentación",desc:"Manual del constructor, mantenimiento, evaluación arbórea, identificación en planos, marcados."},
-    ];
-    const checklist = D.checklist||{}, checklistObs=D.checklistObs||{};
-    doc.setFillColor(...D2); doc.rect(M,y,hw,7,"F");
-    doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont("helvetica","bold");
-    doc.text("General", W/2, y+5, {align:"center"}); y+=9;
-    let lastSec="";
-    GEN_ITEMS.forEach((item,i) => {
-      if (y>265) { doc.addPage(); addHdr(); y=28; }
-      if (item.sec !== lastSec) {
-        lastSec=item.sec;
-        doc.setFillColor(245,243,239); doc.rect(M,y,hw,5.5,"F");
-        doc.setFillColor(...G); doc.rect(M,y,1.5,5.5,"F");
-        doc.setTextColor(...G); doc.setFontSize(6.5); doc.setFont("helvetica","bold");
-        doc.text(item.ref, M+3.5, y+3.8);
-        doc.setTextColor(...D2); doc.text(item.sec, M+12, y+3.8);
-        y+=6.5;
+  // ── TEXTO LARGO con salto de página automático ──
+  function addTextBlock(doc, text, x, y, maxW, fontSize, color, font, lineH, maxY, ref, fmtRev, fmtFecha, nPag, totPag) {
+    doc.setFontSize(fontSize); doc.setFont('helvetica', font||'normal'); doc.setTextColor(...(color||DARK));
+    const lines = doc.splitTextToSize(text, maxW);
+    for (const line of lines) {
+      if (y > maxY) {
+        doc.addPage();
+        nPag[0]++;
+        addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFecha);
+        y = MT + 8;
       }
-      const v=checklist[item.id]||"";
-      const obs=checklistObs[item.id]||"";
-      const rh=(obs&&v==="N")?13:8;
-      doc.setFillColor(i%2===0?[255,255,255]:[252,251,249]); doc.rect(M,y,hw-22,rh,"F");
-      doc.setTextColor(...D2); doc.setFontSize(7.5); doc.setFont("helvetica","normal");
-      doc.text(doc.splitTextToSize(item.desc,hw-27), M+2, y+5);
-      const vc=v==="S"?[39,174,96]:v==="N"?[230,126,34]:v==="NA"?[160,160,160]:[240,238,234];
-      doc.setFillColor(...vc); doc.roundedRect(M+hw-20,y+1,18,rh-2,2,2,"F");
-      doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont("helvetica","bold");
-      doc.text(v||"—", M+hw-11, y+rh/2+2, {align:"center"});
-      y+=rh;
-      if (obs&&v==="N") {
-        doc.setFillColor(255,248,240); doc.rect(M,y-rh+8,hw-22,5,"F");
-        doc.setTextColor(...MU); doc.setFontSize(6.5); doc.setFont("helvetica","italic");
-        doc.text("Obs: "+obs, M+4, y-rh+11.5, {maxWidth:hw-28});
-      }
-    });
-    if (D.obsGral) {
-      y+=6;
-      doc.setFillColor(245,243,239); doc.rect(M,y,hw,6,"F");
-      doc.setTextColor(...MU); doc.setFontSize(7); doc.setFont("helvetica","bold");
-      doc.text("OBSERVACIONES GENERALES", M+3, y+4.5); y+=8;
-      const ls=doc.splitTextToSize(D.obsGral,hw-4);
-      doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(...D2);
-      doc.text(ls, M+2, y+4); y+=ls.length*5+6;
+      doc.text(line, x, y);
+      y += lineH;
     }
-    addFtr(3, TOTAL_PAGES);
+    return y;
+  }
 
-    // ── CIRCUITOS Y JUEGOS ───────────────────────────────
-    let pg=4;
-    if (circuitos.length>0) {
-      doc.addPage(); addHdr(); y=28;
-      const COLS=["ie","af","ej","ra","zs"];
-      const COL_LBLS=["Integridad\nestructural","Anclajes y\nfijaciones","Elementos de\njuego","Riesgos y\natrapamientos","Zona de\nseguridad"];
-      const jW=hw*0.22, sW=hw*0.09, obsW=hw-jW-sW*5-14;
-      doc.setFillColor(...D2); doc.rect(M,y,hw,14,"F");
-      doc.setTextColor(255,255,255); doc.setFontSize(6.5); doc.setFont("helvetica","bold");
-      doc.text("Juego", M+2, y+9);
-      let cx=M+jW;
-      COL_LBLS.forEach(l => {
-        const ls=l.split("\n");
-        ls.forEach((ll,li) => doc.text(ll, cx+sW/2, y+4+li*3.5, {align:"center"}));
-        cx+=sW;
+  // ── CAJA CON TITULO ──
+  function caja(doc, x, y, w, h, titulo, contenido, fontSize) {
+    doc.setDrawColor(...DARK); doc.setLineWidth(0.3);
+    doc.rect(x, y, w, h);
+    if (titulo) {
+      doc.setFillColor(...SURF); doc.rect(x, y, w, 7, 'F');
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text(titulo, x+3, y+5);
+    }
+    if (contenido) {
+      doc.setFontSize(fontSize||9); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+      const lines = doc.splitTextToSize(contenido, w-6);
+      let cy = y + (titulo?10:5);
+      lines.forEach(l => { doc.text(l, x+w-3, cy, {align:'right'}); cy += 5; });
+    }
+  }
+
+  // ── TEXTO FIJO PAA ──
+  const TEXTO_METODOLOGIA_1 = `Los Recorridos Acrobáticos en Altura (Parques de Aventura) son espacios de actividad lúdica asegurada que permiten al usuario recorrer distancias en altura por una estructura artificial, de manera más o menos acrobática. La seguridad del practicante está asegurada sea por medio de un equipo de protección individual (EPI) ligado a un dispositivo anticaídas, sea por un dispositivo de protección colectiva.
+
+ARP PREVENCIÓN interviene en el cuadro de las exigencias normativas que se aplican a los explotadores o responsables de la gestión de los recorridos acrobáticos en altura (parques de aventura).
+
+La norma impone:
+— Una inspección previa a la apertura del parque y de toda modificación ulterior.
+— Una inspección anual de los parques de aventura para verificar el estado y para determinar las acciones de puesta en conformidad que deben ser realizadas.
+
+El diagnóstico visual realizado por ARP PREVENCIÓN consiste en medir la diferencia entre el nivel de seguridad exigido por la normativa y el nivel real de seguridad constatado sobre los equipos in situ.
+
+Nota: Para esta actividad de control ARP PREVENCIÓN interviene de manera totalmente externa, siendo de este modo conforme a los criterios de independencia de los organismos que proceden a la inspección de tipo C tal como están definidos en el Anexo A de la norma UNE EN ISO/CEI 17 020 de junio 2012. Además, ARP PREVENCIÓN dispone de un seguro de responsabilidad civil específico.`;
+
+  const TEXTO_METODOLOGIA_2 = `Para esta prestación el técnico de ARP PREVENCIÓN dispone del material EPI siguiente:
+— Un arnés, un disipador de energía de caída, una polea, una cinta corta
+— Dos mosquetones automáticos, dos mosquetones de doble seguridad, anilla de sujeción
+— Un dispositivo de descenso, un dispositivo de ascenso
+— Una cinta de 60 cm, 1,20 cm y cuerdas
+
+El inspector de ARP PREVENCIÓN dispone además del material siguiente:
+— un aparato de fotografiar numérico
+— una llave dinamométrica
+— un calibre para medir diámetros de cables (pie de rey)
+— un sistema medidor de la inclinación de pendientes, si fuera necesario.`;
+
+  const TEXTO_MANT_GENERAL = `Si la instalación no es segura, es conveniente impedir a los usuarios acceder a ella (ejemplos: la seguridad de la instalación no es total; el mantenimiento no puede garantizar un nivel exigible de seguridad…). Igualmente conviene poner remedio inmediatamente a los graves deterioros que se producen y que pueden arriesgar o amenazar la seguridad.`;
+
+  const TEXTO_MANT_ORG = `Es conveniente que el mantenimiento y el control de las instalaciones y de sus componentes sean efectuadas de acuerdo a una frecuencia mínima. Para estos controles, las instrucciones de los fabricantes deben ser tenidas en cuenta.
+
+Inspección visual rutinaria: El control visual de rutina tiene por objeto la identificación de los riesgos manifiestos que pueden resultar de los actos de vandalismo, de la utilización intensiva o de las condiciones meteorológicas. Deben realizarse cada día.
+
+Inspección de funcionamiento: El control funcional es un control rutinario mucho más profundo que tiene por fin el verificar la estabilidad del Juego, los equipos, y en particular, de descubrir los eventuales signos de desgaste normal y anómalo. Es conveniente efectuar este control a intervalos de 1 a 3 meses.
+
+Inspección periódica: El control anual principal, se efectúa para constatar, al menos una vez al año, el nivel de seguridad global de los equipos. Este control debe ser anual y efectuado por un organismo de inspección independiente y competente.`;
+
+  const TEXTO_MANT_EPI = `Todo material sufre daños debidos al envejecimiento y al desgaste. Conviene verificar visualmente y de forma meticulosa el material antes y después de cada uso a fin de asegurar su buen estado. Si un producto presenta taras o defectos o está corroído, deberá ser retirado. En caso de choque violento, todo producto debe ser cambiado, incluso si no tiene ningún signo visible de alteración.
+
+Todo responsable de la gestión de un parque debe poseer un registro de Equipos de Protección Individual en el que sean referenciados todos los equipos, con sus fichas de vida y notas técnicas de los fabricantes. En la mayor parte de las notas técnicas, la duración de uso de los equipos después de su primer uso está fijada preventivamente entre 3 y 5 años.`;
+
+  const TEXTO_RESULTADOS = `Los resultados de la inspección están organizados por capítulos, listando el conjunto de los puntos de inspección que componen el diagnóstico de seguridad, para el recorrido en su conjunto. En el presente informe se detallan tanto las observaciones de carácter más grave, como los consejos o recomendaciones de seguridad que puedan ser aportados por el inspector en la inspección in situ de las instalaciones.
+
+Las observaciones consideradas como NO CONFORMIDAD a norma, vendrán reflejadas por niveles de severidad:
+
+— Graves: puntos de no cumplimiento normativo que presentan riesgos para la integridad estructural o la seguridad de los usuarios, que deben ser modificados o corregidos lo antes posible.
+— Medio: puntos de divergencia respecto a la normativa en vigor que deben ser tenidos en consideración para que el riesgo no vaya a más. Se deberán realizar operaciones correctivas pero sin carácter de urgencia.
+— Leve/Documentales: falta de documentos técnicos o informes técnicos que necesiten ser entregados por el gestor/constructor del parque.
+
+En caso de ausencia de no conformidad, el certificado será emitido una vez concluido y confirmado el pago del servicio.`;
+
+  const TEXTO_CARACTERISTICAS = `ADELL RIESGOS Y PREVENCIÓN, S.L como organismo de inspección realiza en todas sus intervenciones los controles siguientes:
+
+— Comprobación visual rutinaria
+— Inspección del funcionamiento
+— Ensayo del funcionamiento efectuado en altura por un inspector
+— Evaluación de los talleres desgastados y requisitos para su sustitución
+— Verificación de que se han seguido todas las instrucciones de mantenimiento del fabricante/proveedor
+— Verificación de que los cables recubiertos de plástico se han sometido a ensayo conforme la norma
+— Comprobación del diagnóstico arbóreo actualizado para confirmar que todos los árboles utilizados como sistema de soporte se han considerado seguros para su uso
+— Verificación de que existe un informe de inspección del EPI
+
+Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCIÓN, S.L, cumpliendo el artículo 7.1.5 de informes de inspección:
+— La identificación del organismo emisor
+— El lugar y la fecha de la inspección
+— La identificación del taller o talleres inspeccionados
+— El nombre, la dirección y la firma del inspector
+— Una declaración de conformidad cuando proceda
+— Un registro de todos los defectos encontrados
+— Información sobre lo que se haya omitido en el campo de aplicación original de la inspección
+— Una declaración indicando que el informe de la inspección no se debería reproducir salvo en su integridad
+— El presente documento se debe incluir en la documentación de utilización del recorrido acrobático en altura.`;
+
+  const GEN_ITEMS_PDF = [
+    {ref:"4.1",sec:"Selección de Lugar y Entorno",desc:"Evacuación posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosión).",id:"g1"},
+    {ref:"4.3.3",sec:"Sistemas de Soporte – Árboles",desc:"Evaluación de resistencia e idoneidad por experto; diagnóstico actualizado; protección de raíces; medidas correctivas.",id:"g2"},
+    {ref:"4.3.3",sec:"Sistemas de Soporte – Artificiales",desc:"Adecuación a cargas; vientos y anclajes protegidos; verificación de estructuras existentes; cálculos disponibles.",id:"g3"},
+    {ref:"4.2",sec:"Materiales y cables",desc:"Maderas, metales, compuestos; cables (galvanizado/inox); terminaciones conforme; criterio de desecho.",id:"g4"},
+    {ref:"6",sec:"Señalización general y control de acceso",desc:"Control de acceso. Codificación de recorridos y dificultad; pictogramas; ubicación y legibilidad.",id:"g5"},
+    {ref:"7",sec:"EPI y equipos de rescate",desc:"Identificación y marcados; revisión periódica vigente; prueba funcional si aplica; adecuación a morfología de usuarios; registros al día.",id:"g6"},
+    {ref:"8",sec:"Documentación",desc:"Manual del constructor, mantenimiento, evaluación arbórea, identificación en planos, marcados.",id:"g7"},
+  ];
+
+  const COLS_PDF = [
+    {key:"ie",label:"Integridad estructural",ref:"4.3",desc:"Verificación del estado resistente del Juego: soportes, plataformas, cables portantes y elementos estructurales."},
+    {key:"af",label:"Anclajes y fijaciones",ref:"4.3.3",desc:"Comprobación de anclajes, uniones, grapas, prensados y tensado de cables."},
+    {key:"ej",label:"Elementos de juego/Progresión",ref:"4.2",desc:"Verificación del estado y funcionalidad de los elementos de progresión."},
+    {key:"ra",label:"Riesgos y atrapamientos",ref:"4.4",desc:"Evaluación de posibles riesgos de atrapamiento, cizallamiento e interferencias."},
+    {key:"zs",label:"Zona de seguridad / Entorno",ref:"4.1",desc:"Comprobación de distancias libres, ausencia de obstáculos y condiciones de evacuación."},
+  ];
+
+  async function generarInforme() {
+    if (!D) return;
+    showGenerating('Generando Informe PDF...', 'Preparando páginas');
+    await new Promise(r => setTimeout(r, 100));
+    try {
+      const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
+      const ref = getNRegistro();
+      const fmtRev = D.formatoDocumento?.revision || CONFIG?.paa?.formatoRevision || 9;
+      const fmtFechaStr = D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '26/02/2026';
+
+      // Calcular total páginas aproximado (dinámico)
+      // Portada(1) + Indice(1) + Datos(1) + Metod(2) + Mant(2) + Result(1) + Desc(1+fotos) + Inspec(2) + Anexos(1) + NCs + Caract(1)
+      const ncsCount = (D.ncs||[]).filter(n=>n.prio!=='OBSERVACION').length;
+      const estPags = 13 + ncsCount + Math.ceil((D.circuitos||[]).reduce((s,c)=>(s+(c.juegos||[]).length),0)/6);
+      const totPag = [estPags];
+      const nPag = [0];
+
+      // ═══ PÁGINA 1: PORTADA ═══
+      nPag[0]++;
+      let y = 25;
+
+      // Líneas decorativas gold
+      doc.setDrawColor(...GOLD); doc.setLineWidth(0.8);
+      doc.line(ML, y, PW-MR, y); y += 2;
+
+      // Título
+      doc.setFontSize(28); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+      const titulo1 = 'Inspección de Parque';
+      const titulo2 = 'Acrobático en Altura según';
+      const titulo3 = 'UNE-EN 15.567-';
+      const titulo4 = '1:2015+A1:2021';
+      [titulo1,titulo2,titulo3,titulo4].forEach(t => {
+        doc.text(t, PW-MR, y, {align:'right'});
+        y += 12;
       });
-      doc.text("Obs.", cx+obsW/2, y+9, {align:"center"});
-      y+=15;
-      circuitos.forEach(circ => {
-        if (y>265) { doc.addPage(); addHdr(); y=28; }
-        doc.setFillColor(245,240,230); doc.rect(M,y,hw,5.5,"F");
-        doc.setTextColor(...G); doc.setFontSize(7); doc.setFont("helvetica","bold");
-        doc.text("▸ " + circ.nombre, M+3, y+4); y+=6;
-        (circ.juegos||[]).forEach((j,ji) => {
-          if (y>275) { doc.addPage(); addHdr(); y=28; }
-          const bg=ji%2===0?[255,255,255]:[252,251,249];
-          doc.setFillColor(...bg); doc.rect(M,y,hw,7,"F");
-          const tipoStr=j.tipo==="NR"?"* ":j.tipo==="AUX"?"† ":"";
-          const ramaStr=j.rama?`(${j.rama}) `:"";
-          doc.setTextColor(...D2); doc.setFontSize(7.5); doc.setFont("helvetica","normal");
-          doc.text(tipoStr+ramaStr+(j.nombre||"—"), M+2, y+4.8, {maxWidth:jW-4});
-          cx=M+jW;
-          COLS.forEach(col => {
-            const v=j[col]||"";
-            const vc=v==="S"?[39,174,96]:v==="N"?[230,126,34]:v==="NA"?[160,160,160]:[220,218,215];
-            doc.setFillColor(...vc); doc.roundedRect(cx+sW*0.15,y+0.8,sW*0.7,5.5,1,1,"F");
-            doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont("helvetica","bold");
-            doc.text(v||"—", cx+sW/2, y+4.8, {align:"center"});
-            cx+=sW;
-          });
-          doc.setTextColor(...MU); doc.setFontSize(6.5); doc.setFont("helvetica","italic");
-          doc.text(j.obs||"", cx+2, y+4.8, {maxWidth:obsW-4});
-          // Fotos del juego — máximo 3 en fila bajo la fila
-          if (j.fotos && j.fotos.length) {
-            y+=7;
-            const fSize=18; let fx=M+2;
-            const maxF=Math.min(j.fotos.length,4);
-            for (let fi=0;fi<maxF;fi++) {
-              try { doc.addImage(j.fotos[fi].dataUrl,"JPEG",fx,y,fSize,fSize*0.75); } catch(e){}
-              fx+=fSize+2;
+      y += 4;
+
+      doc.setDrawColor(...GOLD); doc.setLineWidth(0.5);
+      doc.line(ML, y, PW-MR, y); y += 10;
+
+      // Instalación
+      doc.setFontSize(18); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+      doc.text(D.nombreInstalacion||'', PW-MR, y, {align:'right'}); y += 8;
+      doc.setFontSize(12); doc.setTextColor(...MUTED);
+      doc.text(D.provincia||D.municipio||'', PW-MR, y, {align:'right'}); y += 2;
+      doc.line(ML, y, PW-MR, y); y += 8;
+
+      // Dirección
+      doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+      doc.text(D.direccion||'', PW/2, y, {align:'center'}); y += 2;
+      doc.line(ML, y, PW-MR, y); y += 10;
+
+      // Referencia
+      doc.setFontSize(12); doc.setTextColor(...DARK);
+      doc.text(ref, PW-MR, y, {align:'right'}); y += 2;
+      doc.line(ML, y, PW-MR, y); y += 8;
+
+      // Sesiones
+      doc.setFontSize(10); doc.setFont('helvetica','italic'); doc.setTextColor(...DARK);
+      const sesLines = getSesionesStr().split('\n');
+      sesLines.forEach(s => { doc.text(s, PW/2, y, {align:'center'}); y += 6; });
+      y += 2;
+      doc.line(ML, y, PW-MR, y); y += 8;
+
+      // Logo centrado
+      const logoY = PH - 70;
+      try {
+        doc.addImage('data:image/png;base64,' + LOGO_B64, 'PNG', PW/2 - 25, logoY, 50, 35);
+      } catch(e) { console.warn('Logo error:', e.message); }
+
+      // Referencia itálica debajo del logo
+      doc.setFontSize(9); doc.setFont('helvetica','italic'); doc.setTextColor(...GOLD);
+      doc.text(ref, PW/2, logoY + 40, {align:'center'});
+
+      // Pie portada
+      addPiePagina(doc);
+
+      // Nombre empresa izquierda + página derecha (igual Harriartean)
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text(CONFIG?.empresa?.nombreCorto||'Arp Prevención S.L.', ML, PH-3);
+      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text('Página 1 de ' + totPag[0], PW-MR, PH-3, {align:'right'});
+
+      // ═══ PÁGINA 2: ÍNDICE ═══
+      doc.addPage(); nPag[0]++;
+      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+      y = MT + 10;
+
+      doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('ÍNDICE', ML, y); y += 10;
+
+      const indiceItems = [
+        ['METODOLOGÍA', '4'], ['   I. Naturaleza de la inspección', '4'],
+        ['   II. Material utilizado', '4'],
+        ['MANTENIMIENTO', '5'],
+        ['RESULTADOS DE LA INSPECCIÓN', '7'],
+        ['DESCRIPCIÓN DEL RECORRIDO', '8'],
+        ['INSPECCIÓN DE PARQUES DE AVENTURA', '12'],
+        ['ANEXOS', '14'],
+        ['LISTADO DE OBSERVACIONES', '15'],
+        ['CARACTERÍSTICAS DE INSPECCIÓN', '18'],
+      ];
+      indiceItems.forEach(([txt, pg]) => {
+        doc.setFontSize(10); doc.setFont('helvetica', txt.startsWith('   ')?'normal':'bold');
+        doc.setTextColor(...DARK);
+        doc.text(txt.trim(), ML, y);
+        doc.text(pg, PW-MR, y, {align:'right'});
+        doc.setDrawColor(...BORDER); doc.setLineWidth(0.1);
+        const dotX = ML + doc.getTextWidth(txt.trim()) + 3;
+        doc.line(dotX, y, PW-MR-8, y);
+        y += 7;
+      });
+
+      // Nombre empresa + página
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text(CONFIG?.empresa?.nombreCorto||'Arp Prevención S.L.', ML, PH-3);
+      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
+
+      // ═══ PÁGINA 3: DATOS ═══
+      doc.addPage(); nPag[0]++;
+      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+      y = MT + 10;
+
+      // Cabecera con logo
+      doc.setFillColor(...SURF);
+      doc.rect(ML, y-5, CW, 14, 'F');
+      doc.setDrawColor(...DARK); doc.setLineWidth(0.3);
+      doc.rect(ML, y-5, CW, 14);
+      try { doc.addImage('data:image/png;base64,'+LOGO_B64,'PNG', ML+2, y-4, 16, 11); } catch(e){}
+      doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('INFORME DE INSPECCIÓN', ML+22, y+2);
+      doc.setFontSize(10); doc.setFont('helvetica','normal');
+      doc.text('INSPECCIÓN DE INSTALACIONES PAA', ML+22, y+7);
+      doc.setFontSize(8); doc.setTextColor(...MUTED);
+      doc.text(`Rev. ${fmtRev}`, PW-MR-25, y);
+      doc.text(`Fecha: ${fmtFechaStr}`, PW-MR-25, y+5);
+      y += 18;
+
+      // Caja Propietario
+      const cajaH = 28;
+      doc.setDrawColor(...DARK); doc.setLineWidth(0.3);
+      doc.rect(ML, y, CW, cajaH);
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('PROPIETARIO DE LAS INSTALACIONES', ML+3, y+6);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10);
+      doc.text(D.propietario||D.nombreInstalacion||'', PW-MR-3, y+12, {align:'right'});
+      doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      doc.text(D.nombreInstalacion||'', PW-MR-3, y+18, {align:'right'});
+      if (D.cif) doc.text(D.cif, PW-MR-3, y+23, {align:'right'});
+      doc.setFont('helvetica','bold');
+      doc.text('GESTOR DE LAS INSTALACIONES:', ML+3, y+cajaH-4);
+      doc.setFont('helvetica','normal');
+      doc.text(D.gestor||D.propietario||'', PW-MR-3, y+cajaH-4, {align:'right'});
+      y += cajaH + 5;
+
+      // Caja Solicitante + Tipo
+      doc.rect(ML, y, CW, 22);
+      doc.setFont('helvetica','bold'); doc.setFontSize(9);
+      doc.text('SOLICITANTE DE LA INSPECCION', ML+3, y+6);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10);
+      doc.text(D.solicitante||D.propietario||'', PW-MR-3, y+12, {align:'right'});
+      doc.setFont('helvetica','bold'); doc.setFontSize(9);
+      doc.text('TIPO DE INSPECCION', ML+3, y+18);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10);
+      doc.text(D.tipoInspeccion||'ANUAL', PW-MR-3, y+18, {align:'right'});
+      y += 27;
+
+      // Caja Organismo
+      const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
+      doc.rect(ML, y, CW, 38);
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...DARK);
+      doc.text('ORGANISMO DE INSPECCIÓN', ML+3, y+6);
+      doc.setFont('helvetica','bold'); doc.setFontSize(11);
+      doc.text(c.nombre.toUpperCase(), PW-MR-3, y+13, {align:'right'});
+      doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      doc.text(c.sedeSocial, PW-MR-3, y+19, {align:'right'});
+      doc.text(c.sedeFiscal, PW-MR-3, y+25, {align:'right'});
+      doc.text('Teléfono: ' + c.telefono, PW-MR-3, y+31, {align:'right'});
+      doc.text('E-mail: ' + c.email, PW-MR-3, y+36, {align:'right'});
+
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text(c.nombreCorto, ML, PH-3);
+      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
+
+      // ═══ PÁGINAS 4-5: METODOLOGÍA ═══
+      doc.addPage(); nPag[0]++;
+      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+      y = MT + 8;
+
+      doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text('METODOLOGÍA', ML, y); y += 8;
+
+      doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('I. Naturaleza de la inspección', ML, y); y += 6;
+      y = addTextBlock(doc, TEXTO_METODOLOGIA_1, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+      y += 6;
+      doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      if (y > PH-40) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+      doc.text('II. Material utilizado', ML, y); y += 6;
+      y = addTextBlock(doc, TEXTO_METODOLOGIA_2, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text(c.nombreCorto, ML, PH-3);
+      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
+
+      // ═══ MANTENIMIENTO ═══
+      doc.addPage(); nPag[0]++;
+      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+      y = MT + 8;
+
+      doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text('MANTENIMIENTO', ML, y); y += 8;
+
+      for (const [titulo, texto] of [
+        ['I. Generalidades', TEXTO_MANT_GENERAL],
+        ['II. Organización del mantenimiento', TEXTO_MANT_ORG],
+        ['III. Consignas de mantenimiento y de almacenamiento de los EPI', TEXTO_MANT_EPI]
+      ]) {
+        if (y > PH-50) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+        doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+        doc.text(titulo, ML, y); y += 6;
+        y = addTextBlock(doc, texto, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+        y += 6;
+      }
+
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text(c.nombreCorto, ML, PH-3);
+      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
+
+      // ═══ RESULTADOS ═══
+      doc.addPage(); nPag[0]++;
+      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+      y = MT + 8;
+
+      doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text('RESULTADOS DE LA INSPECCIÓN', ML, y); y += 8;
+      doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('I. Normativa de referencia:', ML, y); y += 6;
+      doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      doc.text('UNE-EN 15.567-1:2015+A1:2021: Estructuras de deporte y actividades recreativas. Recorrido acrobático en altura. Parte 1: Requisitos de construcción y seguridad.', ML, y, {maxWidth: CW}); y += 12;
+      doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('II. Resultados de la inspección', ML, y); y += 6;
+      y = addTextBlock(doc, TEXTO_RESULTADOS, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+
+      // Tabla colores NC
+      y += 4;
+      const ncColors = [
+        {color:RED, text:'NO CONFORMIDAD GRAVE, NECESITA ACCIÓN CORRECTORA URGENTE AL PODER PROVOCAR UN RIESGO INMEDIATO.'},
+        {color:ORANGE, text:'NO CONFORMIDAD MEDIA, NECESITA ACCIÓN CORRECTORA.'},
+        {color:GREEN_C, text:'NO CONFORMIDAD LEVE, NECESITA ACCIÓN, EL RIESGO DE DAÑO ES BAJO.'},
+        {color:BLUE_C, text:'NO CONFORMIDAD DOCUMENTAL, FALTA DOCUMENTACIÓN.'},
+      ];
+      ncColors.forEach(({color, text}) => {
+        if (y > PH-22) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+        doc.setFillColor(...color);
+        doc.rect(ML, y, CW, 7, 'F');
+        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
+        doc.text(text, ML+2, y+4.5, {maxWidth: CW-4});
+        y += 8;
+      });
+
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text(c.nombreCorto, ML, PH-3);
+      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
+
+      // ═══ DESCRIPCIÓN DEL RECORRIDO ═══
+      doc.addPage(); nPag[0]++;
+      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+      y = MT + 8;
+
+      // Cabecera sección dorada
+      doc.setFillColor(...GOLD); doc.setDrawColor(...GOLD);
+      doc.rect(ML, y-2, CW, 8, 'F');
+      doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
+      doc.text('DESCRIPCIÓN DEL RECORRIDO', ML+3, y+3.5); y += 12;
+
+      doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('I. Localización', ML, y); y += 6;
+      const circuitos = D.circuitos || [];
+      const totalJ = circuitos.reduce((s,c2)=>s+(c2.juegos||[]).length,0);
+      const locText = `El parque al que se hace referencia en el presente informe se encuentra ubicado en el municipio de ${D.municipio||''}, más concretamente en ${D.direccion||''}.
+
+La instalación objeto de la presente inspección se denomina ${D.nombreInstalacion||''}, consta de ${totalJ} juegos (divididos en ${circuitos.length} circuito${circuitos.length!==1?'s':''}).`;
+      y = addTextBlock(doc, locText, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+      y += 6;
+
+      doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('II. Descripción de los juegos', ML, y); y += 8;
+
+      // Fotos por circuito — grid 3 columnas
+      for (const circ of circuitos) {
+        if (y > PH-40) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+        // Cabecera circuito
+        doc.setFillColor(...DARK); doc.rect(ML, y, CW, 8, 'F');
+        doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
+        doc.text(circ.nombre||'', PW/2, y+5.5, {align:'center'}); y += 10;
+
+        const juegos = circ.juegos || [];
+        const imgW = CW/3 - 3;
+        const imgH = 45;
+        let col = 0; let rowY = y;
+
+        for (const j of juegos) {
+          if (col === 3) { col = 0; rowY += imgH + 12; y = rowY; }
+          if (rowY + imgH + 12 > PH-18) {
+            doc.addPage(); nPag[0]++;
+            addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+            rowY = MT+8; y = rowY;
+          }
+          const imgX = ML + col * (imgW + 3);
+          // Foto si existe
+          if (j.fotos && j.fotos.length > 0) {
+            const foto = j.fotos[0];
+            const src = foto.dataUrl || foto.url;
+            if (src) {
+              try {
+                const fmt = src.includes('data:image/png') ? 'PNG' : 'JPEG';
+                doc.addImage(src, fmt, imgX, rowY, imgW, imgH-8);
+              } catch(e) {
+                doc.setFillColor(...SURF); doc.rect(imgX, rowY, imgW, imgH-8, 'F');
+                doc.setFontSize(7); doc.setTextColor(...MUTED);
+                doc.text('sin foto', imgX+imgW/2, rowY+(imgH-8)/2, {align:'center'});
+              }
             }
-            y+=fSize*0.75+2;
-          } else { y+=7; }
-          doc.setDrawColor(220,218,215); doc.setLineWidth(0.15); doc.line(M,y,M+hw,y);
-        });
-        y+=3;
-      });
-      addFtr(pg, TOTAL_PAGES); pg++;
-    }
-
-    // ── NO CONFORMIDADES ─────────────────────────────────
-    if (ncs.length) {
-      doc.addPage(); addHdr(); y=28;
-      doc.setFillColor(...D2); doc.rect(M,y,hw,7,"F");
-      doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont("helvetica","bold");
-      doc.text("LISTADO DE OBSERVACIONES Y NO CONFORMIDADES", M+4, y+5); y+=10;
-      ncs.forEach((nc,i) => {
-        if (y>240) { doc.addPage(); addHdr(); y=28; }
-        const pInfo = PRIO_COLORS[nc.prio] || PRIO_COLORS.OBSERVACION;
-        // Barra de color lateral
-        doc.setFillColor(...pInfo.bg); doc.rect(M,y,3,28,"F");
-        doc.setFillColor(250,250,248); doc.rect(M+3,y,hw-3,28,"F");
-        // Número y prioridad
-        doc.setTextColor(...pInfo.bg); doc.setFontSize(8); doc.setFont("helvetica","bold");
-        doc.text(`${i+1}. ${nc.prio||"OBSERVACIÓN"}`, M+6, y+5.5);
-        // Elemento
-        doc.setTextColor(...D2); doc.setFontSize(9); doc.setFont("helvetica","bold");
-        doc.text(nc.elem||"Sin elemento", M+6, y+11);
-        // Descripción
-        doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(...MU);
-        const descLines = doc.splitTextToSize(nc.desc||"", hw-14);
-        doc.text(descLines, M+6, y+16);
-        // Norma
-        if (nc.norma) { doc.setFontSize(6.5); doc.text("Ref: "+nc.norma, M+6, y+21); }
-        y+=30;
-        // Fotos de la NC
-        if (nc.fotosCorreccion && nc.fotosCorreccion.length) {
-          // no en Rev.0 — se reserva para revisitas
+          } else {
+            doc.setFillColor(...SURF); doc.setDrawColor(...BORDER); doc.rect(imgX, rowY, imgW, imgH-8, 'FD');
+            doc.setFontSize(7); doc.setTextColor(...MUTED);
+            doc.text('sin foto', imgX+imgW/2, rowY+(imgH-8)/2, {align:'center'});
+          }
+          // Nombre juego
+          doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+          const jNombre = (j.tipo==='NR'?'*.':'') + j.nombre;
+          doc.text(jNombre, imgX+imgW/2, rowY+imgH-4, {align:'center', maxWidth:imgW});
+          col++;
         }
-        // Si hay resolución, añadirla
-        if (nc.resolucion || nc.fechaCorreccion) {
-          if (y>255) { doc.addPage(); addHdr(); y=28; }
-          doc.setFillColor(232,245,233); doc.rect(M,y,hw,16,"F");
-          doc.setFillColor(39,174,96); doc.rect(M,y,3,16,"F");
-          doc.setTextColor(39,174,96); doc.setFontSize(7); doc.setFont("helvetica","bold");
-          doc.text("CORRECCIÓN REGISTRADA"+(nc.fechaCorreccion?" — "+nc.fechaCorreccion:""), M+6, y+5);
-          doc.setFont("helvetica","normal"); doc.setTextColor(...D2); doc.setFontSize(8);
-          const resLines = doc.splitTextToSize(nc.resolucion||"", hw-10);
-          doc.text(resLines, M+6, y+10);
-          y+=18;
-          // Fotos de corrección
-          if (nc.fotosCorreccion && nc.fotosCorreccion.length) {
-            let fx=M; const fH=30;
-            nc.fotosCorreccion.slice(0,4).forEach(f => {
-              try { doc.addImage(f.dataUrl,"JPEG",fx,y,40,fH); } catch(e){}
-              fx+=42;
-            });
-            y+=fH+4;
+        y = rowY + imgH + 12;
+
+        doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(...GOLD);
+        doc.text(ref, PW/2, y, {align:'center'}); y += 8;
+      }
+
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text(c.nombreCorto, ML, PH-3);
+      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
+
+      // ═══ INSPECCIÓN DE PARQUES — GENERAL ═══
+      doc.addPage(); nPag[0]++;
+      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+      y = MT + 8;
+
+      doc.setFillColor(...GOLD); doc.rect(ML, y-2, CW, 8, 'F');
+      doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
+      doc.text('INSPECCIÓN DE PARQUES DE AVENTURA', ML+3, y+3.5); y += 12;
+
+      doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('I. General', ML, y); y += 8;
+
+      // Tabla checklist general
+      const colW = {desc: CW*0.55, sat:12, ns:12, na:12, notas: CW - CW*0.55 - 12*3 - 2};
+      const rowH = 10;
+
+      GEN_ITEMS_PDF.forEach(item => {
+        if (y + rowH*2 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+        const v = (D.checklist||{})[item.id]||'';
+        const obs = (D.checklistObs||{})[item.id]||'';
+
+        // Cabecera sección (gold claro)
+        doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
+        doc.rect(ML, y, CW, 7, 'FD');
+        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+        doc.text(`${item.ref} ${item.sec}`, ML+2, y+4.5);
+        // SAT NS NA NA NOTAS headers
+        let hx = ML + colW.desc;
+        ['SAT.','N.S.','N.A.','NOTAS/OBSERVACIONES'].forEach((h,i) => {
+          const w2 = i<3 ? 12 : colW.notas;
+          doc.rect(hx, y, w2, 7, 'FD');
+          doc.setFontSize(7); doc.text(h, hx+w2/2, y+4.5, {align:'center'});
+          hx += w2;
+        });
+        y += 7;
+
+        // Fila resultado
+        const lines = doc.splitTextToSize(item.desc, colW.desc-4);
+        const rH = Math.max(rowH, lines.length*4+4);
+        doc.setFillColor(...WHITE); doc.rect(ML, y, CW, rH, 'FD');
+        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        lines.forEach((l,i) => doc.text(l, ML+2, y+4+i*4));
+        // Marcas
+        let mx = ML + colW.desc;
+        ['S','N','NA'].forEach(val => {
+          doc.rect(mx, y, 12, rH, 'D');
+          if (v===val) {
+            doc.setFontSize(10); doc.setFont('helvetica','bold');
+            doc.setTextColor(v==='S'?0:...RED);
+            doc.text('X', mx+6, y+rH/2+2, {align:'center'});
+          }
+          mx += 12;
+        });
+        // Notas
+        doc.rect(mx, y, colW.notas, rH, 'D');
+        if (obs) {
+          doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
+          doc.text(obs, mx+2, y+4, {maxWidth:colW.notas-4});
+        }
+        doc.setFontSize(7); doc.setTextColor(...MUTED);
+        doc.text('Sat.: Satisfactorio; N.S.: no satisfactorio; N.A.: no aplica', ML, y+rH+2);
+        y += rH + 5;
+      });
+
+      // Observaciones generales
+      if (D.obsGral) {
+        if (y + 20 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+        doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
+        doc.rect(ML, y, CW, 7, 'FD');
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+        doc.text('Observaciones Generales', ML+2, y+4.5); y += 7;
+        const obsLines = doc.splitTextToSize(D.obsGral, CW-4);
+        const obsH = obsLines.length * 5 + 4;
+        doc.setFillColor(...WHITE); doc.rect(ML, y, CW, obsH, 'FD');
+        doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text(obsLines, ML+2, y+4); y += obsH + 4;
+      }
+
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text(c.nombreCorto, ML, PH-3);
+      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
+
+      // ═══ INSPECCIÓN — CIRCUITOS Y JUEGOS ═══
+      doc.addPage(); nPag[0]++;
+      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+      y = MT + 8;
+
+      doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('II. Específica Circuitos y Juegos', ML, y); y += 8;
+
+      // Tabla por criterio
+      for (const col of COLS_PDF) {
+        if (y + 25 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+
+        // Cabecera criterio
+        doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
+        doc.rect(ML, y, CW, 7, 'FD');
+        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+        doc.text(`${col.ref} ${col.label}`, ML+2, y+4.5);
+        doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+        doc.text('SAT.', ML+CW*0.55, y+4.5, {align:'center'});
+        doc.text('N.S.', ML+CW*0.55+12, y+4.5, {align:'center'});
+        doc.text('N.A.', ML+CW*0.55+24, y+4.5, {align:'center'});
+        doc.text('NOTAS/OBSERVACIONES', ML+CW*0.55+36+2, y+4.5);
+        y += 7;
+
+        // Para cada circuito/juego del criterio mostramos resultado global
+        // Calcular resultado global del criterio
+        let hayN=false, hayNA=true, allS=true;
+        circuitos.forEach(circ => {
+          (circ.juegos||[]).forEach(j => {
+            const v = j[col.key];
+            if (v==='N') hayN=true;
+            if (v!=='NA') hayNA=false;
+            if (v!=='S'&&v!=='NA') allS=false;
+          });
+        });
+        const vGlobal = hayN?'N':allS?'S':'NA';
+
+        const descLines = doc.splitTextToSize(col.desc, CW*0.55-4);
+        const rH2 = Math.max(10, descLines.length*4+4);
+        doc.setFillColor(...WHITE); doc.rect(ML, y, CW, rH2, 'FD');
+        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text(descLines, ML+2, y+4);
+        let mx2 = ML+CW*0.55;
+        ['S','N','NA'].forEach(val => {
+          doc.rect(mx2, y, 12, rH2, 'D');
+          if (vGlobal===val) {
+            doc.setFontSize(10); doc.setFont('helvetica','bold');
+            doc.setTextColor(val==='N'?...RED:[0,0,0]);
+            doc.text('X', mx2+6, y+rH2/2+2, {align:'center'});
+          }
+          mx2 += 12;
+        });
+        // Notas: mostrar NCs de este criterio
+        const ncsDelCriterio = (D.ncs||[]).filter(n => n.autoId && n.autoId.includes('_'+col.key));
+        doc.rect(mx2, y, CW-CW*0.55-36, rH2, 'D');
+        if (ncsDelCriterio.length) {
+          doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
+          const notaStr = ncsDelCriterio.map((n,i)=>`${i+1}.- ${n.elem||''}`).join(' ');
+          doc.text(notaStr, mx2+2, y+4, {maxWidth:CW-CW*0.55-38});
+        }
+        doc.setFontSize(7); doc.setTextColor(...MUTED); doc.setFont('helvetica','normal');
+        doc.text('Sat.: Satisfactorio; N.S.: no satisfactorio; N.A.: no aplica', ML, y+rH2+2);
+        y += rH2 + 5;
+      }
+
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text(c.nombreCorto, ML, PH-3);
+      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
+
+      // ═══ ANEXOS ═══
+      doc.addPage(); nPag[0]++;
+      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+      y = MT + 8;
+
+      doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text('ANEXOS', ML, y); y += 10;
+
+      doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('Documentos realizados por ADELL RIESGOS Y PREVENCIÓN, S.L:', ML, y); y += 6;
+
+      const docs = ['Atestado de conformidad (en caso de que no haya situaciones de riesgo grave que subsanar)', 'Informe de inspección (presente documento)', 'Listado de Observaciones (a continuación)'];
+      docs.forEach(d2 => {
+        doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text('— ' + d2, ML+4, y); y += 6;
+      });
+      y += 4;
+      doc.setFont('helvetica','bold');
+      doc.text('Ensayos o partes de norma no realizados:', ML, y); y += 6;
+      doc.setFont('helvetica','normal');
+      const ensayosStr = D.ensayos || 'No se realiza ensayo de inercia.';
+      doc.text('— ' + ensayosStr, ML+4, y); y += 6;
+
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text(c.nombreCorto, ML, PH-3);
+      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
+
+      // ═══ LISTADO DE OBSERVACIONES ═══
+      const ncsInforme = (D.ncs||[]).filter(n => n.prio !== 'OBSERVACION');
+      const obsInforme = (D.ncs||[]).filter(n => n.prio === 'OBSERVACION');
+      const todasNCs = [...ncsInforme, ...obsInforme];
+
+      if (todasNCs.length > 0) {
+        doc.addPage(); nPag[0]++;
+        addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+        y = MT + 8;
+
+        // Cabecera sección
+        doc.setFillColor(...GOLD); doc.rect(ML, y-2, CW, 8, 'F');
+        doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
+        doc.text('LISTADO DE OBSERVACIONES', ML+3, y+3.5); y += 12;
+
+        for (let ncIdx = 0; ncIdx < todasNCs.length; ncIdx++) {
+          const nc = todasNCs[ncIdx];
+          const ncColor = colorNC(nc.prio);
+          const ncBg = bgNC(nc.prio);
+
+          if (y + 50 > PH-18) {
+            doc.addPage(); nPag[0]++;
+            addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+            y = MT + 8;
+          }
+
+          // Cabecera NC
+          doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.3);
+          doc.rect(ML, y, CW, 8, 'FD');
+          doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+          doc.text(`${ncIdx+1}. ${nc.tipo||'Sin tipo'}`, ML+2, y+5.5); y += 8;
+
+          // Elemento afectado
+          if (nc.elem) {
+            doc.setFillColor(...WHITE); doc.rect(ML, y, CW, 7, 'FD');
+            doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+            doc.text(nc.elem, ML+2, y+4.5); y += 7;
+          }
+
+          // Observación
+          doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+          doc.text('Observación:', ML, y); y += 5;
+          if (nc.desc) {
+            y = addTextBlock(doc, nc.desc, ML, y, CW, 8, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+          }
+
+          // Foto defecto
+          if (nc.fotosDefecto && nc.fotosDefecto.length > 0) {
+            const fw = 55, fh = 40;
+            const fotoSrc = nc.fotosDefecto[0].dataUrl || nc.fotosDefecto[0].url;
+            if (fotoSrc) {
+              if (y + fh + 5 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+              try {
+                const fmt = fotoSrc.includes('data:image/png')?'PNG':'JPEG';
+                doc.addImage(fotoSrc, fmt, PW/2-fw/2, y, fw, fh);
+                y += fh + 4;
+              } catch(e) {}
+            }
+          }
+
+          // Referencia normativa
+          y += 2;
+          doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+          doc.text('Referencia normativa:', ML, y); y += 5;
+          doc.setFont('helvetica','italic'); doc.setFontSize(8);
+          y = addTextBlock(doc, nc.norma||'', ML+4, y, CW-4, 8, MUTED, 'italic', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+          y += 3;
+
+          // Banner gravedad
+          if (y + 10 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+          const bannerW = CW*0.65;
+          doc.setFillColor(...ncBg);
+          doc.setDrawColor(...ncColor); doc.setLineWidth(0.5);
+          doc.rect(ML, y, bannerW, 9, 'FD');
+          doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...ncColor);
+          doc.text(textNC(nc.prio), ML+2, y+5.5, {maxWidth:bannerW-4});
+          // Prioridad
+          doc.setFillColor(...ncColor);
+          doc.rect(ML+bannerW, y, CW-bannerW, 9, 'F');
+          doc.setFontSize(9); doc.setTextColor(...WHITE);
+          doc.text('Prioridad: ' + nc.prio, ML+bannerW+2, y+5.5);
+          y += 12;
+
+          // Modificación (foto corrección)
+          doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+          doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
+          doc.rect(ML, y, CW, 7, 'D');
+          doc.text('Modificación', ML+2, y+4.5); y += 7;
+
+          if (nc.fotosCorreccion && nc.fotosCorreccion.length > 0) {
+            const fw2 = 55, fh2 = 40;
+            const fotoCorr = nc.fotosCorreccion[0].dataUrl || nc.fotosCorreccion[0].url;
+            if (fotoCorr) {
+              if (y + fh2 + 5 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+              try {
+                const fmt = fotoCorr.includes('data:image/png')?'PNG':'JPEG';
+                doc.addImage(fotoCorr, fmt, PW/2-fw2/2, y, fw2, fh2);
+                y += fh2 + 2;
+              } catch(e) {}
+            } else {
+              doc.rect(ML, y, CW, 25, 'D'); y += 25;
+            }
+          } else {
+            doc.rect(ML, y, CW, 25, 'D'); y += 25;
+          }
+
+          // Resolución
+          if (y + 12 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+          doc.setDrawColor(...DARK); doc.rect(ML, y, CW/2, 11, 'D');
+          doc.rect(ML+CW/2, y, CW/2, 11, 'D');
+          doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+          doc.text('RESOLUCIÓN', ML+2, y+7);
+          if (nc.resolucion) {
+            doc.setFont('helvetica','normal');
+            doc.text(nc.resolucion, ML+CW/2+2, y+7, {maxWidth:CW/2-4});
+          } else if (nc.cerrada) {
+            doc.setFont('helvetica','bold'); doc.setTextColor(...GREEN_C);
+            doc.text('FAVORABLE', ML+CW/2+2, y+7);
+          }
+          y += 14;
+
+          // Referencia pie
+          doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(...GOLD);
+          doc.text(ref, PW/2, y, {align:'center'}); y += 8;
+
+          doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+          doc.text(c.nombreCorto, ML, PH-3);
+          doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+          doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
+        }
+      }
+
+      // ═══ CARACTERÍSTICAS DE INSPECCIÓN ═══
+      doc.addPage(); nPag[0]++;
+      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+      y = MT + 8;
+
+      doc.setFillColor(...GOLD); doc.rect(ML, y-2, CW, 8, 'F');
+      doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
+      doc.text('CARACTERÍSTICAS DE INSPECCIÓN', ML+3, y+3.5); y += 14;
+
+      y = addTextBlock(doc, TEXTO_CARACTERISTICAS, ML, y, CW, 9, DARK, 'normal', 5, PH-40, ref, fmtRev, fmtFechaStr, nPag, totPag);
+      y += 10;
+
+      // Fecha y nombre inspector
+      const sessFecha = D.sesiones && D.sesiones.length
+        ? fmtFecha(D.sesiones[D.sesiones.length-1].fecha)
+        : fmtFecha(D.fechaInspeccion||'');
+
+      const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+      let diaStr = '';
+      if (sessFecha) {
+        try {
+          const parts = sessFecha.split('/');
+          const dateObj = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+          diaStr = diasSemana[dateObj.getDay()] + ', ' + sessFecha;
+        } catch(e) { diaStr = sessFecha; }
+      }
+
+      doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text(diaStr, PW/2, y, {align:'center'}); y += 6;
+      doc.text(D.inspectorNombre||'', PW/2, y, {align:'center'}); y += 5;
+      doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      doc.text('Inspector Autorizado', PW/2, y, {align:'center'}); y += 12;
+
+      // Logo ARP + firma
+      try { doc.addImage('data:image/png;base64,'+LOGO_B64,'PNG', PW/2-20, y, 40, 28); } catch(e){}
+      y += 32;
+
+      // Pie firma
+      doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+      doc.text('Inspector', ML+30, y);
+      doc.text('Revisor', PW-MR-30, y, {align:'right'});
+
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text(c.nombreCorto, ML, PH-3);
+      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
+
+      // Actualizar total páginas en todas las páginas no es posible con jsPDF básico
+      // El total es aproximado — en producción se haría en 2 pasadas
+
+      // Guardar
+      const fileName = (ref.replace(/\/g,'_') || 'informe') + '_Rev' + (D.revision||0) + '.pdf';
+      doc.save(fileName);
+
+      // Guardar snapshot JSON
+      try { localStorage.setItem('insp_'+inspeccionId, JSON.stringify(D)); } catch(e) {}
+
+      hideGenerating();
+    } catch(e) {
+      hideGenerating();
+      alert('Error generando PDF: ' + e.message);
+      console.error(e);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════
+  //   GENERACIÓN PDF — CERTIFICADO
+  // ═══════════════════════════════════════════════════
+  async function generarCertificado() {
+    if (!D || D.resultado !== 'FAVORABLE') return;
+    showGenerating('Generando Certificado PDF...', '');
+    await new Promise(r => setTimeout(r, 100));
+    try {
+      const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
+      const ref = getNRegistro();
+      const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
+      const totalJ = (D.circuitos||[]).reduce((s,cc)=>s+(cc.juegos||[]).length,0);
+
+      // Fecha de inspección (última sesión)
+      const fechaInsp = D.sesiones && D.sesiones.length
+        ? fmtFecha(D.sesiones[D.sesiones.length-1].fecha)
+        : fmtFecha(D.fechaInspeccion||'');
+
+      // Fecha próxima inspección (+1 año)
+      let fechaProxima = '';
+      try {
+        const parts = fechaInsp.split('/');
+        const d2 = new Date(`${parseInt(parts[2])+1}-${parts[1]}-${parts[0]}`);
+        fechaProxima = `${String(d2.getDate()).padStart(2,'0')}/${String(d2.getMonth()+1).padStart(2,'0')}/${d2.getFullYear()}`;
+      } catch(e) {}
+
+      let y = 20;
+
+      // Título
+      doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('CERTIFICADO DE CONFORMIDAD', PW/2, y, {align:'center'}); y += 10;
+      doc.setFontSize(15); doc.setTextColor(...GOLD);
+      doc.text('A NORMA UNE EN 15567-1:2015+A1:2021', PW/2, y, {align:'center'}); y += 10;
+      doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text(ref, PW/2, y, {align:'center'}); y += 8;
+      doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+      doc.text('Concedido a', PW/2, y, {align:'center'}); y += 8;
+      doc.setFontSize(14); doc.setFont('helvetica','bold');
+      doc.text(D.nombreInstalacion||'', PW/2, y, {align:'center'}); y += 15;
+
+      // Texto certificación
+      const textoCert = `${c.nombre.toUpperCase()}, organismo de inspección acreditado ${c.acreditacion||''}, certifica haber efectuado en fecha ${fechaInsp} la inspección de los equipamientos de RECORRIDO ACROBATICO EN ALTURA de las instalaciones de ${D.nombreInstalacion||''}, ${totalJ} JUEGOS, situado en ${D.direccion||''}, ${D.municipio||''}.
+
+La intervención realizada, da como resultado un "Informe de inspección", con la numeración ${ref}, que indica las observaciones relativas a las instalaciones y omisiones. Estas observaciones sólo son válidas en las condiciones presentes en la instalación en el momento de control, y no serán válidas en caso de modificaciones en las mismas.
+
+${c.nombre}, certifica que los equipamientos cumplen con las exigencias marcadas en las normas UNE-EN 15567-1:2015+A1:2021. Recorrido acrobático en altura. Parte 1 tras la inspección in situ realizada, la validación de los distintos documentos exigidos por norma.
+
+Visto que el informe presenta un resultado FAVORABLE, se considera que los equipamientos cumplen con las especificaciones de seguridad de las normas de aplicación en vigencia y que son aptos para su uso bajo las indicaciones y directrices del manual de uso y mantenimiento del constructor/instalador.`;
+
+      doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+      const certLines = doc.splitTextToSize(textoCert, CW);
+      certLines.forEach(line => { doc.text(line, ML, y); y += 6; });
+      y += 10;
+
+      // Datos firmante
+      doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('José Manuel Moreno Vélez', PW-MR, y, {align:'right'}); y += 5;
+      doc.setFont('helvetica','normal');
+      doc.text('Director Técnico', PW-MR, y, {align:'right'}); y += 5;
+      doc.text('Ing. Civil e Ing. de Edificación', PW-MR, y, {align:'right'}); y += 5;
+      doc.text('colegiado 7.780', PW-MR, y, {align:'right'}); y += 10;
+
+      doc.text('FIRMA DIGITAL', PW-MR, y, {align:'right'}); y += 15;
+
+      // Logo ARP esquina inferior derecha
+      try { doc.addImage('data:image/png;base64,'+LOGO_B64,'PNG', PW-MR-40, PH-55, 38, 27); } catch(e){}
+
+      // Fechas vigor
+      doc.setFontSize(9); doc.setFont('helvetica','italic'); doc.setTextColor(...DARK);
+      doc.text('Fecha entrada en vigor:', ML, PH-30);
+      doc.setFont('helvetica','normal'); doc.text(fechaInsp, ML+45, PH-30);
+      doc.setFont('helvetica','italic');
+      doc.text('Fecha próxima inspección:', ML, PH-24);
+      doc.setFont('helvetica','normal'); doc.text(fechaProxima, ML+50, PH-24);
+
+      // Pie
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.line(ML, PH-14, PW-MR, PH-14);
+      doc.text(`${c.sedeSocial}`, PW/2, PH-10, {align:'center'});
+      doc.text(`${c.sedeFiscal}`, PW/2, PH-6, {align:'center'});
+      doc.setFont('helvetica','normal');
+
+      // Guarda
+      const certFile = (ref.replace(/\/g,'_')||'certificado') + '_CERT_Rev' + (D.revision||0) + '.pdf';
+      doc.save(certFile);
+      hideGenerating();
+    } catch(e) {
+      hideGenerating();
+      alert('Error generando certificado: ' + e.message);
+      console.error(e);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════
+  //   GENERACIÓN PDF — REGISTRO ENAC
+  // ═══════════════════════════════════════════════════
+  async function generarRegistro() {
+    if (!D) return;
+    showGenerating('Generando Registro ENAC...', '');
+    await new Promise(r => setTimeout(r, 100));
+    try {
+      const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
+      const ref = getNRegistro();
+      const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
+      const fmtRev = D.formatoDocumento?.revision || 7;
+      const fmtFechaStr = D.formatoDocumento?.fechaVigencia || '25/10/2021';
+
+      const totPag2 = [3 + Math.ceil((D.circuitos||[]).reduce((s,cc)=>s+(cc.juegos||[]).length,0)/20)];
+      const nPag2 = [0];
+
+      function addCabReg(pg, tot) {
+        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+        doc.text('ARPPREVENCION S.L', ML, 7);
+        doc.text('FICHA REGISTRO RECORRIDOS ACROBATICOS EN ALTURA', PW/2, 7, {align:'center'});
+        doc.text(`Rev ${fmtRev}  Fecha ${fmtFechaStr}`, PW-MR, 7, {align:'right'});
+        doc.text(`${pg} de ${tot}`, PW-MR, 12, {align:'right'});
+        doc.setDrawColor(...MUTED); doc.line(ML, 9, PW-MR, 9);
+      }
+
+      function addPieReg() {
+        doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+        doc.text(`N°REGISTRO: ${ref}`, ML, PH-5);
+        doc.text('S.: Satisfactorio; N.: no satisfactorio; NA.: no aplica  N°NOTA A CONTINUACION DEL SIMBOLO', PW-MR, PH-5, {align:'right'});
+      }
+
+      // PÁGINA 1: DATOS GENERALES + EQUIPOS
+      nPag2[0]++;
+      addCabReg(nPag2[0], totPag2[0]);
+      let y = 20;
+
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('ESTRUCTURAS DE DEPORTE Y ACTIVIDADES RECREATIVAS', ML, y); y += 5;
+      doc.text('RECORRIDO ACROBÁTICO EN ALTURA', ML, y); y += 7;
+
+      // Tabla datos generales
+      doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.3);
+      doc.rect(ML, y, CW, 8, 'FD');
+      doc.setFontSize(11); doc.setFont('helvetica','bold');
+      doc.text('DATOS GENERALES INSPECCION', ML+2, y+5.5); y += 8;
+
+      // Inspector
+      doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text('INSPECTOR', ML, y); y += 4;
+      doc.setDrawColor(...DARK); doc.rect(ML, y, CW, 8, 'D');
+      doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+      doc.text(D.inspectorNombre||'', ML+2, y+5.5); y += 9;
+
+      // Fecha + hora
+      doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text('FECHA DE INSPECCION', ML, y);
+      doc.text('Hora de inicio', ML+CW*0.65, y);
+      doc.text('Hora fin', ML+CW*0.82, y); y += 4;
+
+      const sesiones = D.sesiones && D.sesiones.length ? D.sesiones : [{fecha:D.fechaInspeccion||'',horaInicio:D.horaInicio||'',horaFin:D.horaFin||''}];
+      sesiones.forEach(s => {
+        doc.rect(ML, y, CW*0.63, 8, 'D');
+        doc.rect(ML+CW*0.65, y, CW*0.15, 8, 'D');
+        doc.rect(ML+CW*0.82, y, CW*0.18, 8, 'D');
+        doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text(fmtFecha(s.fecha||''), ML+2, y+5.5);
+        doc.text(s.horaInicio||'', ML+CW*0.65+2, y+5.5);
+        doc.text(s.horaFin||'', ML+CW*0.82+2, y+5.5);
+        y += 9;
+      });
+
+      // Lugar
+      doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text('LUGAR DE INSPECCION', ML, y); y += 4;
+      doc.rect(ML, y, CW, 8, 'D');
+      doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+      doc.text(D.nombreInstalacion||'', ML+2, y+5.5); y += 9;
+
+      // Actividad
+      doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text('ACTIVIDAD/JUEGO/INSTALACION', ML, y); y += 4;
+      doc.rect(ML, y, CW, 8, 'D');
+      doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+      doc.text('PAA', ML+2, y+5.5); y += 12;
+
+      // Normativa
+      doc.setFillColor(...SURF); doc.rect(ML, y, CW, 7, 'FD');
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('NORMATIVA APLICABLE', PW/2, y+4.5, {align:'center'}); y += 7;
+      doc.rect(ML, y, CW, 8, 'D');
+      doc.setFontSize(10); doc.setFont('helvetica','normal');
+      doc.text('UNE-EN 15567-1:2015+A1:2021', PW/2, y+5.5, {align:'center'}); y += 10;
+
+      // Equipos medición
+      doc.setFillColor(...SURF); doc.rect(ML, y, CW, 7, 'FD');
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('EQUIPOS MEDICION USADOS', PW/2, y+4.5, {align:'center'}); y += 7;
+
+      // Cabecera tabla equipos
+      doc.rect(ML, y, CW/2, 7, 'FD');
+      doc.rect(ML+CW/2, y, CW/2, 7, 'FD');
+      doc.setFontSize(8); doc.setFont('helvetica','bold');
+      doc.text('TIPO EQUIPO', ML+CW/4, y+4.5, {align:'center'});
+      doc.text('N° SERIE/N° EQUIPO', ML+CW*0.75, y+4.5, {align:'center'});
+      y += 7;
+
+      const equipos = D.equiposUsados || [];
+      const equiposMedicion = equipos.filter(e => !e.tipo?.toLowerCase().includes('epi') && !e.tipo?.toLowerCase().includes('arnes'));
+      for (let i=0; i<Math.max(5, equiposMedicion.length); i++) {
+        const eq = equiposMedicion[i] || {};
+        doc.rect(ML, y, CW/2, 7, 'D');
+        doc.rect(ML+CW/2, y, CW/2, 7, 'D');
+        doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        if (eq.tipo) {
+          doc.text(eq.tipo, ML+2, y+4.5);
+          doc.text(eq.nSerie||eq.codigo||'', ML+CW/2+2, y+4.5);
+        }
+        y += 7;
+      }
+      y += 5;
+
+      // Equipos EPI
+      doc.setFillColor(...SURF); doc.rect(ML, y, CW, 7, 'FD');
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('EQUIPOS PROTECCION INDIVIDUAL USADOS', PW/2, y+4.5, {align:'center'}); y += 7;
+      doc.rect(ML, y, CW/2, 7, 'FD');
+      doc.rect(ML+CW/2, y, CW/2, 7, 'FD');
+      doc.text('TIPO EQUIPO', ML+CW/4, y+4.5, {align:'center'});
+      doc.text('N° SERIE/N° EQUIPO', ML+CW*0.75, y+4.5, {align:'center'});
+      y += 7;
+
+      const equiposEPI = equipos.filter(e => e.tipo?.toLowerCase().includes('epi') || e.tipo?.toLowerCase().includes('arnes'));
+      for (let i=0; i<Math.max(3, equiposEPI.length); i++) {
+        const eq = equiposEPI[i] || {};
+        doc.rect(ML, y, CW/2, 7, 'D');
+        doc.rect(ML+CW/2, y, CW/2, 7, 'D');
+        if (eq.tipo) {
+          doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+          doc.text(eq.tipo, ML+2, y+4.5);
+          doc.text(eq.nSerie||eq.codigo||'', ML+CW/2+2, y+4.5);
+        }
+        y += 7;
+      }
+      y += 8;
+
+      // Firma inspector
+      doc.setFillColor(...SURF); doc.rect(ML, y, CW, 7, 'FD');
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('FIRMA INSPECTOR', PW/2, y+4.5, {align:'center'}); y += 7;
+      doc.rect(ML, y, CW, 30, 'D');
+      y += 30;
+
+      addPieReg();
+
+      // PÁGINA 2: CHECKLIST GENERAL
+      doc.addPage(); nPag2[0]++;
+      addCabReg(nPag2[0], totPag2[0]);
+      y = 18;
+
+      doc.setFillColor(...SURF); doc.rect(ML, y, CW, 7, 'FD');
+      doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('General', PW/2, y+4.5, {align:'center'}); y += 7;
+
+      // Tabla checklist en 2 columnas como en el paper
+      const half = CW/2 - 2;
+      let col1 = [], col2 = [];
+      GEN_ITEMS_PDF.forEach((item, i) => { if(i%2===0) col1.push(item); else col2.push(item); });
+      const maxRows = Math.max(col1.length, col2.length);
+      for (let r=0; r<maxRows; r++) {
+        const it1 = col1[r], it2 = col2[r];
+        const rH3 = 18;
+        for (const [it, xOff] of [[it1,0],[it2,half+4]]) {
+          if (!it) continue;
+          const v = (D.checklist||{})[it.id]||'';
+          const obs = (D.checklistObs||{})[it.id]||'';
+          doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
+          doc.rect(ML+xOff, y, half, rH3, 'D');
+          doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+          doc.text(`${it.ref} ${it.sec}`, ML+xOff+2, y+4);
+          doc.setFont('helvetica','normal'); doc.setFontSize(7);
+          const descL = doc.splitTextToSize(it.desc, half-16);
+          descL.forEach((l,i2) => doc.text(l, ML+xOff+2, y+8+i2*3.5));
+          // S N NA
+          const svw = 10;
+          doc.setFont('helvetica','bold'); doc.setFontSize(9);
+          doc.setTextColor(v==='S'?...GREEN_C:v==='N'?...RED:...MUTED);
+          doc.text(v||'', ML+xOff+half-svw+2, y+rH3/2+2);
+          if (obs && v==='N') {
+            doc.setFontSize(6.5); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
+            doc.text(`(${obs})`, ML+xOff+2, y+rH3-3, {maxWidth:half-svw-4});
           }
         }
-        y+=4;
+        y += rH3;
+      }
+
+      y += 6;
+      doc.setFillColor(...SURF); doc.rect(ML, y, CW, 7, 'FD');
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('Observaciones Generales', PW/2, y+4.5, {align:'center'}); y += 7;
+      doc.rect(ML, y, CW, 35, 'D');
+      if (D.obsGral) {
+        doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text(doc.splitTextToSize(D.obsGral, CW-4), ML+2, y+5);
+      }
+
+      addPieReg();
+
+      // PÁGINAS 3+: TABLA CIRCUITOS/JUEGOS
+      doc.addPage(); nPag2[0]++;
+      addCabReg(nPag2[0], totPag2[0]);
+      y = 18;
+
+      // Cabecera tabla
+      const cw0=30, cw1=35, cw2=(CW-cw0-cw1-25)/5, obsW2=25;
+      doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
+      doc.rect(ML, y, cw0, 10, 'FD');
+      doc.rect(ML+cw0, y, cw1, 10, 'FD');
+      ['Integridad
+estructural','Anclajes y
+fijaciones','Elementos de
+juego/Progresión','Riesgos y
+atrapamientos','Zona de
+seguridad/
+Entorno'].forEach((h2,hi) => {
+        doc.rect(ML+cw0+cw1+hi*cw2, y, cw2, 10, 'FD');
+        doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+        const hl = h2.split('\n');
+        hl.forEach((l2,li) => doc.text(l2, ML+cw0+cw1+hi*cw2+cw2/2, y+3+li*3, {align:'center'}));
       });
-      addFtr(pg, TOTAL_PAGES); pg++;
-    }
+      doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 10, 'FD');
+      doc.setFontSize(7); doc.setFont('helvetica','bold');
+      doc.text('Obser-
+vaciones', ML+cw0+cw1+5*cw2+2, y+4);
+      doc.setFontSize(7); doc.setFont('helvetica','bold');
+      doc.text('Circuitos', ML+2, y+5);
+      doc.text('Juegos', ML+cw0+2, y+5);
+      y += 10;
 
-    // ── FIRMA ─────────────────────────────────────────────
-    if (ncs.length===0 || y>220) { doc.addPage(); addHdr(); y=28; }
-    y=Math.max(y+10,210);
-    if (D.ensayos) {
-      doc.setFontSize(8); doc.setFont("helvetica","bold"); doc.setTextColor(...D2);
-      doc.text("Ensayos no realizados:", M, y); y+=5;
-      const el=doc.splitTextToSize(D.ensayos,hw);
-      doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...MU);
-      doc.text(el, M, y); y+=el.length*5+6;
-    }
-    doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(...D2);
-    doc.text(fechaLarga, W/2, y, {align:"center"}); y+=5;
-    doc.text(D.inspectorNombre||"", W/2, y, {align:"center"}); y+=5;
-    doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(...MU);
-    doc.text("Inspector Autorizado", W/2, y, {align:"center"}); y+=14;
-    doc.setDrawColor(...G); doc.setLineWidth(0.35);
-    doc.rect(W/2-36,y,32,16); doc.rect(W/2+4,y,32,16);
-    doc.setFontSize(6.5); doc.setFont("helvetica","bold"); doc.setTextColor(...G);
-    doc.text("Inspector", W/2-20, y+4, {align:"center"});
-    doc.text("Director Técnico", W/2+20, y+4, {align:"center"});
-    doc.setTextColor(...D2); doc.setFont("helvetica","normal"); doc.setFontSize(7);
-    doc.text(D.inspectorNombre||"", W/2-20, y+10, {align:"center", maxWidth:28});
-    doc.text("José Manuel Moreno Vélez", W/2+20, y+10, {align:"center", maxWidth:28});
-    addFtr(pg, TOTAL_PAGES);
+      const KEYS = ['ie','af','ej','ra','zs'];
+      for (const circ of circuitos) {
+        if (y + 8 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; }
+        let circWritten = false;
+        for (const j of (circ.juegos||[])) {
+          if (y + 7 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; circWritten = false; }
+          doc.setDrawColor(...BORDER); doc.setLineWidth(0.1);
+          doc.rect(ML, y, cw0, 7, 'D');
+          if (!circWritten) {
+            doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+            doc.text(circ.nombre, ML+1, y+4.5, {maxWidth:cw0-2});
+            circWritten = true;
+          }
+          doc.rect(ML+cw0, y, cw1, 7, 'D');
+          doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+          doc.text((j.tipo==='NR'?'*.':'') + (j.nombre||''), ML+cw0+1, y+4.5, {maxWidth:cw1-2});
+          KEYS.forEach((k,ki) => {
+            doc.rect(ML+cw0+cw1+ki*cw2, y, cw2, 7, 'D');
+            const v2 = j[k]||'';
+            doc.setFontSize(10); doc.setFont('helvetica','bold');
+            doc.setTextColor(v2==='S'?...GREEN_C:v2==='N'?...RED:...MUTED);
+            doc.text(v2, ML+cw0+cw1+ki*cw2+cw2/2, y+5, {align:'center'});
+          });
+          doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 7, 'D');
+          if (j.obs) {
+            doc.setFontSize(6.5); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+            doc.text(j.obs, ML+cw0+cw1+5*cw2+1, y+4, {maxWidth:obsW2-2});
+          }
+          y += 7;
+        }
+      }
 
-    const filename = ref.replace(/\//g,"_").replace(/ /g,"_") + ".pdf";
-    doc.save(filename);
+      addPieReg();
+
+      const regFile = (ref.replace(/\/g,'_')||'registro') + '_REGISTRO.pdf';
+      doc.save(regFile);
+      hideGenerating();
+    } catch(e) {
+      hideGenerating();
+      alert('Error generando registro: ' + e.message);
+      console.error(e);
+    }
   }
 
-  // ── CERTIFICADO ───────────────────────────────────────
-  async function generarCertificado() {
-    if (typeof window.jspdf === "undefined") { alert("PDF cargando, espera un momento."); return; }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
-    const W=210, M=20;
-    const G=[200,153,58], D2=[26,26,26], MU=[138,130,120];
-    const ref = generarRef();
-    const fechaFmt = (D.fechaInspeccion||"").split("-").reverse().join("/");
-    const totalJuegos=(D.circuitos||[]).reduce((a,c)=>a+(c.juegos||[]).length,0);
-    const vigencia=D.fechaInspeccion?((()=>{const dt=new Date(D.fechaInspeccion+"T12:00:00");dt.setDate(dt.getDate()+1);return dt.toLocaleDateString("es-ES");})()):"";
-    const proxima=D.fechaInspeccion?((()=>{const dt=new Date(D.fechaInspeccion+"T12:00:00");dt.setFullYear(dt.getFullYear()+1);return dt.toLocaleDateString("es-ES");})()):"";
-
-    try { doc.addImage(LOGO_B64,"JPEG",W/2-20,14,40,26); } catch(e){}
-    doc.setFillColor(...G); doc.rect(M,44,W-M*2,0.5,"F");
-    doc.setFontSize(18); doc.setFont("helvetica","bold"); doc.setTextColor(...D2);
-    doc.text("CERTIFICADO DE CONFORMIDAD", W/2, 56, {align:"center"});
-    doc.setFontSize(12); doc.text("A NORMA UNE EN 15567-1:2015+A1:2021", W/2, 64, {align:"center"});
-    doc.setFillColor(...G); doc.rect(M,68,W-M*2,0.5,"F");
-    doc.setFontSize(10); doc.setTextColor(...G); doc.setFont("helvetica","bold");
-    doc.text(ref, W/2, 76, {align:"center"});
-    doc.setFontSize(9); doc.setTextColor(...D2); doc.setFont("helvetica","normal");
-    doc.text("Concedido a", W/2, 83, {align:"center"});
-    doc.setFontSize(13); doc.setFont("helvetica","bold");
-    doc.text((D.propietario||"").toUpperCase(), W/2, 91, {align:"center"});
-
-    doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.setTextColor(...D2);
-    const c1=`ARP PREVENCIÓN S.L., organismo de inspección, certifica haber efectuado en fecha ${fechaFmt} la inspección de los equipamientos de RECORRIDO ACROBÁTICO EN ALTURA de las instalaciones de ${D.nombreInstalacion||""}, ${totalJuegos} JUEGOS, situado en ${D.direccion||""}, ${D.municipio||""}${D.provincia?", "+D.provincia:""}.`;
-    const l1=doc.splitTextToSize(c1,W-M*2); doc.text(l1,M,102); let y=102+l1.length*6+6;
-    const c2=`La intervención realizada da como resultado un "Informe de inspección", con la numeración ${ref}, que indica las observaciones relativas a las instalaciones y omisiones. Estas observaciones sólo son válidas en las condiciones presentes en la instalación en el momento de control.`;
-    const l2=doc.splitTextToSize(c2,W-M*2); doc.text(l2,M,y); y+=l2.length*6+6;
-    const c3=`ARP PREVENCIÓN S.L. certifica que los equipamientos cumplen con las exigencias marcadas en las normas UNE-EN 15567-1:2015+A1:2021. Recorrido acrobático en altura. Parte 1 tras la inspección in situ realizada, la validación de los distintos documentos exigidos por norma y las acciones de mantenimiento realizadas.`;
-    const l3=doc.splitTextToSize(c3,W-M*2); doc.text(l3,M,y); y+=l3.length*6+6;
-    const c4=`Visto que el informe presenta un resultado FAVORABLE, se considera que los equipamientos cumplen con las especificaciones de seguridad de las normas de aplicación en vigencia y que son aptos para su uso bajo las indicaciones y directrices del manual de uso y mantenimiento del constructor/instalador.`;
-    const l4=doc.splitTextToSize(c4,W-M*2); doc.text(l4,M,y); y+=l4.length*6+10;
-    doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(...D2);
-    doc.text("FIRMA DIGITAL", W/2, y, {align:"center"}); y+=12;
-    doc.setDrawColor(...G); doc.setLineWidth(0.35);
-    doc.rect(W/2-36,y,32,18); doc.rect(W/2+4,y,32,18);
-    doc.setFontSize(6.5); doc.setFont("helvetica","bold"); doc.setTextColor(...G);
-    doc.text("Inspector", W/2-20, y+4, {align:"center"});
-    doc.text("Director Técnico / Revisor", W/2+20, y+4, {align:"center"});
-    doc.setTextColor(...D2); doc.setFont("helvetica","normal"); doc.setFontSize(7);
-    doc.text(D.inspectorNombre||"", W/2-20, y+11, {align:"center", maxWidth:28});
-    doc.text("José Manuel Moreno Vélez", W/2+20, y+11, {align:"center", maxWidth:28}); y+=24;
-    doc.setFontSize(9); doc.setTextColor(...D2); doc.setFont("helvetica","normal");
-    doc.text("Fecha entrada en vigor:", M, y); doc.setFont("helvetica","bold"); doc.text(vigencia, M+50, y); y+=6;
-    doc.setFont("helvetica","normal"); doc.text("Fecha próxima inspección:", M, y); doc.setFont("helvetica","bold"); doc.text(proxima, M+50, y); y+=10;
-    doc.setFillColor(...G); doc.rect(M,y,W-M*2,0.5,"F"); y+=4;
-    doc.setFontSize(7.5); doc.setFont("helvetica","normal"); doc.setTextColor(...MU);
-    doc.text("Adell Riesgos y Prevención S.L. · C/ Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4 — 41704 Dos Hermanas, Sevilla", W/2, y+4, {align:"center"});
-
-    const fn=ref.replace(/\//g,"_").replace(/ /g,"_")+"_Certificado.pdf";
-    doc.save(fn);
+  function updateOnline() {
+    if (!navigator.onLine) document.getElementById('alertOffline').classList.add('vis');
   }
-
-  function updateOnline() { document.getElementById("offlineBadge").classList.toggle("visible",!navigator.onLine); }
-  window.addEventListener("online",updateOnline); window.addEventListener("offline",updateOnline); updateOnline();
+  window.addEventListener('offline', updateOnline);
 </script>
 </body>
 </html>
