@@ -137,7 +137,6 @@
 
   setTimeout(async () => {
     if (D) return;
-    // Intentar desde localStorage si auth tarda
     const local = localStorage.getItem('insp_' + inspeccionId);
     if (local) {
       try {
@@ -145,9 +144,12 @@
         document.getElementById('alertOffline').classList.add('vis');
         CONFIG = CONFIG_DEFAULT;
         renderResultado();
+        return;
       } catch(e) {}
     }
-  }, 3000);
+    // Sin datos tras 4s — mostrar error en lugar de spinner eterno
+    document.getElementById('mainContent').innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:40px;margin-bottom:12px">&#9888;</div><div style="font-size:14px;margin-bottom:16px">No se pudo cargar el resultado.<br>Verifica tu conexión e inténtalo de nuevo.</div><button onclick="location.reload()" style="padding:10px 20px;background:var(--gold);color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer">Reintentar</button><br><br><a href=\"inspecciones.html\" style="color:var(--muted);font-size:13px">&#8592; Volver</a></div>';
+  }, 4000);
 
   async function cargarDatos() {
     try {
@@ -981,7 +983,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           doc.rect(mx2, y, 12, rH2, 'D');
           if (vGlobal===val) {
             doc.setFontSize(10); doc.setFont('helvetica','bold');
-            doc.setTextColor(val==='N'?...RED:[0,0,0]);
+            if(val==='N'){doc.setTextColor(...RED);}else{doc.setTextColor(0,0,0);}
             doc.text('X', mx2+6, y+rH2/2+2, {align:'center'});
           }
           mx2 += 12;
@@ -1508,7 +1510,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
           // S N NA
           const svw = 10;
           doc.setFont('helvetica','bold'); doc.setFontSize(9);
-          doc.setTextColor(v==='S'?...GREEN_C:v==='N'?...RED:...MUTED);
+          if(v==='S'){doc.setTextColor(...GREEN_C);}else if(v==='N'){doc.setTextColor(...RED);}else{doc.setTextColor(...MUTED);}
           doc.text(v||'', ML+xOff+half-svw+2, y+rH3/2+2);
           if (obs && v==='N') {
             doc.setFontSize(6.5); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
@@ -1581,7 +1583,7 @@ vaciones', ML+cw0+cw1+5*cw2+2, y+4);
             doc.rect(ML+cw0+cw1+ki*cw2, y, cw2, 7, 'D');
             const v2 = j[k]||'';
             doc.setFontSize(10); doc.setFont('helvetica','bold');
-            doc.setTextColor(v2==='S'?...GREEN_C:v2==='N'?...RED:...MUTED);
+            if(v2==='S'){doc.setTextColor(...GREEN_C);}else if(v2==='N'){doc.setTextColor(...RED);}else{doc.setTextColor(...MUTED);}
             doc.text(v2, ML+cw0+cw1+ki*cw2+cw2/2, y+5, {align:'center'});
           });
           doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 7, 'D');

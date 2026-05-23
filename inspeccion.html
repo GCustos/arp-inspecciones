@@ -324,6 +324,17 @@
     </div>
     <div class="modal-err" id="modalNCErr">Debes seleccionar el tipo y la gravedad.</div>
     <button class="btn-modal-ok" onclick="confirmarNC()">Confirmar no conformidad</button>
+    <!-- Foto del defecto en modal -->
+    <div id="modalNCFotoWrap" style="display:none;margin-top:10px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">Foto del defecto (opcional)</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-foto" onclick="document.getElementById('modalNCFotoCam').click()">&#128247; Cámara</button>
+        <button class="btn-foto" onclick="document.getElementById('modalNCFotoGal').click()">&#128444; Galería</button>
+      </div>
+      <input type="file" id="modalNCFotoCam" accept="image/*" capture="environment" style="display:none" onchange="handleFotoNC(this)">
+      <input type="file" id="modalNCFotoGal" accept="image/*" style="display:none" onchange="handleFotoNC(this)">
+      <div id="modalNCFotoPreview" style="margin-top:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px"></div>
+    </div>
     <!-- FIX: Botón cancelar que revierte el N -->
     <button class="btn-modal-cancel" onclick="cancelarNC()">Cancelar &#8212; no crear NC</button>
   </div>
@@ -375,6 +386,7 @@
   let modalNCRef=null;
   let modalNCPrio='';
   let modalNCPrevVal=''; // FIX: guardar valor previo para revertir si cancela
+  let modalNCFotos=[]; // fotos del defecto en modal
 
   const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], fotos:[], ensayos:"" };
 
@@ -821,6 +833,9 @@
     document.getElementById('modalNCObs').value='';
     document.getElementById('modalNCNorma').value='UNE-EN 15567-1:2015+A1:2021';
     document.getElementById('modalNCErr').classList.remove('vis');
+    document.getElementById('modalNCFotoWrap').style.display='none';
+    document.getElementById('modalNCFotoPreview').innerHTML='';
+    modalNCFotos=[];
     document.querySelectorAll('#modalNCPrioRow .prio-btn').forEach(b=>{ b.className='prio-btn'; });
     document.getElementById('modalNC').classList.add('open');
   }
@@ -851,6 +866,8 @@
     document.querySelectorAll('#modalNCPrioRow .prio-btn').forEach(b=>{
       b.className='prio-btn'+(b.textContent.trim().replace('Ó','O')===p||b.textContent.trim()===p?' p-'+p:'');
     });
+    // Mostrar opción foto al seleccionar gravedad
+    document.getElementById('modalNCFotoWrap').style.display='block';
   };
 
   window.confirmarNC=()=>{
@@ -881,7 +898,7 @@
 
     // Evitar duplicado de autoId
     if(!S.ncs.find(n=>n.autoId===autoId)){
-      S.ncs.push({autoId,tipo,elem,desc:obs,norma,prio:modalNCPrio,origen,fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false});
+      S.ncs.push({autoId,tipo,elem,desc:obs,norma,prio:modalNCPrio,origen,fotosDefecto:[...modalNCFotos],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false});
     }
 
     document.getElementById('modalNC').classList.remove('open');
@@ -1018,12 +1035,12 @@
       return;
     }
     // FIX: OBSERVACION no bloquea certificado ni cuenta como NC para resultado
+    // Solo OBSERVACION no bloquea. GRAVE/MEDIA/LEVE/DOCUMENTAL = DESFAVORABLE
     const ncsBloqueantes=S.ncs.filter(n=>n.prio&&n.prio!=="OBSERVACION");
-    const graves=S.ncs.filter(n=>n.prio==="GRAVE").length;
     const resultado=ncsBloqueantes.length===0?"FAVORABLE":"DESFAVORABLE";
     const msg=ncsBloqueantes.length===0
       ?"La inspección tiene resultado FAVORABLE.\n¿Deseas completarla?"
-      :`${ncsBloqueantes.length} NC(s) con gravedad GRAVE/MEDIA/LEVE/DOCUMENTAL. Resultado DESFAVORABLE.\n¿Deseas completarla de todas formas?`;
+      :`${ncsBloqueantes.length} NC(s) bloqueantes (GRAVE/MEDIA/LEVE/DOCUMENTAL). Resultado DESFAVORABLE.\n¿Deseas completarla de todas formas?`;
     if(!confirm(msg)) return;
     try {
       await db.collection("inspecciones").doc(inspeccionId).update({
@@ -1034,6 +1051,27 @@
       isDirty=false;
       location.href="resultado.html?id="+inspeccionId;
     } catch(e){ alert("Error al completar: "+e.message); }
+  }
+
+  // Manejar fotos en modal NC
+  function handleFotoNC(inp) {
+    Array.from(inp.files).forEach(f => {
+      const r = new FileReader();
+      r.onload = e => {
+        comprimirImagen(e.target.result, compressed => {
+          modalNCFotos.push({dataUrl: compressed, name: String(f.name||'foto.jpg')});
+          // Render preview
+          const prev = document.getElementById('modalNCFotoPreview');
+          prev.innerHTML = modalNCFotos.map((foto, i) => `
+            <div style="position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border)">
+              <img src="${foto.dataUrl}" style="width:100%;height:100%;object-fit:cover">
+              <button onclick="modalNCFotos.splice(${i},1);handleFotoNC({files:[]})" style="position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,.6);border:none;border-radius:50%;color:white;font-size:11px;cursor:pointer">&#215;</button>
+            </div>`).join('');
+        });
+      };
+      r.readAsDataURL(f);
+    });
+    inp.value = '';
   }
 
   window.addEventListener("beforeunload",e=>{ if(isDirty){ e.preventDefault(); e.returnValue=""; } });
