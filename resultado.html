@@ -97,9 +97,15 @@
       appId:"1:35880168451:web:090e3c250b4416ed0b3236"
     });
   }
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-  db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+  let auth, db;
+  try {
+    auth = firebase.auth();
+    db = firebase.firestore();
+    db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+  } catch(e) {
+    console.error('Firebase init error:', e);
+    document.getElementById('mainContent').innerHTML = '<p style="color:red;padding:20px">Error de inicialización: ' + e.message + '</p>';
+  }
 
   const params = new URLSearchParams(window.location.search);
   const inspeccionId = params.get("id");
@@ -272,8 +278,6 @@
   // ═══════════════════════════════════════════════════
   //   GENERACIÓN PDF — INFORME
   // ═══════════════════════════════════════════════════
-
-  const { jsPDF } = window.jspdf;
 
   // Colores
   const GOLD = [200, 153, 58];
@@ -504,6 +508,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
 
   async function generarInforme() {
     if (!D) return;
+    const { jsPDF } = window.jspdf;
     showGenerating('Generando Informe PDF...', 'Preparando páginas');
     await new Promise(r => setTimeout(r, 100));
     try {
@@ -1236,6 +1241,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
   // ═══════════════════════════════════════════════════
   async function generarCertificado() {
     if (!D || D.resultado !== 'FAVORABLE') return;
+    const { jsPDF } = window.jspdf;
     showGenerating('Generando Certificado PDF...', '');
     await new Promise(r => setTimeout(r, 100));
     try {
@@ -1329,6 +1335,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
   // ═══════════════════════════════════════════════════
   async function generarRegistro() {
     if (!D) return;
+    const { jsPDF } = window.jspdf;
     showGenerating('Generando Registro ENAC...', '');
     await new Promise(r => setTimeout(r, 100));
     try {

@@ -58,13 +58,28 @@
     .badge-on{background:#E8F5E9;color:var(--green)}
     .badge-off{background:var(--surf);color:var(--muted)}
     .badge-admin{background:rgba(200,153,58,0.15);color:var(--gold)}
-    .datos-card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px}
+    /* DATOS DE EMPRESA */
+    .datos-card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;cursor:pointer;transition:all 0.2s;position:relative}
+    .datos-card:hover{border-color:var(--gold);box-shadow:0 4px 12px rgba(0,0,0,0.08)}
     .datos-empresa{font-size:14px;font-weight:600;color:var(--dark);margin-bottom:2px}
     .datos-line{font-size:13px;color:var(--muted);margin-bottom:2px}
     .datos-actions{display:flex;gap:8px;margin-top:12px}
     .btn-dat{flex:1;padding:10px;border:1.5px solid var(--border);border-radius:9px;background:white;font-family:inherit;font-size:12px;font-weight:600;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s}
     .btn-dat:hover{border-color:var(--gold);color:var(--gold)}
     .btn-dat.ok{border-color:var(--green);color:var(--green);background:#E8F5E9}
+    .datos-expand-hint{position:absolute;top:12px;right:12px;font-size:18px;color:var(--muted)}
+    /* MODAL DATOS PANTALLA COMPLETA */
+    .modal-datos{position:fixed;inset:0;background:var(--dark);z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px}
+    .modal-datos.open{display:flex}
+    .modal-datos-logo{width:80px;height:80px;background:var(--gold);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;color:white;margin-bottom:32px}
+    .modal-datos-nombre{font-size:28px;font-weight:700;color:white;text-align:center;margin-bottom:8px;line-height:1.2}
+    .modal-datos-cif{font-size:20px;color:var(--muted);margin-bottom:24px;font-family:monospace}
+    .modal-datos-dir{font-size:20px;color:rgba(255,255,255,0.85);text-align:center;line-height:1.6;margin-bottom:32px}
+    .modal-datos-btns{display:flex;gap:12px;width:100%;max-width:360px}
+    .modal-datos-btn{flex:1;padding:16px;border:none;border-radius:12px;font-family:inherit;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+    .modal-datos-btn.copiar{background:var(--gold);color:white}
+    .modal-datos-btn.compartir{background:rgba(255,255,255,0.12);color:white;border:1.5px solid rgba(255,255,255,0.2)}
+    .modal-datos-cerrar{position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.1);border:none;color:white;font-size:22px;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
     .offline-badge{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
     .offline-badge.vis{display:block}
   </style>
@@ -93,7 +108,7 @@
 </div>
 
 <div class="screen" id="deniedScreen">
-  <div class="denied-icon">🚫</div>
+  <div class="denied-icon">&#128683;</div>
   <div class="denied-title">Acceso no autorizado</div>
   <div class="denied-sub">Tu cuenta no tiene acceso. Contacta con el administrador.</div>
   <button class="btn-login" style="background:var(--dark)" onclick="logout()">Cerrar sesión</button>
@@ -114,7 +129,7 @@
     <div class="menu-item" id="menuName" style="font-weight:600;cursor:default"></div>
     <div class="menu-item" id="menuEmail" style="font-size:12px;color:var(--muted);cursor:default"></div>
     <div class="menu-divider"></div>
-    <div class="menu-item danger" onclick="logout()">🚪 Cerrar sesión</div>
+    <div class="menu-item danger" onclick="logout()">&#128682; Cerrar sesión</div>
   </div>
   <div class="content">
     <div class="welcome">
@@ -125,57 +140,76 @@
     <div class="sec-title">Módulos</div>
     <div class="modules-grid">
       <div class="mod-card" onclick="location.href='inspecciones.html'">
-        <div class="mod-icon">📋</div>
+        <div class="mod-icon">&#128203;</div>
         <div class="mod-name">Inspecciones</div>
         <div class="mod-desc">Nueva inspección, historial y seguimiento</div>
         <span class="badge badge-on">Activo</span>
       </div>
       <div class="mod-card disabled">
-        <div class="mod-icon">🔧</div>
+        <div class="mod-icon">&#128167;</div>
         <div class="mod-name">Equipos</div>
         <div class="mod-desc">Inventario y calibraciones por sede</div>
         <span class="badge badge-off">Próximamente</span>
       </div>
       <div class="mod-card disabled">
-        <div class="mod-icon">👷</div>
+        <div class="mod-icon">&#128119;</div>
         <div class="mod-name">Inspectores</div>
         <div class="mod-desc">Autorizaciones y formaciones</div>
         <span class="badge badge-off">Próximamente</span>
       </div>
       <div class="mod-card disabled">
-        <div class="mod-icon">🏟️</div>
+        <div class="mod-icon">&#127959;&#65039;</div>
         <div class="mod-name">Instalaciones</div>
         <div class="mod-desc">Clientes e historial de NC</div>
         <span class="badge badge-off">Próximamente</span>
       </div>
       <div class="mod-card disabled">
-        <div class="mod-icon">📄</div>
+        <div class="mod-icon">&#128196;</div>
         <div class="mod-name">Ofertas</div>
         <div class="mod-desc">Generación de ofertas</div>
         <span class="badge badge-off">Próximamente</span>
       </div>
       <div class="mod-card" id="adminCard" style="display:none" onclick="location.href='admin.html'">
-        <div class="mod-icon">⚙️</div>
+        <div class="mod-icon">&#9881;&#65039;</div>
         <div class="mod-name">Administración</div>
         <div class="mod-desc">Usuarios y configuración</div>
         <span class="badge badge-admin">Admin</span>
       </div>
     </div>
     <div class="sec-title">Datos de empresa</div>
-    <div class="datos-card">
+    <!-- FIX: tarjeta clicable que expande a pantalla completa -->
+    <div class="datos-card" onclick="abrirDatos()">
+      <span class="datos-expand-hint">&#10063;</span>
       <div class="datos-empresa">Adell Riesgos y Prevención S.L.</div>
       <div class="datos-line">B64399793</div>
       <div class="datos-line">C/ Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4</div>
       <div class="datos-line">41704 Dos Hermanas, Sevilla</div>
-      <div class="datos-actions">
-        <button class="btn-dat" id="btnCopiar" onclick="copiarDatos()">📋 Copiar</button>
-        <button class="btn-dat" onclick="compartirDatos()">📤 Compartir</button>
+      <div class="datos-actions" onclick="event.stopPropagation()">
+        <button class="btn-dat" id="btnCopiar" onclick="copiarDatos()">&#128203; Copiar</button>
+        <button class="btn-dat" onclick="compartirDatos()">&#128228; Compartir</button>
       </div>
     </div>
   </div>
 </div>
 
-<div class="offline-badge" id="offlineBadge">Sin conexión — modo offline</div>
+<!-- MODAL DATOS PANTALLA COMPLETA -->
+<div class="modal-datos" id="modalDatos" onclick="cerrarDatos()">
+  <button class="modal-datos-cerrar" onclick="cerrarDatos()">&#215;</button>
+  <div class="modal-datos-logo">ARP</div>
+  <div class="modal-datos-nombre">Adell Riesgos y Prevención S.L.</div>
+  <div class="modal-datos-cif">B64399793</div>
+  <div class="modal-datos-dir">
+    C/ Gabriel Miró 3, Edificio Wertice<br>
+    Planta 1ª Puerta 4<br>
+    41704 Dos Hermanas, Sevilla
+  </div>
+  <div class="modal-datos-btns">
+    <button class="modal-datos-btn copiar" id="btnCopiarModal" onclick="event.stopPropagation();copiarDatosModal()">&#128203; Copiar</button>
+    <button class="modal-datos-btn compartir" onclick="event.stopPropagation();compartirDatos()">&#128228; Compartir</button>
+  </div>
+</div>
+
+<div class="offline-badge" id="offlineBadge">Sin conexión &#8212; modo offline</div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -195,23 +229,15 @@
   const provider = new firebase.auth.GoogleAuthProvider();
   db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 
-  // ── show() ─────────────────────────────────────────────────────────────────
-  // Manipula style.display directamente. Sin clases. Sin ambigüedad.
   function show(id) {
-    document.getElementById('loginScreen').style.display  = 'none';
-    document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('deniedScreen').style.display = 'none';
-    document.getElementById('appScreen').style.display    = 'none';
+    ['loginScreen','loadingScreen','deniedScreen','appScreen'].forEach(s => {
+      document.getElementById(s).style.display = 'none';
+    });
     document.getElementById(id).style.display = 'flex';
   }
 
-  // ── AUTH ───────────────────────────────────────────────────────────────────
-  // Un único flag. onAuthStateChanged es la fuente de verdad.
-  // Se resetea antes de login y antes de logout para que el listener
-  // pueda actuar de nuevo en cada transición.
   let listening = true;
 
-  // Timeout de seguridad: si Firebase no responde en 5s, ir a login
   const timer = setTimeout(() => {
     if (!listening) return;
     listening = false;
@@ -230,11 +256,7 @@
     listening = false;
     clearTimeout(timer);
 
-    if (!user) {
-      show('loginScreen');
-      return;
-    }
-
+    if (!user) { show('loginScreen'); return; }
     show('loadingScreen');
 
     if (!navigator.onLine) {
@@ -257,26 +279,21 @@
     }
   });
 
-  // ── LOGIN ──────────────────────────────────────────────────────────────────
   window.loginGoogle = async () => {
     const btn = document.getElementById('btnLogin');
     const hint = document.getElementById('loginHint');
     hint.classList.remove('vis');
     btn.disabled = true;
     btn.textContent = 'Conectando...';
-
-    // Abrir el listener antes de llamar al popup
     listening = true;
-
     try {
       await auth.signInWithPopup(provider);
-      // onAuthStateChanged dispara → listening=false → mostrarApp
     } catch(e) {
-      listening = false; // cancelado o error
+      listening = false;
       btn.disabled = false;
       btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4c-7.7 0-14.4 4.4-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.8 13.6-4.7l-6.3-5.2C29.4 35.6 26.8 36 24 36c-5.2 0-9.6-2.9-11.7-7.2l-6.5 5C9.5 39.5 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.9 2.4-2.5 4.4-4.6 5.8l6.3 5.2C40.8 35.7 44 30.3 44 24c0-1.3-.1-2.7-.4-4z"/></svg> Entrar con Google`;
       if (e.code === 'auth/popup-blocked') {
-        hint.textContent = '⚠️ El navegador bloqueó la ventana. Permite ventanas emergentes para esta página.';
+        hint.textContent = '&#9889;&#65039; El navegador bloqueó la ventana. Permite ventanas emergentes para esta página.';
         hint.classList.add('vis');
       } else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
         hint.textContent = 'Error: ' + e.message;
@@ -285,15 +302,13 @@
     }
   };
 
-  // ── LOGOUT ─────────────────────────────────────────────────────────────────
   window.logout = async () => {
     document.getElementById('userMenu').classList.remove('open');
     Object.keys(localStorage).filter(k => k.startsWith('arpUser_')).forEach(k => localStorage.removeItem(k));
-    listening = true; // onAuthStateChanged disparará con null → loginScreen
+    listening = true;
     await auth.signOut();
   };
 
-  // ── APP ────────────────────────────────────────────────────────────────────
   function mostrarApp(user, ud) {
     show('appScreen');
     document.getElementById('headerAvatar').src = (user.photoURL || '');
@@ -314,12 +329,29 @@
 
   const DATOS = `Adell Riesgos y Prevención S.L.\nB64399793\nC/ Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4\n41704 Dos Hermanas, Sevilla`;
 
+  // Abrir modal pantalla completa
+  window.abrirDatos = () => {
+    document.getElementById('modalDatos').classList.add('open');
+  };
+  window.cerrarDatos = () => {
+    document.getElementById('modalDatos').classList.remove('open');
+  };
+
   window.copiarDatos = async () => {
     try {
       await navigator.clipboard.writeText(DATOS);
       const b = document.getElementById('btnCopiar');
-      b.textContent = '✓ Copiado'; b.classList.add('ok');
-      setTimeout(() => { b.textContent = '📋 Copiar'; b.classList.remove('ok'); }, 2000);
+      b.textContent = '&#10003; Copiado'; b.classList.add('ok');
+      setTimeout(() => { b.textContent = '&#128203; Copiar'; b.classList.remove('ok'); }, 2000);
+    } catch(e) { alert('No se pudo copiar.'); }
+  };
+
+  window.copiarDatosModal = async () => {
+    try {
+      await navigator.clipboard.writeText(DATOS);
+      const b = document.getElementById('btnCopiarModal');
+      b.textContent = '&#10003; Copiado';
+      setTimeout(() => { b.textContent = '&#128203; Copiar'; }, 2000);
     } catch(e) { alert('No se pudo copiar.'); }
   };
 
