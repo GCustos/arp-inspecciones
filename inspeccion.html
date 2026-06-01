@@ -360,6 +360,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 <script>
   if (!firebase.apps.length) {
     firebase.initializeApp({
@@ -373,6 +374,7 @@
   }
   const auth = firebase.auth();
   const db = firebase.firestore();
+  const storage = firebase.storage();
   db.enablePersistence({synchronizeTabs:true}).catch(e=>{
     if(e.code!=='failed-precondition'&&e.code!=='unimplemented') console.log('Persistence:',e.code);
   });
@@ -444,6 +446,67 @@
     img.onerror = () => callback(dataUrl); // fallback sin comprimir
     img.src = dataUrl;
   }
+
+  // ── FIREBASE STORAGE — subir foto ──
+  // Guarda base64 en IndexedDB (Firestore) offline, sube a Storage cuando conecta
+  async function uploadFotoToStorage(dataUrl, path) {
+    if (!navigator.onLine) {
+      // Offline: devolver dataUrl para guardar en Firestore temporalmente
+      return { url: dataUrl, pendiente: true };
+    }
+    try {
+      const ref = storage.ref(path);
+      await ref.putString(dataUrl, 'data_url');
+      const url = await ref.getDownloadURL();
+      return { url, pendiente: false };
+    } catch(e) {
+      console.warn('Storage upload failed, using base64:', e.message);
+      return { url: dataUrl, pendiente: true };
+    }
+  }
+
+  // Subir fotos pendientes (base64) a Storage cuando hay conexión
+  async function sincronizarFotosPendientes() {
+    if (!navigator.onLine || !inspeccionId) return;
+    let cambios = false;
+
+    // Fotos generales
+    for (let i = 0; i < S.fotos.length; i++) {
+      const f = S.fotos[i];
+      if (f.pendiente && f.url && f.url.startsWith('data:')) {
+        const r = await uploadFotoToStorage(f.url, `inspecciones/${inspeccionId}/general/${Date.now()}_${i}.jpg`);
+        if (!r.pendiente) { S.fotos[i] = { url: r.url, name: f.name, pendiente: false }; cambios = true; }
+      }
+    }
+    // Fotos por juego
+    for (let ci = 0; ci < S.circuitos.length; ci++) {
+      for (let ji = 0; ji < (S.circuitos[ci].juegos||[]).length; ji++) {
+        const fotos = S.circuitos[ci].juegos[ji].fotos || [];
+        for (let fi = 0; fi < fotos.length; fi++) {
+          const f = fotos[fi];
+          if (f.pendiente && f.url && f.url.startsWith('data:')) {
+            const r = await uploadFotoToStorage(f.url, `inspecciones/${inspeccionId}/juegos/${ci}_${ji}/${Date.now()}_${fi}.jpg`);
+            if (!r.pendiente) { S.circuitos[ci].juegos[ji].fotos[fi] = { url: r.url, name: f.name, pendiente: false }; cambios = true; }
+          }
+        }
+      }
+    }
+    // Fotos NCs
+    for (let ni = 0; ni < S.ncs.length; ni++) {
+      const fotsD = S.ncs[ni].fotosDefecto || [];
+      for (let fi = 0; fi < fotsD.length; fi++) {
+        const f = fotsD[fi];
+        if (f.pendiente && f.url && f.url.startsWith('data:')) {
+          const r = await uploadFotoToStorage(f.url, `inspecciones/${inspeccionId}/ncs/${ni}/${Date.now()}_${fi}.jpg`);
+          if (!r.pendiente) { S.ncs[ni].fotosDefecto[fi] = { url: r.url, name: f.name, pendiente: false }; cambios = true; }
+        }
+      }
+    }
+    if (cambios) { markDirty(); guardarSilencioso(); }
+  }
+
+  // Intentar sincronizar al recuperar conexión
+  window.addEventListener('online', () => { sincronizarFotosPendientes(); updateOnline(); });
 
   // AUTH
   let authOk=false;
@@ -579,6 +642,14 @@
   }
 
   // CIRCUITOS
+  function renombrarCircuito(ci){
+    const actual = S.circuitos[ci].nombre;
+    const nuevo = prompt("Nuevo nombre del circuito:", actual);
+    if (!nuevo || nuevo === actual) return;
+    S.circuitos[ci].nombre = nuevo;
+    markDirty(); renderCircuitos();
+  }
+
   function addCircuito(){
     const nombre=prompt("Nombre del circuito:","Circuito "+(S.circuitos.length+1));
     if(!nombre) return;
@@ -758,6 +829,7 @@
         <div class="circ-header" onclick="toggleCircuito(${ci})">
           <span class="circ-toggle open" id="ct_${ci}">&#9654;</span>
           <span class="circ-nombre">${circ.nombre}</span>
+          <button onclick="event.stopPropagation();renombrarCircuito(${ci})" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:2px 6px;flex-shrink:0" title="Renombrar circuito">&#9998;</button>
           <span class="circ-stats" style="color:${hayN?'var(--orange)':ok===total&&total>0?'var(--green)':'var(--muted)'}">${ok}/${total} OK</span>
         </div>
         <div class="circ-body open" id="cb_${ci}">
@@ -794,7 +866,7 @@
     const g=document.getElementById('modalFotosGrid');
     g.innerHTML=j.fotos.map((f,i)=>`
       <div class="foto-thumb">
-        <img src="${f.dataUrl||f.url||''}" alt="foto ${i+1}">
+        <img src="${f.url||f.dataUrl||''}" alt="foto ${i+1}">
         <button class="foto-del" onclick="delFotoJuego(${i})">&#215;</button>
       </div>`).join("");
   }
@@ -807,8 +879,12 @@
       const r=new FileReader();
       r.onload=e=>{
         comprimirImagen(e.target.result, compressed=>{
-          S.circuitos[ci].juegos[ji].fotos.push({dataUrl:compressed, name:String(f.name||'foto.jpg')});
-          renderModalFotos(); markDirty();
+          // Intentar subir a Storage, si falla guardar base64 como pendiente
+          uploadFotoToStorage(compressed, `inspecciones/${inspeccionId}/juegos/${ci}_${ji}/${Date.now()}.jpg`)
+            .then(r => {
+              S.circuitos[ci].juegos[ji].fotos.push({url: r.url, name:String(f.name||'foto.jpg'), pendiente: r.pendiente});
+              renderModalFotos(); markDirty();
+            });
         });
       };
       r.readAsDataURL(f);
@@ -964,8 +1040,11 @@
       const r=new FileReader();
       r.onload=e=>{
         comprimirImagen(e.target.result, compressed=>{
-          S.fotos.push({dataUrl:compressed, name:String(f.name||'foto.jpg')});
-          renderFotos(); markDirty();
+          uploadFotoToStorage(compressed, `inspecciones/${inspeccionId}/general/${Date.now()}.jpg`)
+            .then(r => {
+              S.fotos.push({url: r.url, name:String(f.name||'foto.jpg'), pendiente: r.pendiente});
+              renderFotos(); markDirty();
+            });
         });
       };
       r.readAsDataURL(f);
@@ -976,7 +1055,7 @@
     const g=document.getElementById("fotoGrid");
     g.innerHTML=S.fotos.map((f,i)=>`
       <div class="foto-thumb">
-        <img src="${f.dataUrl||f.url||''}" alt="foto ${i+1}">
+        <img src="${f.url||f.dataUrl||''}" alt="foto ${i+1}">
         <button class="foto-del" onclick="S.fotos.splice(${i},1);renderFotos();markDirty()">&#215;</button>
       </div>`).join("");
   }
@@ -1059,10 +1138,12 @@
       const r = new FileReader();
       r.onload = e => {
         comprimirImagen(e.target.result, compressed => {
-          modalNCFotos.push({dataUrl: compressed, name: String(f.name||'foto.jpg')});
+          uploadFotoToStorage(compressed, `inspecciones/${inspeccionId}/ncs/temp_${Date.now()}.jpg`)
+            .then(r => {
+              modalNCFotos.push({url: r.url, name: String(f.name||'foto.jpg'), pendiente: r.pendiente});
           // Render preview
-          const prev = document.getElementById('modalNCFotoPreview');
-          prev.innerHTML = modalNCFotos.map((foto, i) => `
+              const prev = document.getElementById('modalNCFotoPreview');
+              prev.innerHTML = modalNCFotos.map((foto, i) => `
             <div style="position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border)">
               <img src="${foto.dataUrl}" style="width:100%;height:100%;object-fit:cover">
               <button onclick="modalNCFotos.splice(${i},1);handleFotoNC({files:[]})" style="position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,.6);border:none;border-radius:50%;color:white;font-size:11px;cursor:pointer">&#215;</button>

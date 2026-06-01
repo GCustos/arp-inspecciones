@@ -1,86 +1,84 @@
-const CACHE_NAME = 'arp-inspecciones-v4';
+// ── ARP Inspecciones Service Worker ──
+// VERSIÓN: 1.5 — actualizar este número en cada deploy
+const CACHE_NAME = 'arp-v1.5';
 
-// Ficheros propios de la app
-const APP_ASSETS = [
+const PRECACHE = [
   '/arp-inspecciones/',
   '/arp-inspecciones/index.html',
   '/arp-inspecciones/inspecciones.html',
-  '/arp-inspecciones/nueva-inspeccion.html',
   '/arp-inspecciones/inspeccion.html',
+  '/arp-inspecciones/nueva-inspeccion.html',
   '/arp-inspecciones/resultado.html',
   '/arp-inspecciones/manifest.json',
-  '/arp-inspecciones/sw.js'
 ];
 
-// Scripts externos — se cachean con modo 'no-cors' (tipo opaque)
-// CRÍTICO: sin esto, Firebase no está disponible offline
-const EXTERNAL_ASSETS = [
+const FIREBASE_SCRIPTS = [
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js',
-  'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js'
+  'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js',
+  'https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js',
 ];
 
-// Instalar: cachear todo, incluyendo Firebase
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(async cache => {
-      // Cachear assets propios
-      await cache.addAll(APP_ASSETS);
+const JSPDF_SCRIPT = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 
-      // Cachear scripts externos con no-cors (devuelven respuesta opaque pero sirven offline)
-      await Promise.all(
-        EXTERNAL_ASSETS.map(url =>
-          fetch(new Request(url, { mode: 'no-cors' }))
-            .then(response => cache.put(url, response))
-            .catch(() => console.log('[SW] No se pudo precargar:', url))
-        )
-      );
-    }).then(() => self.skipWaiting())
+// ── INSTALL: cachear assets propios + Firebase scripts ──
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(async cache => {
+      // Cachear páginas propias
+      await cache.addAll(PRECACHE).catch(e => console.log('Precache error:', e));
+      // Cachear Firebase scripts con no-cors
+      for (const url of [...FIREBASE_SCRIPTS, JSPDF_SCRIPT]) {
+        try {
+          const response = await fetch(url, { mode: 'no-cors' });
+          await cache.put(url, response);
+        } catch(e) { console.log('Script cache error:', url, e.message); }
+      }
+    })
   );
+  self.skipWaiting();
 });
 
-// Activar: limpiar caches viejas
-self.addEventListener('activate', e => {
-  e.waitUntil(
+// ── ACTIVATE: limpiar caches antiguas ──
+self.addEventListener('activate', event => {
+  event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys.filter(key => key !== CACHE_NAME)
-            .map(key => caches.delete(key))
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
       )
-    ).then(() => self.clients.claim())
+    )
   );
+  self.clients.claim();
 });
 
-// Fetch: cache primero, luego red
-self.addEventListener('fetch', e => {
-  // Ignorar peticiones que no sean GET
-  if (e.request.method !== 'GET') return;
+// ── FETCH: cache-first para assets, network-first para Firestore ──
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
 
-  // Ignorar peticiones a Firestore/Auth en tiempo real (no cachear datos, solo scripts)
-  const url = e.request.url;
-  if (url.includes('firestore.googleapis.com') ||
-      url.includes('identitytoolkit.googleapis.com') ||
-      url.includes('securetoken.googleapis.com')) {
-    return; // Dejar pasar sin interceptar
+  // Firestore y Storage: siempre network (tienen su propio offline handling)
+  if (url.hostname.includes('firestore.googleapis.com') ||
+      url.hostname.includes('firebasestorage.googleapis.com') ||
+      url.hostname.includes('identitytoolkit.googleapis.com') ||
+      url.hostname.includes('securetoken.googleapis.com')) {
+    return; // dejar pasar sin interceptar
   }
 
-  e.respondWith(
-    caches.match(e.request).then(cached => {
+  // Cache-first para todo lo demás
+  event.respondWith(
+    caches.match(event.request).then(cached => {
       if (cached) return cached;
-
-      return fetch(e.request).then(response => {
-        if (!response || response.status !== 200) return response;
-
-        // Cachear dinámicamente assets propios (type basic) y externos (type opaque/cors)
-        const type = response.type;
-        if (type === 'basic' || type === 'cors' || type === 'opaque') {
+      return fetch(event.request, { mode: 'no-cors' }).then(response => {
+        // Cachear respuestas válidas
+        if (response && (response.status === 200 || response.type === 'opaque')) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
         return response;
       }).catch(() => {
-        // Sin conexión y sin caché — devolver index como fallback
-        return caches.match('/arp-inspecciones/index.html');
+        // Fallback a index.html para navegación
+        if (event.request.mode === 'navigate') {
+          return caches.match('/arp-inspecciones/index.html');
+        }
       });
     })
   );
