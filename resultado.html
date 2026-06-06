@@ -1549,13 +1549,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
       doc.rect(ML, y, cw0, 10, 'FD');
       doc.rect(ML+cw0, y, cw1, 10, 'FD');
-      ['Integridad
-estructural','Anclajes y
-fijaciones','Elementos de
-juego/Progresión','Riesgos y
-atrapamientos','Zona de
-seguridad/
-Entorno'].forEach((h2,hi) => {
+      ['Integridad\nestructural','Anclajes y\nfijaciones','Elementos de\njuego/Progresión','Riesgos y\natrapamientos','Zona de\nseguridad/\nEntorno'].forEach((h2,hi) => {
         doc.rect(ML+cw0+cw1+hi*cw2, y, cw2, 10, 'FD');
         doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
         const hl = h2.split('\n');
@@ -1563,8 +1557,7 @@ Entorno'].forEach((h2,hi) => {
       });
       doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 10, 'FD');
       doc.setFontSize(7); doc.setFont('helvetica','bold');
-      doc.text('Obser-
-vaciones', ML+cw0+cw1+5*cw2+2, y+4);
+      doc.text('Obser-\nvaciones', ML+cw0+cw1+5*cw2+2, y+4);
       doc.setFontSize(7); doc.setFont('helvetica','bold');
       doc.text('Circuitos', ML+2, y+5);
       doc.text('Juegos', ML+cw0+2, y+5);
