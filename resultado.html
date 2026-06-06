@@ -583,31 +583,36 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       const fmtRev = D.formatoDocumento?.revision || CONFIG?.paa?.formatoRevision || 9;
       const fmtFechaStr = D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '26/02/2026';
 
-      // Calcular total páginas aproximado (dinámico)
-      // Portada(1) + Indice(1) + Datos(1) + Metod(2) + Mant(2) + Result(1) + Desc(1+fotos) + Inspec(2) + Anexos(1) + NCs + Caract(1)
-      const ncsCount = (D.ncs||[]).filter(n=>n.prio!=='OBSERVACION').length;
-      const estPags = 13 + ncsCount + Math.ceil((D.circuitos||[]).reduce((s,c)=>(s+(c.juegos||[]).length),0)/6);
-      const totPag = [estPags];
+      // Calcular total páginas aproximado
+      // Portada(1) + Indice(1) + Datos(1) + Metod(2) + Mant(3) + Result(1) + Desc(circuitos) + Inspec General(1) + Inspec Circ(1) + Anexos(1) + NCs + Caract(1)
+      const ncsCount = (D.ncs||[]).length;
+      const nCircuitos = (D.circuitos||[]).length;
+      const nFotoPages = Math.ceil((D.circuitos||[]).reduce((s,c)=>s+(c.juegos||[]).length,0)/9);
+      const estPags = 13 + nFotoPages + Math.ceil(ncsCount * 1.2);
+      const totPag = [Math.max(estPags, 12)];
       const nPag = [0];
 
       // ═══ PÁGINA 1: PORTADA ═══
       nPag[0]++;
-      let y = 20;
+      let y = 18;
 
-      // Título (primero el texto, luego la línea debajo)
-      doc.setFontSize(28); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      const titulo1 = 'Inspección de Parque';
-      const titulo2 = 'Acrobático en Altura según';
-      const titulo3 = 'UNE-EN 15.567-';
-      const titulo4 = '1:2015+A1:2021';
-      [titulo1,titulo2,titulo3,titulo4].forEach(t => {
-        doc.text(t, PW-MR, y, {align:'right'});
-        y += 12;
-      });
-      y += 4;
-
-      // Línea decorativa gold BAJO el título
+      // Línea gold ENCIMA del título (como en informes reales)
       doc.setDrawColor(...GOLD); doc.setLineWidth(0.8);
+      doc.line(ML, y, PW-MR, y); y += 10;
+
+      // Título
+      doc.setFontSize(26); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+      const titulo1 = 'Inspección de Parque Acrobático';
+      const titulo2 = 'en Altura según';
+      const titulo3 = 'UNE-EN 15.567-1:2015+A1:2021';
+      [titulo1,titulo2,titulo3].forEach(t => {
+        doc.text(t, PW-MR, y, {align:'right'});
+        y += 13;
+      });
+      y += 6;
+
+      // Línea gold BAJO el título
+      doc.setDrawColor(...GOLD); doc.setLineWidth(0.5);
       doc.line(ML, y, PW-MR, y); y += 2;
 
       doc.setDrawColor(...GOLD); doc.setLineWidth(0.5);
@@ -911,57 +916,74 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('I. General', ML, y); y += 8;
 
-      // Tabla checklist general
-      const colW = {desc: CW*0.55, sat:12, ns:12, na:12, notas: CW - CW*0.55 - 12*3 - 2};
-      const rowH = 10;
+      // Tabla checklist general — UNA tabla independiente por ítem (formato Galipark/Los Cauces)
+      const descW = CW * 0.57;
+      const colSW = 12, colNsW = 12, colNaW = 12;
+      const notasW = CW - descW - colSW - colNsW - colNaW;
 
       GEN_ITEMS_PDF.forEach(item => {
-        if (y + rowH*2 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
         const v = (D.checklist||{})[item.id]||'';
         const obs = (D.checklistObs||{})[item.id]||'';
+        const descLines = doc.splitTextToSize(item.desc, descW - 4);
+        const rowH2 = Math.max(14, descLines.length * 4.5 + 6);
 
-        // Cabecera sección
-        doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
+        if (y + 7 + rowH2 + 8 > PH-18) {
+          doc.addPage(); nPag[0]++;
+          addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr, true);
+          y = MT+8;
+        }
+
+        doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
+
+        // Cabecera fila: fondo SURF, texto ref+sec izq, headers SAT/NS/NA/NOTAS derecha
+        doc.setFillColor(...SURF);
         doc.rect(ML, y, CW, 7, 'FD');
         doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-        doc.text(`${item.ref} ${item.sec}`, ML+2, y+4.5);
-        // SAT NS NA NOTAS headers — fondo blanco explícito
-        let hx = ML + colW.desc;
-        ['SAT.','N.S.','N.A.','NOTAS/OBSERVACIONES'].forEach((h,i) => {
-          const w2 = i<3 ? 12 : colW.notas;
-          doc.setFillColor(...WHITE); doc.rect(hx, y, w2, 7, 'FD');
-          doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-          doc.text(h, hx+w2/2, y+4.5, {align:'center'});
-          hx += w2;
-        });
+        doc.text(`${item.ref} ${item.sec}`, ML+2, y+4.8);
+        doc.setFontSize(7);
+        doc.text('SAT.', ML+descW+colSW/2, y+4.8, {align:'center'});
+        doc.text('N.S.', ML+descW+colSW+colNsW/2, y+4.8, {align:'center'});
+        doc.text('N.A.', ML+descW+colSW+colNsW+colNaW/2, y+4.8, {align:'center'});
+        doc.text('NOTAS SI/NO OBSERVACIONES', ML+descW+colSW+colNsW+colNaW+2, y+4.8);
         y += 7;
 
-        // Fila resultado
-        const lines = doc.splitTextToSize(item.desc, colW.desc-4);
-        const rH = Math.max(rowH, lines.length*4+4);
-        doc.setFillColor(...WHITE); doc.rect(ML, y, CW, rH, 'FD');
+        // Fila contenido: fondo blanco
+        doc.setFillColor(...WHITE);
+        doc.rect(ML, y, CW, rowH2, 'FD');
+        // Divisores verticales
+        doc.setDrawColor(...DARK);
+        doc.line(ML+descW, y, ML+descW, y+rowH2);
+        doc.line(ML+descW+colSW, y, ML+descW+colSW, y+rowH2);
+        doc.line(ML+descW+colSW+colNsW, y, ML+descW+colSW+colNsW, y+rowH2);
+        doc.line(ML+descW+colSW+colNsW+colNaW, y, ML+descW+colSW+colNsW+colNaW, y+rowH2);
+
+        // Descripción
         doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-        lines.forEach((l,i) => doc.text(l, ML+2, y+4+i*4));
-        // Marcas
-        let mx = ML + colW.desc;
-        ['S','N','NA'].forEach(val => {
-          doc.rect(mx, y, 12, rH, 'D');
-          if (v===val) {
-            doc.setFontSize(10); doc.setFont('helvetica','bold');
-            if(v==='S'){doc.setTextColor(0,0,0);}else{doc.setTextColor(...RED);}
-            doc.text('X', mx+6, y+rH/2+2, {align:'center'});
-          }
-          mx += 12;
-        });
-        // Notas
-        doc.rect(mx, y, colW.notas, rH, 'D');
-        if (obs) {
-          doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
-          doc.text(obs, mx+2, y+4, {maxWidth:colW.notas-4});
+        descLines.forEach((l,i) => doc.text(l, ML+2, y+5+i*4.5));
+
+        // X negra en columna correcta
+        if (v === 'S') {
+          doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+          doc.text('X', ML+descW+colSW/2, y+rowH2/2+2, {align:'center'});
+        } else if (v === 'N') {
+          doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+          doc.text('X', ML+descW+colSW+colNsW/2, y+rowH2/2+2, {align:'center'});
+        } else if (v === 'NA') {
+          doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+          doc.text('X', ML+descW+colSW+colNsW+colNaW/2, y+rowH2/2+2, {align:'center'});
         }
-        doc.setFontSize(7); doc.setTextColor(...MUTED);
-        doc.text('Sat.: Satisfactorio; N.S.: no satisfactorio; N.A.: no aplica', ML, y+rH+2);
-        y += rH + 5;
+
+        // Notas
+        if (obs) {
+          doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+          doc.text(obs, ML+descW+colSW+colNsW+colNaW+2, y+5, {maxWidth:notasW-3});
+        }
+        y += rowH2;
+
+        // Sat. en cursiva debajo
+        doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
+        doc.text('Sat. : Satisfactorio; N. S.: no satisfactorio; N.A.: no aplica', ML, y+3.5);
+        y += 7;
       });
 
       // Observaciones generales
@@ -972,7 +994,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
         doc.text('Observaciones Generales', ML+2, y+4.5); y += 7;
         const obsLines = doc.splitTextToSize(D.obsGral, CW-4);
-        const obsH = obsLines.length * 5 + 4;
+        const obsH = Math.max(20, obsLines.length * 5 + 4);
         doc.setFillColor(...WHITE); doc.rect(ML, y, CW, obsH, 'FD');
         doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
         doc.text(obsLines, ML+2, y+4); y += obsH + 4;
@@ -987,67 +1009,67 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('II. Específica Circuitos y Juegos', ML, y); y += 8;
 
-      // Tabla por criterio
+      // Tabla por criterio — formato tabla independiente igual que I. General
       for (const col of COLS_PDF) {
-        if (y + 25 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+        const vArr = [];
+        circuitos.forEach(circ => { (circ.juegos||[]).forEach(j => { if(j[col.key]) vArr.push(j[col.key]); }); });
+        const hayN = vArr.includes('N');
+        const allNA = vArr.length>0 && vArr.every(v=>v==='NA');
+        const allS = vArr.length>0 && vArr.every(v=>v==='S'||v==='NA');
+        const vGlobal = hayN?'N':allNA?'NA':allS?'S':'S';
 
-        // Cabecera criterio
-        doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
-        doc.rect(ML, y, CW*0.55, 7, 'FD');
+        const ncsDelCol = (D.ncs||[]).filter(n => n.autoId && n.autoId.includes('_'+col.key));
+        const notaCol = ncsDelCol.map((n,i)=>`${i+1}. ${n.elem||''}`).join(' ');
+        const descLinesCol = doc.splitTextToSize(col.desc, descW - 4);
+        const rowHcol = Math.max(14, descLinesCol.length * 4.5 + 6);
+
+        if (y + 7 + rowHcol + 8 > PH-18) {
+          doc.addPage(); nPag[0]++;
+          addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr, true);
+          y = MT+8;
+        }
+
+        doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
+
+        // Cabecera
+        doc.setFillColor(...SURF);
+        doc.rect(ML, y, CW, 7, 'FD');
         doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-        doc.text(`${col.ref} ${col.label}`, ML+2, y+4.5);
-        // Cabeceras S/NS/NA/NOTAS con fondo blanco
-        doc.setFillColor(...WHITE);
-        doc.rect(ML+CW*0.55, y, 12, 7, 'FD');
-        doc.rect(ML+CW*0.55+12, y, 12, 7, 'FD');
-        doc.rect(ML+CW*0.55+24, y, 12, 7, 'FD');
-        doc.rect(ML+CW*0.55+36, y, CW-CW*0.55-36, 7, 'FD');
-        doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-        doc.text('SAT.', ML+CW*0.55+6, y+4.5, {align:'center'});
-        doc.text('N.S.', ML+CW*0.55+18, y+4.5, {align:'center'});
-        doc.text('N.A.', ML+CW*0.55+30, y+4.5, {align:'center'});
-        doc.text('NOTAS / OBSERVACIONES', ML+CW*0.55+38, y+4.5);
+        doc.text(`${col.ref} ${col.label}`, ML+2, y+4.8);
+        doc.setFontSize(7);
+        doc.text('SAT.', ML+descW+colSW/2, y+4.8, {align:'center'});
+        doc.text('N.S.', ML+descW+colSW+colNsW/2, y+4.8, {align:'center'});
+        doc.text('N.A.', ML+descW+colSW+colNsW+colNaW/2, y+4.8, {align:'center'});
+        doc.text('NOTAS SI/NO OBSERVACIONES', ML+descW+colSW+colNsW+colNaW+2, y+4.8);
         y += 7;
 
-        // Para cada circuito/juego del criterio mostramos resultado global
-        // Calcular resultado global del criterio
-        let hayN=false, hayNA=true, allS=true;
-        circuitos.forEach(circ => {
-          (circ.juegos||[]).forEach(j => {
-            const v = j[col.key];
-            if (v==='N') hayN=true;
-            if (v!=='NA') hayNA=false;
-            if (v!=='S'&&v!=='NA') allS=false;
-          });
-        });
-        const vGlobal = hayN?'N':allS?'S':'NA';
+        // Fila contenido
+        doc.setFillColor(...WHITE);
+        doc.rect(ML, y, CW, rowHcol, 'FD');
+        doc.line(ML+descW, y, ML+descW, y+rowHcol);
+        doc.line(ML+descW+colSW, y, ML+descW+colSW, y+rowHcol);
+        doc.line(ML+descW+colSW+colNsW, y, ML+descW+colSW+colNsW, y+rowHcol);
+        doc.line(ML+descW+colSW+colNsW+colNaW, y, ML+descW+colSW+colNsW+colNaW, y+rowHcol);
 
-        const descLines = doc.splitTextToSize(col.desc, CW*0.55-4);
-        const rH2 = Math.max(10, descLines.length*4+4);
-        doc.setFillColor(...WHITE); doc.rect(ML, y, CW, rH2, 'FD');
         doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-        doc.text(descLines, ML+2, y+4);
-        let mx2 = ML+CW*0.55;
-        ['S','N','NA'].forEach(val => {
-          doc.rect(mx2, y, 12, rH2, 'D');
-          if (vGlobal===val) {
-            doc.setFontSize(10); doc.setFont('helvetica','bold');
-            if(val==='N'){doc.setTextColor(...RED);}else{doc.setTextColor(0,0,0);}
-            doc.text('X', mx2+6, y+rH2/2+2, {align:'center'});
-          }
-          mx2 += 12;
-        });
-        // Notas: mostrar NCs de este criterio
-        const ncsDelCriterio = (D.ncs||[]).filter(n => n.autoId && n.autoId.includes('_'+col.key));
-        doc.rect(mx2, y, CW-CW*0.55-36, rH2, 'D');
-        if (ncsDelCriterio.length) {
-          doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
-          const notaStr = ncsDelCriterio.map((n,i)=>`${i+1}.- ${n.elem||''}`).join(' ');
-          doc.text(notaStr, mx2+2, y+4, {maxWidth:CW-CW*0.55-38});
+        descLinesCol.forEach((l,i) => doc.text(l, ML+2, y+5+i*4.5));
+
+        // X negra
+        doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+        if (vGlobal==='S') doc.text('X', ML+descW+colSW/2, y+rowHcol/2+2, {align:'center'});
+        else if (vGlobal==='N') doc.text('X', ML+descW+colSW+colNsW/2, y+rowHcol/2+2, {align:'center'});
+        else if (vGlobal==='NA') doc.text('X', ML+descW+colSW+colNsW+colNaW/2, y+rowHcol/2+2, {align:'center'});
+
+        // Notas
+        if (notaCol) {
+          doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+          doc.text(notaCol, ML+descW+colSW+colNsW+colNaW+2, y+5, {maxWidth:notasW-3});
         }
-        doc.setFontSize(7); doc.setTextColor(...MUTED); doc.setFont('helvetica','normal');
-        doc.text('Sat.: Satisfactorio; N.S.: no satisfactorio; N.A.: no aplica', ML, y+rH2+2);
-        y += rH2 + 5;
+        y += rowHcol;
+
+        doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
+        doc.text('Sat. : Satisfactorio; N. S.: no satisfactorio; N.A.: no aplica', ML, y+3.5);
+        y += 7;
       }
 
 
@@ -1143,18 +1165,18 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           y = addTextBlock(doc, nc.norma||'', ML+4, y, CW-4, 8, MUTED, 'italic', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
           y += 3;
 
-          // Banner gravedad
+          // Banner gravedad — fondo color NC completo (como en informes reales)
           if (y + 10 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
           const bannerW = CW*0.65;
-          doc.setFillColor(...ncBg);
-          doc.setDrawColor(...ncColor); doc.setLineWidth(0.5);
+          // Lado izquierdo: fondo ncBg, texto color NC
+          doc.setFillColor(...ncBg); doc.setDrawColor(...ncColor); doc.setLineWidth(0.5);
           doc.rect(ML, y, bannerW, 9, 'FD');
           doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...ncColor);
           doc.text(textNC(nc.prio), ML+2, y+5.5, {maxWidth:bannerW-4});
-          // Prioridad
-          doc.setFillColor(...ncColor);
-          doc.rect(ML+bannerW, y, CW-bannerW, 9, 'F');
-          doc.setFontSize(9); doc.setTextColor(...WHITE);
+          // Lado derecho: fondo ncColor (color sólido), texto blanco
+          doc.setFillColor(...ncColor); doc.setDrawColor(...ncColor);
+          doc.rect(ML+bannerW, y, CW-bannerW, 9, 'FD');
+          doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
           doc.text('Prioridad: ' + nc.prio, ML+bannerW+2, y+5.5);
           y += 12;
 
@@ -1524,33 +1546,61 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('General', PW/2, y+4.5, {align:'center'}); y += 7;
 
-      // Tabla checklist en 2 columnas como en el paper
-      const half = CW/2 - 2;
-      let col1 = [], col2 = [];
-      GEN_ITEMS_PDF.forEach((item, i) => { if(i%2===0) col1.push(item); else col2.push(item); });
-      const maxRows = Math.max(col1.length, col2.length);
-      for (let r=0; r<maxRows; r++) {
-        const it1 = col1[r], it2 = col2[r];
-        const rH3 = 18;
-        for (const [it, xOff] of [[it1,0],[it2,half+4]]) {
+      // Checklist registro: formato 2 columnas lado a lado (como en paper real)
+      // Columna izq: items pares; columna derecha: items impares
+      // Cada celda: ref+sec arriba, descripcion, valor S/NA/N a la derecha
+      const half = (CW - 4) / 2;
+      const regItems = [...GEN_ITEMS_PDF];
+      // Agrupar en pares para mostrar 2 por fila
+      // Items especiales: 4.3.3 Arboles y 4.3.3 Artificiales van juntos en una fila
+      const rFilas = [];
+      let i2 = 0;
+      while (i2 < regItems.length) {
+        if (i2 + 1 < regItems.length) {
+          rFilas.push([regItems[i2], regItems[i2+1]]);
+          i2 += 2;
+        } else {
+          rFilas.push([regItems[i2], null]);
+          i2++;
+        }
+      }
+
+      for (const fila of rFilas) {
+        const rH3 = 20;
+        if (y + rH3 > PH-15) {
+          addPieReg();
+          doc.addPage(); nPag2[0]++;
+          addCabReg(nPag2[0], totPag2[0]);
+          y = 18;
+        }
+        for (let ci = 0; ci < 2; ci++) {
+          const it = fila[ci];
           if (!it) continue;
+          const xOff = ci === 0 ? 0 : half + 4;
           const v = (D.checklist||{})[it.id]||'';
           const obs = (D.checklistObs||{})[it.id]||'';
-          doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
-          doc.rect(ML+xOff, y, half, rH3, 'D');
+
+          doc.setFillColor(...WHITE); doc.setDrawColor(...DARK); doc.setLineWidth(0.15);
+          doc.rect(ML+xOff, y, half, rH3, 'FD');
+
+          // Texto ref+sec
           doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-          doc.text(`${it.ref} ${it.sec}`, ML+xOff+2, y+4);
-          doc.setFont('helvetica','normal'); doc.setFontSize(7);
-          const descL = doc.splitTextToSize(it.desc, half-16);
-          descL.forEach((l,i2) => doc.text(l, ML+xOff+2, y+8+i2*3.5));
-          // S N NA
-          const svw = 10;
-          doc.setFont('helvetica','bold'); doc.setFontSize(9);
-          if(v==='S'){doc.setTextColor(...GREEN_C);}else if(v==='N'){doc.setTextColor(...RED);}else{doc.setTextColor(...MUTED);}
-          doc.text(v||'', ML+xOff+half-svw+2, y+rH3/2+2);
+          doc.text(`${it.ref} ${it.sec}`, ML+xOff+2, y+4.5, {maxWidth: half-14});
+
+          // Descripción
+          doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
+          const descL = doc.splitTextToSize(it.desc, half-14);
+          descL.forEach((l,li) => doc.text(l, ML+xOff+2, y+9+li*3.2));
+
+          // Valor S/N/NA — negro siempre, esquina derecha
+          if (v) {
+            doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+            doc.text(v, ML+xOff+half-8, y+rH3/2+2);
+          }
+          // Obs si hay NC
           if (obs && v==='N') {
-            doc.setFontSize(6.5); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
-            doc.text(`(${obs})`, ML+xOff+2, y+rH3-3, {maxWidth:half-svw-4});
+            doc.setFontSize(6); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
+            doc.text(obs, ML+xOff+2, y+rH3-3, {maxWidth:half-14});
           }
         }
         y += rH3;
