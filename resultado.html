@@ -906,7 +906,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           doc.rect(mx, y, 12, rH, 'D');
           if (v===val) {
             doc.setFontSize(10); doc.setFont('helvetica','bold');
-            doc.setTextColor(v==='S'?0:...RED);
+            if(v==='S'){doc.setTextColor(0,0,0);}else{doc.setTextColor(...RED);}
             doc.text('X', mx+6, y+rH/2+2, {align:'center'});
           }
           mx += 12;
