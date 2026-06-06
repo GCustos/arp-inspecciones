@@ -23,7 +23,7 @@
     .res-titulo{color:white;font-size:22px;font-weight:700;margin-bottom:4px}
     .res-ref{color:rgba(255,255,255,0.5);font-size:12px;font-family:monospace}
     .res-instalacion{color:rgba(255,255,255,0.8);font-size:14px;margin-top:8px}
-    .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
     .stat-box{background:white;border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
     .stat-num{font-size:28px;font-weight:700;color:var(--gold)}
     .stat-label{font-size:11px;color:var(--muted);margin-top:2px}
@@ -212,6 +212,9 @@
     const totalJuegos = (D.circuitos || []).reduce((s,c) => s + (c.juegos||[]).length, 0);
     const juegosOk = (D.circuitos || []).reduce((s,c) =>
       s + (c.juegos||[]).filter(j => ['ie','af','ej','ra','zs'].every(k => j[k]==='S'||j[k]==='NA')).length, 0);
+    const juegosNC = (D.circuitos || []).reduce((s,c) =>
+      s + (c.juegos||[]).filter(j => ['ie','af','ej','ra','zs'].some(k => j[k]==='N')).length, 0);
+    const ncsGenerales = (D.ncs || []).filter(n => n.prio && n.prio !== 'OBSERVACION' && n.autoId && n.autoId.startsWith('g')).length;
 
     document.getElementById('hdrTitulo').textContent = D.nombreInstalacion || 'Resultado';
 
@@ -245,9 +248,10 @@
       </div>
 
       <div class="stats-grid">
-        <div class="stat-box"><div class="stat-num">${totalJuegos}</div><div class="stat-label">Juegos</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${juegosOk}</div><div class="stat-label">Conformes</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:${ncs.length?'var(--red)':'var(--green)'}">${ncs.length}</div><div class="stat-label">No Conform.</div></div>
+        <div class="stat-box"><div class="stat-num">${totalJuegos}</div><div class="stat-label">Nº Juegos</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${juegosOk}</div><div class="stat-label">Juegos Conformes</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:${juegosNC?'var(--red)':'var(--green)'}">${juegosNC}</div><div class="stat-label">Juegos NC</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:${ncsGenerales?'var(--red)':'var(--green)'}">${ncsGenerales}</div><div class="stat-label">NC Generales</div></div>
       </div>
 
       <div class="card">
