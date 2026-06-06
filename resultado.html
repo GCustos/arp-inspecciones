@@ -311,7 +311,8 @@
   }
 
   // Cabecera de página (desde p.3 en adelante)
-  function addCabecera(doc, pg, tot, ref, fmtRev, fmtFecha) {
+  // showSNNA=true solo en páginas de checklist
+  function addCabecera(doc, pg, tot, ref, fmtRev, fmtFecha, showSNNA) {
     doc.setDrawColor(...GOLD);
     doc.setLineWidth(0.3);
     doc.line(ML, 10, PW-MR, 10);
@@ -322,9 +323,11 @@
     doc.text(`Rev. ${fmtRev||9}   Fecha: ${fmtFecha||'26/02/2026'}`, PW-MR, 8, {align:'right'});
     // Pie
     doc.line(ML, PH-10, PW-MR, PH-10);
-    doc.setFontSize(7); doc.setTextColor(...MUTED);
+    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
     const refStr = ref || '';
-    doc.text('S.: Satisfactorio; N.S.: no satisfactorio; N.A.: no aplica', ML, PH-7);
+    if (showSNNA) {
+      doc.text('S.: Satisfactorio; N.S.: no satisfactorio; N.A.: no aplica', ML, PH-7);
+    }
     doc.setTextColor(...GOLD); doc.setFont('helvetica','bold');
     doc.text(refStr, PW/2, PH-7, {align:'center'});
     doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
@@ -589,13 +592,9 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
 
       // ═══ PÁGINA 1: PORTADA ═══
       nPag[0]++;
-      let y = 25;
+      let y = 20;
 
-      // Líneas decorativas gold
-      doc.setDrawColor(...GOLD); doc.setLineWidth(0.8);
-      doc.line(ML, y, PW-MR, y); y += 2;
-
-      // Título
+      // Título (primero el texto, luego la línea debajo)
       doc.setFontSize(28); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
       const titulo1 = 'Inspección de Parque';
       const titulo2 = 'Acrobático en Altura según';
@@ -606,6 +605,10 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
         y += 12;
       });
       y += 4;
+
+      // Línea decorativa gold BAJO el título
+      doc.setDrawColor(...GOLD); doc.setLineWidth(0.8);
+      doc.line(ML, y, PW-MR, y); y += 2;
 
       doc.setDrawColor(...GOLD); doc.setLineWidth(0.5);
       doc.line(ML, y, PW-MR, y); y += 10;
@@ -627,22 +630,22 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.text(ref, PW-MR, y, {align:'right'}); y += 2;
       doc.line(ML, y, PW-MR, y); y += 8;
 
-      // Sesiones
+      // Sesiones — alineadas a la derecha como en el real
       doc.setFontSize(10); doc.setFont('helvetica','italic'); doc.setTextColor(...DARK);
       const sesLines = getSesionesStr().split('\n');
-      sesLines.forEach(s => { doc.text(s, PW/2, y, {align:'center'}); y += 6; });
+      sesLines.forEach(s => { doc.text(s, PW-MR, y, {align:'right'}); y += 6; });
       y += 2;
       doc.line(ML, y, PW-MR, y); y += 8;
 
-      // Logo centrado
-      const logoY = PH - 70;
+      // Logo derecha (izquierda reservada para ENAC)
+      const logoY = PH - 75;
       try {
-        doc.addImage('data:image/jpeg;base64,' + LOGO_B64, 'JPEG', PW/2 - 25, logoY, 50, 35);
+        doc.addImage('data:image/jpeg;base64,' + LOGO_B64, 'JPEG', PW-MR-45, logoY, 43, 30);
       } catch(e) { console.warn('Logo error:', e.message); }
 
       // Referencia itálica debajo del logo
       doc.setFontSize(9); doc.setFont('helvetica','italic'); doc.setTextColor(...GOLD);
-      doc.text(ref, PW/2, logoY + 40, {align:'center'});
+      doc.text(ref, PW-MR, logoY + 35, {align:'right'});
 
       // Pie portada
       addPiePagina(doc);
@@ -683,11 +686,6 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
         y += 7;
       });
 
-      // Nombre empresa + página
-      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
-      doc.text(CONFIG?.empresa?.nombreCorto||'Arp Prevención S.L.', ML, PH-3);
-      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
 
       // ═══ PÁGINA 3: DATOS ═══
       doc.addPage(); nPag[0]++;
@@ -710,16 +708,16 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       y += 18;
 
       // Caja Propietario
-      const cajaH = 28;
+      const cajaH = 36;
       doc.setDrawColor(...DARK); doc.setLineWidth(0.3);
       doc.rect(ML, y, CW, cajaH);
       doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('PROPIETARIO DE LAS INSTALACIONES', ML+3, y+6);
       doc.setFont('helvetica','bold'); doc.setFontSize(10);
-      doc.text(D.propietario||D.nombreInstalacion||'', PW-MR-3, y+12, {align:'right'});
+      doc.text(D.propietario||D.nombreInstalacion||'', PW-MR-3, y+14, {align:'right'});
       doc.setFont('helvetica','normal'); doc.setFontSize(9);
-      doc.text(D.nombreInstalacion||'', PW-MR-3, y+18, {align:'right'});
-      if (D.cif) doc.text(D.cif, PW-MR-3, y+23, {align:'right'});
+      doc.text(D.nombreInstalacion||'', PW-MR-3, y+20, {align:'right'});
+      if (D.cif) doc.text(D.cif, PW-MR-3, y+26, {align:'right'});
       doc.setFont('helvetica','bold');
       doc.text('GESTOR DE LAS INSTALACIONES:', ML+3, y+cajaH-4);
       doc.setFont('helvetica','normal');
@@ -751,10 +749,6 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.text('Teléfono: ' + c.telefono, PW-MR-3, y+31, {align:'right'});
       doc.text('E-mail: ' + c.email, PW-MR-3, y+36, {align:'right'});
 
-      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
-      doc.text(c.nombreCorto, ML, PH-3);
-      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
 
       // ═══ PÁGINAS 4-5: METODOLOGÍA ═══
       doc.addPage(); nPag[0]++;
@@ -773,10 +767,6 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.text('II. Material utilizado', ML, y); y += 6;
       y = addTextBlock(doc, TEXTO_METODOLOGIA_2, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
 
-      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
-      doc.text(c.nombreCorto, ML, PH-3);
-      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
 
       // ═══ MANTENIMIENTO ═══
       doc.addPage(); nPag[0]++;
@@ -798,10 +788,6 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
         y += 6;
       }
 
-      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
-      doc.text(c.nombreCorto, ML, PH-3);
-      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
 
       // ═══ RESULTADOS ═══
       doc.addPage(); nPag[0]++;
@@ -835,10 +821,6 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
         y += 8;
       });
 
-      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
-      doc.text(c.nombreCorto, ML, PH-3);
-      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
 
       // ═══ DESCRIPCIÓN DEL RECORRIDO ═══
       doc.addPage(); nPag[0]++;
@@ -916,14 +898,10 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         doc.text(ref, PW/2, y, {align:'center'}); y += 8;
       }
 
-      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
-      doc.text(c.nombreCorto, ML, PH-3);
-      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
 
       // ═══ INSPECCIÓN DE PARQUES — GENERAL ═══
       doc.addPage(); nPag[0]++;
-      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr, true);
       y = MT + 8;
 
       doc.setFillColor(...GOLD); doc.rect(ML, y-2, CW, 8, 'F');
@@ -942,17 +920,18 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         const v = (D.checklist||{})[item.id]||'';
         const obs = (D.checklistObs||{})[item.id]||'';
 
-        // Cabecera sección (gold claro)
+        // Cabecera sección
         doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
         doc.rect(ML, y, CW, 7, 'FD');
         doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
         doc.text(`${item.ref} ${item.sec}`, ML+2, y+4.5);
-        // SAT NS NA NA NOTAS headers
+        // SAT NS NA NOTAS headers — fondo blanco explícito
         let hx = ML + colW.desc;
         ['SAT.','N.S.','N.A.','NOTAS/OBSERVACIONES'].forEach((h,i) => {
           const w2 = i<3 ? 12 : colW.notas;
-          doc.rect(hx, y, w2, 7, 'FD');
-          doc.setFontSize(7); doc.text(h, hx+w2/2, y+4.5, {align:'center'});
+          doc.setFillColor(...WHITE); doc.rect(hx, y, w2, 7, 'FD');
+          doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+          doc.text(h, hx+w2/2, y+4.5, {align:'center'});
           hx += w2;
         });
         y += 7;
@@ -999,14 +978,10 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         doc.text(obsLines, ML+2, y+4); y += obsH + 4;
       }
 
-      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
-      doc.text(c.nombreCorto, ML, PH-3);
-      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
 
       // ═══ INSPECCIÓN — CIRCUITOS Y JUEGOS ═══
       doc.addPage(); nPag[0]++;
-      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+      addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr, true);
       y = MT + 8;
 
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
@@ -1018,14 +993,20 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
 
         // Cabecera criterio
         doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
-        doc.rect(ML, y, CW, 7, 'FD');
+        doc.rect(ML, y, CW*0.55, 7, 'FD');
         doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
         doc.text(`${col.ref} ${col.label}`, ML+2, y+4.5);
-        doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-        doc.text('SAT.', ML+CW*0.55, y+4.5, {align:'center'});
-        doc.text('N.S.', ML+CW*0.55+12, y+4.5, {align:'center'});
-        doc.text('N.A.', ML+CW*0.55+24, y+4.5, {align:'center'});
-        doc.text('NOTAS/OBSERVACIONES', ML+CW*0.55+36+2, y+4.5);
+        // Cabeceras S/NS/NA/NOTAS con fondo blanco
+        doc.setFillColor(...WHITE);
+        doc.rect(ML+CW*0.55, y, 12, 7, 'FD');
+        doc.rect(ML+CW*0.55+12, y, 12, 7, 'FD');
+        doc.rect(ML+CW*0.55+24, y, 12, 7, 'FD');
+        doc.rect(ML+CW*0.55+36, y, CW-CW*0.55-36, 7, 'FD');
+        doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+        doc.text('SAT.', ML+CW*0.55+6, y+4.5, {align:'center'});
+        doc.text('N.S.', ML+CW*0.55+18, y+4.5, {align:'center'});
+        doc.text('N.A.', ML+CW*0.55+30, y+4.5, {align:'center'});
+        doc.text('NOTAS / OBSERVACIONES', ML+CW*0.55+38, y+4.5);
         y += 7;
 
         // Para cada circuito/juego del criterio mostramos resultado global
@@ -1069,10 +1050,6 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         y += rH2 + 5;
       }
 
-      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
-      doc.text(c.nombreCorto, ML, PH-3);
-      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
 
       // ═══ ANEXOS ═══
       doc.addPage(); nPag[0]++;
@@ -1097,10 +1074,6 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       const ensayosStr = D.ensayos || 'No se realiza ensayo de inercia.';
       doc.text('— ' + ensayosStr, ML+4, y); y += 6;
 
-      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
-      doc.text(c.nombreCorto, ML, PH-3);
-      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
 
       // ═══ LISTADO DE OBSERVACIONES ═══
       const ncsInforme = (D.ncs||[]).filter(n => n.prio !== 'OBSERVACION');
@@ -1227,10 +1200,6 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(...GOLD);
           doc.text(ref, PW/2, y, {align:'center'}); y += 8;
 
-          doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
-          doc.text(c.nombreCorto, ML, PH-3);
-          doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-          doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
         }
       }
 
@@ -1276,16 +1245,12 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.text('Inspector', ML+30, y);
       doc.text('Revisor', PW-MR-30, y, {align:'right'});
 
-      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
-      doc.text(c.nombreCorto, ML, PH-3);
-      doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text(`Página ${nPag[0]} de ${totPag[0]}`, PW-MR, PH-3, {align:'right'});
 
       // Actualizar total páginas en todas las páginas no es posible con jsPDF básico
       // El total es aproximado — en producción se haría en 2 pasadas
 
       // Guardar
-      const fileName = (ref.replace(/\//g,'_') || 'informe') + '_Rev' + (D.revision||0) + '.pdf';
+      const fileName = (ref.replace(/\//g,'_').replace(/\s/g,'_') || 'informe') + '.pdf';
       doc.save(fileName);
 
       // Guardar snapshot JSON
@@ -1444,16 +1409,16 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
 
       // Inspector
       doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text('INSPECTOR', ML, y); y += 4;
+      doc.text('INSPECTOR', ML, y); y += 5;
       doc.setDrawColor(...DARK); doc.rect(ML, y, CW, 8, 'D');
       doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      doc.text(D.inspectorNombre||'', ML+2, y+5.5); y += 9;
+      doc.text(D.inspectorNombre||'', ML+2, y+5.5); y += 10;
 
       // Fecha + hora
       doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
       doc.text('FECHA DE INSPECCION', ML, y);
       doc.text('Hora de inicio', ML+CW*0.65, y);
-      doc.text('Hora fin', ML+CW*0.82, y); y += 4;
+      doc.text('Hora fin', ML+CW*0.82, y); y += 5;
 
       const sesiones = D.sesiones && D.sesiones.length ? D.sesiones : [{fecha:D.fechaInspeccion||'',horaInicio:D.horaInicio||'',horaFin:D.horaFin||''}];
       sesiones.forEach(s => {
@@ -1464,19 +1429,19 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
         doc.text(fmtFecha(s.fecha||''), ML+2, y+5.5);
         doc.text(s.horaInicio||'', ML+CW*0.65+2, y+5.5);
         doc.text(s.horaFin||'', ML+CW*0.82+2, y+5.5);
-        y += 9;
+        y += 10;
       });
 
       // Lugar
       doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text('LUGAR DE INSPECCION', ML, y); y += 4;
+      doc.text('LUGAR DE INSPECCION', ML, y); y += 5;
       doc.rect(ML, y, CW, 8, 'D');
       doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      doc.text(D.nombreInstalacion||'', ML+2, y+5.5); y += 9;
+      doc.text(D.nombreInstalacion||'', ML+2, y+5.5); y += 10;
 
       // Actividad
       doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text('ACTIVIDAD/JUEGO/INSTALACION', ML, y); y += 4;
+      doc.text('ACTIVIDAD/JUEGO/INSTALACION', ML, y); y += 5;
       doc.rect(ML, y, CW, 8, 'D');
       doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
       doc.text('PAA', ML+2, y+5.5); y += 12;
@@ -1614,15 +1579,16 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.rect(ML, y, cw0, 10, 'FD');
       doc.rect(ML+cw0, y, cw1, 10, 'FD');
       ['Integridad\nestructural','Anclajes y\nfijaciones','Elementos de\njuego/Progresión','Riesgos y\natrapamientos','Zona de\nseguridad/\nEntorno'].forEach((h2,hi) => {
+        doc.setFillColor(...SURF);
         doc.rect(ML+cw0+cw1+hi*cw2, y, cw2, 10, 'FD');
         doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
         const hl = h2.split('\n');
         hl.forEach((l2,li) => doc.text(l2, ML+cw0+cw1+hi*cw2+cw2/2, y+3+li*3, {align:'center'}));
       });
+      doc.setFillColor(...SURF);
       doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 10, 'FD');
-      doc.setFontSize(7); doc.setFont('helvetica','bold');
+      doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('Obser-\nvaciones', ML+cw0+cw1+5*cw2+2, y+4);
-      doc.setFontSize(7); doc.setFont('helvetica','bold');
       doc.text('Circuitos', ML+2, y+5);
       doc.text('Juegos', ML+cw0+2, y+5);
       y += 10;
@@ -1633,7 +1599,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
         let circWritten = false;
         for (const j of (circ.juegos||[])) {
           if (y + 7 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; circWritten = false; }
-          doc.setDrawColor(...BORDER); doc.setLineWidth(0.1);
+          doc.setFillColor(...WHITE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.1);
           doc.rect(ML, y, cw0, 7, 'D');
           if (!circWritten) {
             doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
@@ -1644,12 +1610,14 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
           doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
           doc.text((j.tipo==='NR'?'*.':'') + (j.nombre||''), ML+cw0+1, y+4.5, {maxWidth:cw1-2});
           KEYS.forEach((k,ki) => {
+            doc.setFillColor(...WHITE);
             doc.rect(ML+cw0+cw1+ki*cw2, y, cw2, 7, 'D');
             const v2 = j[k]||'';
             doc.setFontSize(10); doc.setFont('helvetica','bold');
             if(v2==='S'){doc.setTextColor(...GREEN_C);}else if(v2==='N'){doc.setTextColor(...RED);}else{doc.setTextColor(...MUTED);}
             doc.text(v2, ML+cw0+cw1+ki*cw2+cw2/2, y+5, {align:'center'});
           });
+          doc.setFillColor(...WHITE);
           doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 7, 'D');
           if (j.obs) {
             doc.setFontSize(6.5); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
@@ -1661,7 +1629,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
 
       addPieReg();
 
-      const regFile = (ref.replace(/\//g,'_')||'registro') + '_REGISTRO.pdf';
+      const regFile = (ref.replace(/\//g,'_').replace(/\s/g,'_') || 'registro') + '_REGISTRO.pdf';
       doc.save(regFile);
       hideGenerating();
     } catch(e) {
