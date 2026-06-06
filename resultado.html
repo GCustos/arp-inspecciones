@@ -506,9 +506,68 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
     {key:"zs",label:"Zona de seguridad / Entorno",ref:"4.1",desc:"Comprobación de distancias libres, ausencia de obstáculos y condiciones de evacuación."},
   ];
 
+
+  // Helper: load image URL as base64 for jsPDF
+  function loadImageAsBase64(url) {
+    return new Promise((resolve) => {
+      if (!url || url.startsWith('data:')) { resolve(url); return; }
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width; canvas.height = img.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
+
+  // Helper: preload all photos in inspection data
+  async function preloadFotos(data) {
+    // Fotos generales
+    const fotos = data.fotos || [];
+    for (let i = 0; i < fotos.length; i++) {
+      if (fotos[i].url && !fotos[i].url.startsWith('data:')) {
+        fotos[i].dataUrl = await loadImageAsBase64(fotos[i].url);
+      } else {
+        fotos[i].dataUrl = fotos[i].dataUrl || fotos[i].url;
+      }
+    }
+    // Fotos por juego
+    for (const circ of (data.circuitos || [])) {
+      for (const j of (circ.juegos || [])) {
+        for (let i = 0; i < (j.fotos || []).length; i++) {
+          const f = j.fotos[i];
+          if (f.url && !f.url.startsWith('data:')) {
+            j.fotos[i].dataUrl = await loadImageAsBase64(f.url);
+          } else {
+            j.fotos[i].dataUrl = f.dataUrl || f.url;
+          }
+        }
+      }
+    }
+    // Fotos NCs
+    for (const nc of (data.ncs || [])) {
+      for (const arr of [nc.fotosDefecto || [], nc.fotosCorreccion || []]) {
+        for (let i = 0; i < arr.length; i++) {
+          const f = arr[i];
+          if (f.url && !f.url.startsWith('data:')) {
+            arr[i].dataUrl = await loadImageAsBase64(f.url);
+          } else {
+            arr[i].dataUrl = f.dataUrl || f.url;
+          }
+        }
+      }
+    }
+  }
+
   async function generarInforme() {
     if (!D) return;
     const { jsPDF } = window.jspdf;
+    showGenerating('Generando Informe PDF...', 'Cargando fotos...');
+    await preloadFotos(D);
     showGenerating('Generando Informe PDF...', 'Preparando páginas');
     await new Promise(r => setTimeout(r, 100));
     try {
@@ -574,7 +633,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       // Logo centrado
       const logoY = PH - 70;
       try {
-        doc.addImage('data:image/png;base64,' + LOGO_B64, 'PNG', PW/2 - 25, logoY, 50, 35);
+        doc.addImage('data:image/jpeg;base64,' + LOGO_B64, 'JPEG', PW/2 - 25, logoY, 50, 35);
       } catch(e) { console.warn('Logo error:', e.message); }
 
       // Referencia itálica debajo del logo
@@ -636,7 +695,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.rect(ML, y-5, CW, 14, 'F');
       doc.setDrawColor(...DARK); doc.setLineWidth(0.3);
       doc.rect(ML, y-5, CW, 14);
-      try { doc.addImage('data:image/png;base64,'+LOGO_B64,'PNG', ML+2, y-4, 16, 11); } catch(e){}
+      try { doc.addImage('data:image/jpeg;base64,'+LOGO_B64,'JPEG', ML+2, y-4, 16, 11); } catch(e){}
       doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('INFORME DE INSPECCIÓN', ML+22, y+2);
       doc.setFontSize(10); doc.setFont('helvetica','normal');
@@ -1205,7 +1264,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.text('Inspector Autorizado', PW/2, y, {align:'center'}); y += 12;
 
       // Logo ARP + firma
-      try { doc.addImage('data:image/png;base64,'+LOGO_B64,'PNG', PW/2-20, y, 40, 28); } catch(e){}
+      try { doc.addImage('data:image/jpeg;base64,'+LOGO_B64,'JPEG', PW/2-20, y, 40, 28); } catch(e){}
       y += 32;
 
       // Pie firma
@@ -1302,7 +1361,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.text('FIRMA DIGITAL', PW-MR, y, {align:'right'}); y += 15;
 
       // Logo ARP esquina inferior derecha
-      try { doc.addImage('data:image/png;base64,'+LOGO_B64,'PNG', PW-MR-40, PH-55, 38, 27); } catch(e){}
+      try { doc.addImage('data:image/jpeg;base64,'+LOGO_B64,'JPEG', PW-MR-40, PH-55, 38, 27); } catch(e){}
 
       // Fechas vigor
       doc.setFontSize(9); doc.setFont('helvetica','italic'); doc.setTextColor(...DARK);
@@ -1339,6 +1398,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
     showGenerating('Generando Registro ENAC...', '');
     await new Promise(r => setTimeout(r, 100));
     try {
+      const circuitos = D.circuitos || [];
       const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
       const ref = getNRegistro();
       const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
