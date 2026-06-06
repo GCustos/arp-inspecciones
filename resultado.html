@@ -1222,7 +1222,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       // El total es aproximado — en producción se haría en 2 pasadas
 
       // Guardar
-      const fileName = (ref.replace(/\/g,'_') || 'informe') + '_Rev' + (D.revision||0) + '.pdf';
+      const fileName = (ref.replace(/\//g,'_') || 'informe') + '_Rev' + (D.revision||0) + '.pdf';
       doc.save(fileName);
 
       // Guardar snapshot JSON
@@ -1320,7 +1320,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.setFont('helvetica','normal');
 
       // Guarda
-      const certFile = (ref.replace(/\/g,'_')||'certificado') + '_CERT_Rev' + (D.revision||0) + '.pdf';
+      const certFile = (ref.replace(/\//g,'_')||'certificado') + '_CERT_Rev' + (D.revision||0) + '.pdf';
       doc.save(certFile);
       hideGenerating();
     } catch(e) {
@@ -1604,7 +1604,7 @@ vaciones', ML+cw0+cw1+5*cw2+2, y+4);
 
       addPieReg();
 
-      const regFile = (ref.replace(/\/g,'_')||'registro') + '_REGISTRO.pdf';
+      const regFile = (ref.replace(/\//g,'_')||'registro') + '_REGISTRO.pdf';
       doc.save(regFile);
       hideGenerating();
     } catch(e) {
