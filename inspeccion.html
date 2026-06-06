@@ -1128,6 +1128,18 @@
         fechaCompletada:firebase.firestore.FieldValue.serverTimestamp()
       });
       isDirty=false;
+      // Guardar snapshot en localStorage antes de redirigir (triple backup)
+      try {
+        localStorage.setItem('insp_'+inspeccionId, JSON.stringify({
+          id:inspeccionId, resultado, estado:'completada',
+          checklist:S.gen, checklistObs:S.genObs,
+          obsGral:document.getElementById('obsGral').value||'',
+          circuitos:S.circuitos, ncs:S.ncs, fotos:S.fotos,
+          ensayos:document.getElementById('ensayos').value||'',
+          nombreInstalacion:document.getElementById('hdrTitulo').textContent,
+          inspectorNombre:document.getElementById('hdrSub').textContent.split(' · ')[2]||''
+        }));
+      } catch(le) { console.warn('localStorage save failed:', le.message); }
       location.href="resultado.html?id="+inspeccionId;
     } catch(e){ alert("Error al completar: "+e.message); }
   }
