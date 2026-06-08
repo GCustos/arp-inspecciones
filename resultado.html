@@ -591,14 +591,13 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       const fmtFechaStr = D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '26/02/2026';
 
       // Calcular total páginas aproximado
-      // Portada(1) + Indice(1) + Datos(1) + Metod(1) + Mant(2) + Result(1) + Desc(nFotoPages) + General(1) + Circ(1) + Anexos(1) + NCs + Caract(1)
+      // Portada(1)+Índice(1)+Datos(1)+Metod(1)+Mant(2)+Result(1)+Desc(nFotoPages)+General(1)+Circ(1)+Anexos(1)+NCs+Caract(1) = 11 fijas
       const ncsCount = (D.ncs||[]).length;
-      const nCircuitos = (D.circuitos||[]).length;
       const nJuegos = (D.circuitos||[]).reduce((s,c)=>s+(c.juegos||[]).length,0);
       const nFotoPages = Math.ceil(nJuegos / 9) || 1;
-      const ncPages = ncsCount > 0 ? 1 + Math.ceil(ncsCount * 1.5) : 0;
-      const estPags = 10 + nFotoPages + ncPages;
-      const totPag = [Math.max(estPags, 10)];
+      const ncPages = ncsCount > 0 ? 1 + Math.ceil(ncsCount * 1.2) : 0;
+      const estPags = 11 + nFotoPages + ncPages;
+      const totPag = [Math.max(estPags, 12)];
       const nPag = [0];
 
       // ═══ PÁGINA 1: PORTADA ═══
@@ -938,7 +937,9 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           : prioFila === 'DOCUMENTAL'? [227,242,253]
           : WHITE;
 
-        const descLines = doc.splitTextToSize(item.desc, descW - 4);
+        // CRÍTICO: setFont antes de splitTextToSize para que el cálculo sea correcto
+        doc.setFontSize(8); doc.setFont('helvetica','normal');
+        const descLines = doc.splitTextToSize(item.desc, descW - 5);
         const obsLines = obs ? doc.splitTextToSize(obs, notasW - 3) : [];
         const rowH2 = Math.max(14, Math.max(descLines.length, obsLines.length) * 4.5 + 6);
 
@@ -1040,7 +1041,9 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           : prioCol === 'DOCUMENTAL' ? [227,242,253]
           : WHITE;
 
-        const descLinesCol = doc.splitTextToSize(col.desc, descW - 4);
+        // CRÍTICO: setFont antes de splitTextToSize
+        doc.setFontSize(8); doc.setFont('helvetica','normal');
+        const descLinesCol = doc.splitTextToSize(col.desc, descW - 5);
         const notaLinesCol = notaCol ? doc.splitTextToSize(notaCol, notasW - 3) : [];
         const rowHcol = Math.max(14, Math.max(descLinesCol.length, notaLinesCol.length) * 4.5 + 6);
 
@@ -1617,10 +1620,13 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
           const descL = doc.splitTextToSize(it.desc, half-14);
           descL.forEach((l,li) => doc.text(l, ML+xOff+2, y+9+li*3.2));
 
-          // Valor S/N/NA — negro siempre, esquina derecha
+          // Valor S/N/NA — color según resultado
           if (v) {
-            doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-            doc.text(v, ML+xOff+half-8, y+rH3/2+2);
+            doc.setFontSize(10); doc.setFont('helvetica','bold');
+            if (v === 'S')       doc.setTextColor(...GREEN_C);
+            else if (v === 'N')  doc.setTextColor(...RED);
+            else                 doc.setTextColor(...DARK);
+            doc.text(v === 'N' ? 'NS' : v, ML+xOff+half-10, y+rH3/2+2);
           }
           // Obs si hay NC
           if (obs && v==='N') {
