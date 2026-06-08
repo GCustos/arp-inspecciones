@@ -591,11 +591,12 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       const fmtFechaStr = D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '26/02/2026';
 
       // Calcular total páginas aproximado
-      // Portada(1)+Índice(1)+Datos(1)+Metod(1)+Mant(2)+Result(1)+Desc(nFotoPages)+General(1)+Circ(1)+Anexos(1)+NCs+Caract(1) = 11 fijas
+      // Fijas: Portada+Índice+Datos+Metod+Mant+Result+Desc+General+Circ+Anexos+Caract = 11
+      // Variables: fotos descripción extra (1 por cada 9 juegos adicionales) + páginas NCs
       const ncsCount = (D.ncs||[]).length;
       const nJuegos = (D.circuitos||[]).reduce((s,c)=>s+(c.juegos||[]).length,0);
-      const nFotoPages = Math.ceil(nJuegos / 9) || 1;
-      const ncPages = ncsCount > 0 ? 1 + Math.ceil(ncsCount * 1.2) : 0;
+      const nFotoPages = Math.max(0, Math.ceil(nJuegos / 9) - 1);
+      const ncPages = ncsCount > 0 ? 1 + Math.floor((ncsCount - 1) / 2) : 0;
       const estPags = 11 + nFotoPages + ncPages;
       const totPag = [Math.max(estPags, 12)];
       const nPag = [0];
@@ -1450,15 +1451,15 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       // Tabla datos generales
       doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.3);
       doc.rect(ML, y, CW, 8, 'FD');
-      doc.setFontSize(11); doc.setFont('helvetica','bold');
-      doc.text('DATOS GENERALES INSPECCION', ML+2, y+5.5); y += 8;
+      doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+      doc.text('DATOS GENERALES INSPECCION', ML+2, y+5.5); y += 11;
 
       // Inspector
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
       doc.text('INSPECTOR', ML, y); y += 4;
       doc.setDrawColor(...DARK); doc.rect(ML, y, CW, 8, 'D');
       doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      doc.text(D.inspectorNombre||'', ML+2, y+5.5); y += 11;
+      doc.text(D.inspectorNombre||'', ML+2, y+5.5); y += 12;
 
       // Fecha + hora
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
@@ -1476,7 +1477,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
         doc.text(fmtFecha(s.fecha||''), ML+2, y+5.5);
         doc.text(s.horaInicio||'', ML+CW*0.65+2, y+5.5);
         doc.text(s.horaFin||'', ML+CW*0.82+2, y+5.5);
-        y += 10;
+        y += 12;
       });
 
       // Lugar
@@ -1484,14 +1485,14 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.text('LUGAR DE INSPECCION', ML, y); y += 4;
       doc.setDrawColor(...DARK); doc.rect(ML, y, CW, 8, 'D');
       doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      doc.text(D.nombreInstalacion||'', ML+2, y+5.5); y += 11;
+      doc.text(D.nombreInstalacion||'', ML+2, y+5.5); y += 12;
 
       // Actividad
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
       doc.text('ACTIVIDAD/JUEGO/INSTALACION', ML, y); y += 4;
       doc.setDrawColor(...DARK); doc.rect(ML, y, CW, 8, 'D');
       doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      doc.text('PAA', ML+2, y+5.5); y += 12;
+      doc.text('PAA', ML+2, y+5.5); y += 14;
 
       // Normativa
       doc.setFillColor(...SURF); doc.rect(ML, y, CW, 7, 'FD');
