@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Test &amp; Setup - ARP</title>
+  <style>
+    :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;--blue:#2980B9;}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
+    .app-header{background:var(--dark);padding:14px 16px;display:flex;align-items:center;gap:12px}
+    .hdr-mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white}
+    .hdr-title{color:white;font-size:15px;font-weight:600;flex:1}
+    .hdr-badge{font-size:10px;font-weight:700;background:rgba(200,153,58,.25);color:var(--gold);padding:3px 8px;border-radius:8px}
+    .content{padding:16px;max-width:680px;margin:0 auto;padding-bottom:40px}
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+    .card-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .card-title::after{content:"";flex:1;height:1px;background:var(--border)}
+    .row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+    .row:last-child{border-bottom:none}
+    .row-label{color:var(--muted);font-size:11px;font-weight:600;min-width:110px}
+    .row-val{font-weight:500;color:var(--text);font-family:monospace;font-size:12px;text-align:right;word-break:break-all}
+    .pill{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px}
+    .pill-ok{background:#E8F5E9;color:var(--green)}
+    .pill-warn{background:#FFF8E1;color:#E65100}
+    .pill-err{background:#FFEBEE;color:var(--red)}
+    .f{margin-bottom:10px}
+    .f label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px}
+    .f input,.f select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text);background:var(--surf)}
+    .f input:focus,.f select:focus{outline:none;border-color:var(--gold)}
+    .btn{padding:10px 18px;border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+    .btn-gold{background:var(--gold);color:white;box-shadow:0 3px 8px rgba(200,153,58,.3)}
+    .btn-gold:hover{opacity:.9}
+    .btn-outline{background:white;color:var(--text);border:1.5px solid var(--border)}
+    .btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+    .btn-red{background:white;color:var(--red);border:1.5px solid var(--red)}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .log{background:#1A1A1A;color:#E8E8E8;border-radius:8px;padding:12px;font-family:monospace;font-size:11px;line-height:1.6;max-height:200px;overflow-y:auto;margin-top:10px;white-space:pre-wrap;word-break:break-word}
+    .log .ok{color:#66BB6A}
+    .log .err{color:#EF5350}
+    .log .info{color:#42A5F5}
+    .insp-list{margin-top:8px}
+    .insp-item{padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:12px;display:flex;gap:10px;align-items:center}
+    .insp-nom{flex:1;font-weight:600}
+    .insp-estado{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px}
+    .e-borrador{background:rgba(138,130,120,.1);color:var(--muted)}
+    .e-en_curso{background:rgba(230,126,34,.12);color:#E65100}
+    .e-completada{background:rgba(39,174,96,.12);color:var(--green)}
+    .step-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--gold);color:white;font-size:11px;font-weight:700;flex-shrink:0}
+    .step-txt{font-size:13px;color:var(--text);flex:1;line-height:1.4}
+    .step-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}
+    .spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="hdr-mark">ARP</div>
+  <div class="hdr-title">Diagnóstico &amp; Setup</div>
+  <span class="hdr-badge">TEST</span>
+</div>
+
+<div class="content">
+
+  <!-- SESIÓN ACTUAL -->
+  <div class="card">
+    <div class="card-title">Sesi&#243;n actual</div>
+    <div id="sesionInfo">
+      <div style="text-align:center;padding:10px"><span class="spinner"></span></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-outline" onclick="location.href='index.html'">&#8592; Inicio</button>
+      <button class="btn btn-red" id="btnLogout" onclick="cerrarSesion()" style="display:none">Cerrar sesi&#243;n</button>
+    </div>
+  </div>
+
+  <!-- INSPECCIONES VISIBLES -->
+  <div class="card">
+    <div class="card-title">Inspecciones visibles para este usuario</div>
+    <div id="inspListContainer">
+      <div style="text-align:center;padding:10px"><span class="spinner"></span></div>
+    </div>
+  </div>
+
+  <!-- SETUP INSPECTOR DE PRUEBA -->
+  <div class="card" id="setupCard" style="display:none">
+    <div class="card-title">Crear inspector de prueba en Firestore</div>
+
+    <div style="margin-bottom:14px">
+      <div class="step-row"><span class="step-num">1</span><span class="step-txt">Ve a <strong>Firebase Console &#8594; Authentication &#8594; Users &#8594; Add user</strong> y crea el usuario con email y contrase&#241;a.</span></div>
+      <div class="step-row"><span class="step-num">2</span><span class="step-txt">Rellena el formulario siguiente y pulsa <strong>Crear documento</strong>. Esto crea el documento en <code>usuarios/{email}</code> con el rol <em>inspector</em>.</span></div>
+      <div class="step-row"><span class="step-num">3</span><span class="step-txt">Inicia sesi&#243;n con la cuenta nueva en una pesta&#241;a de incognito y verifica que solo ve sus inspecciones.</span></div>
+    </div>
+
+    <div class="f">
+      <label>Email del inspector *</label>
+      <input type="email" id="newEmail" placeholder="inspector@ejemplo.com">
+    </div>
+    <div class="f">
+      <label>Nombre completo *</label>
+      <input type="text" id="newNombre" placeholder="Nombre Apellidos">
+    </div>
+    <div class="f">
+      <label>Nombre corto (iniciales)</label>
+      <input type="text" id="newNombreCorto" placeholder="NI" maxlength="4">
+    </div>
+    <div class="f">
+      <label>Rol</label>
+      <select id="newRol">
+        <option value="inspector">inspector</option>
+        <option value="director">director</option>
+        <option value="admin">admin</option>
+      </select>
+    </div>
+    <div class="f">
+      <label>Sede</label>
+      <select id="newSede">
+        <option value="SEVILLA">SEVILLA</option>
+        <option value="GRANADA">GRANADA</option>
+        <option value="MADRID">MADRID</option>
+        <option value="BARCELONA">BARCELONA</option>
+      </select>
+    </div>
+    <button class="btn btn-gold" onclick="crearInspector()" id="btnCrearInsp" style="width:100%;padding:12px;margin-top:4px">Crear documento en Firestore</button>
+    <div class="log" id="logSetup" style="display:none"></div>
+  </div>
+
+  <!-- VERIFICAR FILTRO -->
+  <div class="card">
+    <div class="card-title">Verificar filtro por inspector</div>
+    <div class="f">
+      <label>Simular como este email</label>
+      <input type="email" id="simEmail" placeholder="email@ejemplo.com">
+    </div>
+    <button class="btn btn-outline" onclick="simularFiltro()" style="width:100%;padding:10px">Simular &#8594;</button>
+    <div id="simResult" style="margin-top:10px;display:none"></div>
+  </div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain: "arp-inspecciones.firebaseapp.com",
+      projectId: "arp-inspecciones",
+      storageBucket: "arp-inspecciones.firebasestorage.app",
+      messagingSenderId: "35880168451",
+      appId: "1:35880168451:web:090e3c250b4416ed0b3236"
+    });
+  }
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+  db.enablePersistence({synchronizeTabs:true}).catch(function(){});
+
+  var currentUser = null;
+  var userRole = null;
+
+  auth.onAuthStateChanged(function(user) {
+    if (!user) {
+      document.getElementById('sesionInfo').innerHTML =
+        '<div style="color:var(--muted);font-size:13px">No hay sesión activa. <a href="index.html" style="color:var(--gold)">Iniciar sesión</a></div>';
+      document.getElementById('inspListContainer').innerHTML =
+        '<div style="color:var(--muted);font-size:13px">Sin sesión.</div>';
+      return;
+    }
+    currentUser = user;
+    document.getElementById('btnLogout').style.display = '';
+    db.collection('usuarios').doc(user.email).get().then(function(snap) {
+      var data = snap.exists ? snap.data() : {};
+      userRole = data.rol || 'inspector';
+      renderSesion(user, data);
+      cargarInspecciones(user, userRole);
+      if (data.rol === 'admin' || data.rol === 'director') {
+        document.getElementById('setupCard').style.display = 'block';
+      }
+    }).catch(function(e) {
+      renderSesion(user, {});
+      cargarInspecciones(user, 'inspector');
+    });
+  });
+
+  function pill(txt, cls) {
+    return '<span class="pill pill-' + cls + '">' + txt + '</span>';
+  }
+
+  function renderSesion(user, data) {
+    var equips = (data.equiposAsignados || []).join(', ') || '—';
+    var rolCls = data.rol === 'admin' ? 'ok' : data.rol === 'director' ? 'warn' : 'ok';
+    document.getElementById('sesionInfo').innerHTML =
+      '<div class="row"><span class="row-label">Email</span><span class="row-val">' + user.email + '</span></div>' +
+      '<div class="row"><span class="row-label">Rol</span><span class="row-val">' + pill(data.rol || '?', rolCls) + '</span></div>' +
+      '<div class="row"><span class="row-label">Nombre</span><span class="row-val">' + (data.nombre || '—') + '</span></div>' +
+      '<div class="row"><span class="row-label">Sede</span><span class="row-val">' + (data.sede || '—') + '</span></div>' +
+      '<div class="row"><span class="row-label">Activo</span><span class="row-val">' + pill(data.activo ? 'Sí' : 'No', data.activo ? 'ok' : 'err') + '</span></div>' +
+      '<div class="row"><span class="row-label">Equipos asignados</span><span class="row-val" style="font-size:11px">' + equips + '</span></div>';
+  }
+
+  function cargarInspecciones(user, rol) {
+    var q;
+    if (rol === 'admin' || rol === 'director') {
+      q = db.collection('inspecciones').orderBy('fechaCreacion', 'desc').limit(20);
+    } else {
+      q = db.collection('inspecciones').where('inspectorEmail', '==', user.email).orderBy('fechaCreacion', 'desc').limit(20);
+    }
+    q.get().then(function(snap) {
+      var lista = [];
+      snap.forEach(function(d) { lista.push(Object.assign({id: d.id}, d.data())); });
+      var container = document.getElementById('inspListContainer');
+      if (!lista.length) {
+        container.innerHTML = '<div style="color:var(--muted);font-size:13px">No hay inspecciones visibles para este usuario.</div>';
+        return;
+      }
+      var filtroTxt = rol === 'admin' || rol === 'director'
+        ? 'Admin/director — muestra todas (' + lista.length + ')'
+        : 'Inspector — filtrado por email (' + lista.length + ')';
+      container.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">' + filtroTxt + '</div>' +
+        '<div class="insp-list">' + lista.map(function(i) {
+          return '<div class="insp-item">' +
+            '<span class="insp-nom">' + (i.nombreInstalacion || 'Sin nombre') + '</span>' +
+            '<span style="font-size:11px;color:var(--muted)">' + (i.inspectorNombre || '') + '</span>' +
+            '<span class="insp-estado e-' + (i.estado || 'borrador') + '">' + (i.estado || 'borrador') + '</span>' +
+            '</div>';
+        }).join('') + '</div>';
+    }).catch(function(e) {
+      document.getElementById('inspListContainer').innerHTML = '<div style="color:var(--red);font-size:13px">Error: ' + e.message + '</div>';
+    });
+  }
+
+  window.crearInspector = function() {
+    var email = document.getElementById('newEmail').value.trim();
+    var nombre = document.getElementById('newNombre').value.trim();
+    var nombreCorto = document.getElementById('newNombreCorto').value.trim().toUpperCase();
+    var rol = document.getElementById('newRol').value;
+    var sede = document.getElementById('newSede').value;
+
+    if (!email || !nombre) { alert('Email y nombre son obligatorios.'); return; }
+
+    var log = document.getElementById('logSetup');
+    log.style.display = 'block';
+    log.innerHTML = '<span class="info">[INFO] Creando documento usuarios/' + email + '...</span>\n';
+    document.getElementById('btnCrearInsp').disabled = true;
+
+    var doc = {
+      activo: true,
+      nombre: nombre,
+      nombreCorto: nombreCorto || nombre.split(' ').map(function(p) { return p[0]; }).join('').slice(0,3).toUpperCase(),
+      rol: rol,
+      sede: sede,
+      equiposAsignados: [],
+      puedeFiremar: [],
+      firmaUrl: ''
+    };
+
+    db.collection('usuarios').doc(email).set(doc).then(function() {
+      log.innerHTML += '<span class="ok">[OK] Documento creado correctamente.</span>\n';
+      log.innerHTML += '<span class="info">[INFO] Ahora crea el usuario en Firebase Auth Console:</span>\n';
+      log.innerHTML += '<span class="info">       Authentication > Users > Add user</span>\n';
+      log.innerHTML += '<span class="info">       Email: ' + email + '</span>\n';
+      log.innerHTML += '<span class="ok">[LISTO] El inspector puede iniciar sesión cuando Auth esté creado.</span>\n';
+      document.getElementById('btnCrearInsp').disabled = false;
+    }).catch(function(e) {
+      log.innerHTML += '<span class="err">[ERROR] ' + e.message + '</span>\n';
+      document.getElementById('btnCrearInsp').disabled = false;
+    });
+  };
+
+  window.simularFiltro = function() {
+    var email = document.getElementById('simEmail').value.trim();
+    if (!email) { alert('Introduce un email.'); return; }
+    var result = document.getElementById('simResult');
+    result.style.display = 'block';
+    result.innerHTML = '<div style="text-align:center"><span class="spinner"></span></div>';
+
+    db.collection('usuarios').doc(email).get().then(function(uSnap) {
+      var rol = uSnap.exists ? (uSnap.data().rol || 'inspector') : 'inspector';
+      var q;
+      if (rol === 'admin' || rol === 'director') {
+        q = db.collection('inspecciones').orderBy('fechaCreacion', 'desc').limit(50);
+      } else {
+        q = db.collection('inspecciones').where('inspectorEmail', '==', email).orderBy('fechaCreacion', 'desc').limit(50);
+      }
+      return q.get().then(function(snap) {
+        var count = snap.size;
+        var rolPill = pill(rol, rol === 'admin' ? 'ok' : 'warn');
+        result.innerHTML = '<div style="font-size:13px;margin-bottom:8px"><strong>' + email + '</strong> ' + rolPill + '</div>' +
+          '<div style="font-size:13px;color:var(--muted)">Inspecciones visibles: <strong style="color:var(--text)">' + count + '</strong></div>' +
+          (rol === 'inspector' ? '<div style="font-size:11px;color:var(--muted);margin-top:4px">Filtro activo: inspectorEmail == ' + email + '</div>' : '<div style="font-size:11px;color:var(--muted);margin-top:4px">Sin filtro — ve todas</div>');
+      });
+    }).catch(function(e) {
+      result.innerHTML = '<div style="color:var(--red);font-size:13px">Error: ' + e.message + '</div>';
+    });
+  };
+
+  window.cerrarSesion = function() {
+    auth.signOut().then(function() { location.href = 'index.html'; });
+  };
+</script>
+</body>
+</html>

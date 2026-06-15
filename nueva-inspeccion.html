@@ -26,30 +26,38 @@
     .f textarea{resize:vertical;min-height:70px}
     .r2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .r3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
-    /* TIPO ALCANCE PILLS */
     .alcance-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
     .alcance-btn{padding:10px 6px;border:1.5px solid var(--border);border-radius:9px;background:white;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all .15s}
     .alcance-btn:hover{border-color:var(--gold);color:var(--gold)}
     .alcance-btn.selected{background:rgba(200,153,58,0.12);border-color:var(--gold);color:var(--gold)}
-    .alcance-btn.disabled{opacity:0.35;cursor:not-allowed}
-    /* TIPO INSPECCION PILLS */
+    .alcance-btn.disabled{opacity:0.35;cursor:not-allowed;pointer-events:none}
     .tipo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
     .tipo-btn{padding:10px 6px;border:1.5px solid var(--border);border-radius:9px;background:white;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all .15s}
     .tipo-btn:hover{border-color:var(--gold);color:var(--gold)}
     .tipo-btn.selected{background:rgba(200,153,58,0.12);border-color:var(--gold);color:var(--gold)}
-    /* INSPECTOR BADGE */
     .inspector-display{display:flex;align-items:center;gap:10px;padding:10px 13px;border:1px solid var(--border);border-radius:8px;background:var(--surf)}
-    .inspector-avatar{width:32px;height:32px;border-radius:50%;border:2px solid var(--gold)}
+    .inspector-avatar{width:32px;height:32px;border-radius:50%;border:2px solid var(--gold);object-fit:cover}
     .inspector-name{font-size:14px;font-weight:500;color:var(--text);flex:1}
     .inspector-lock{font-size:16px;color:var(--muted)}
-    /* BOTONES */
+    /* Autocomplete instalación */
+    .ac-wrap{position:relative}
+    .ac-dropdown{position:absolute;top:calc(100% + 3px);left:0;right:0;background:white;border:1.5px solid var(--gold);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;max-height:220px;overflow-y:auto;display:none}
+    .ac-item{padding:10px 13px;cursor:pointer;border-bottom:1px solid var(--border)}
+    .ac-item:last-child{border-bottom:none}
+    .ac-item:hover,.ac-item:focus{background:rgba(200,153,58,.08)}
+    .ac-nombre{display:block;font-size:13px;font-weight:600;color:var(--text)}
+    .ac-lugar{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+    .ac-vinculada{display:none;align-items:center;gap:8px;background:rgba(200,153,58,.1);border:1px solid rgba(200,153,58,.3);border-radius:7px;padding:7px 11px;margin-top:6px}
+    .ac-vinculada.vis{display:flex}
+    .ac-vinc-txt{flex:1;font-size:11px;color:var(--gold);font-weight:600}
+    .ac-vinc-del{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;padding:0}
+    .ac-vinc-del:hover{color:var(--red)}
+    /* Botones acción */
     .btn-crear{width:100%;padding:16px;background:var(--gold);color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:8px;box-shadow:0 4px 12px rgba(200,153,58,0.3)}
     .btn-crear:hover{transform:translateY(-1px)}
     .btn-crear:disabled{opacity:0.5;cursor:not-allowed;transform:none}
     .btn-cancelar{width:100%;padding:13px;background:white;color:var(--text);border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;margin-top:8px}
     .btn-cancelar:hover{border-color:var(--red);color:var(--red)}
-    /* IMPROVISADO BADGE */
-    .badge-improvisado{display:inline-flex;align-items:center;gap:5px;background:rgba(230,126,34,0.1);border:1px solid rgba(230,126,34,0.3);color:var(--orange,#E67E22);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;margin-bottom:14px}
     .offline-badge{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
     .offline-badge.visible{display:block}
     .loading-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:14px}
@@ -72,7 +80,7 @@
   <!-- TIPO DE ALCANCE -->
   <div class="card">
     <div class="card-title">Tipo de inspecci&#243;n</div>
-    <div class="alcance-grid" id="alcanceGrid">
+    <div class="alcance-grid">
       <button class="alcance-btn selected" data-val="PAA" onclick="selAlcance(this)">PAA</button>
       <button class="alcance-btn disabled" data-val="SAE" title="Pr&#243;ximamente">SAE</button>
       <button class="alcance-btn disabled" data-val="FER" title="Pr&#243;ximamente">FER</button>
@@ -97,7 +105,14 @@
     <div class="card-title">Instalaci&#243;n</div>
     <div class="f">
       <label>Nombre de la instalaci&#243;n *</label>
-      <input type="text" id="nombreInstalacion" placeholder="ej. Villaduke Esaventura">
+      <div class="ac-wrap">
+        <input type="text" id="nombreInstalacion" placeholder="Buscar o escribir nombre..." oninput="onNombreInput()" autocomplete="off">
+        <div class="ac-dropdown" id="acDropdown"></div>
+      </div>
+      <div class="ac-vinculada" id="acVinculada">
+        <span class="ac-vinc-txt" id="acVincTxt"></span>
+        <button class="ac-vinc-del" onclick="limpiarInstalacion()" title="Cambiar instalaci&#243;n">&#215;</button>
+      </div>
     </div>
     <div class="f">
       <label>Direcci&#243;n</label>
@@ -155,17 +170,23 @@
         <input type="time" id="horaFin">
       </div>
     </div>
-    <div class="f" id="sesionInfo" style="display:none">
-      <label>Sesi&#243;n</label>
-      <input type="text" id="sesionNota" placeholder="ej. Sesi&#243;n 1 de 2">
-    </div>
   </div>
 
-  <!-- INSPECTOR -->
+  <!-- INSPECTOR PRINCIPAL -->
   <div class="card">
     <div class="card-title">Inspector</div>
     <div id="inspectorContainer">
-      <!-- Se rellena por JS -->
+      <div style="color:var(--muted);font-size:13px">Cargando...</div>
+    </div>
+  </div>
+
+  <!-- INSPECTOR SECUNDARIO — solo visible para admin/director -->
+  <div class="card" id="inspector2Card" style="display:none">
+    <div class="card-title">Inspector secundario
+      <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(opcional)</span>
+    </div>
+    <div id="inspector2Container">
+      <div style="color:var(--muted);font-size:13px">Cargando...</div>
     </div>
   </div>
 
@@ -186,138 +207,263 @@
 
 </div>
 
-<!-- LOADING -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
-  <p>Creando inspecci&#243;n...</p>
+  <p id="loadingMsg">Creando inspecci&#243;n...</p>
 </div>
 
 <div class="offline-badge" id="offlineBadge">Sin conexi&#243;n &#8212; modo offline</div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-  import { getFirestore, collection, addDoc, doc, getDoc, getDocs, serverTimestamp }
-    from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain: "arp-inspecciones.firebaseapp.com",
+      projectId: "arp-inspecciones",
+      storageBucket: "arp-inspecciones.firebasestorage.app",
+      messagingSenderId: "35880168451",
+      appId: "1:35880168451:web:090e3c250b4416ed0b3236"
+    });
+  }
+  var auth = firebase.auth();
+  var db = firebase.firestore();
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
-    authDomain: "arp-inspecciones.firebaseapp.com",
-    projectId: "arp-inspecciones",
-    storageBucket: "arp-inspecciones.firebasestorage.app",
-    messagingSenderId: "35880168451",
-    appId: "1:35880168451:web:090e3c250b4416ed0b3236"
-  };
+  var currentUser = null;
+  var userData = null;
+  var selectedAlcance = "PAA";
+  var selectedTipo = "ANUAL";
+  var selectedInspectorEmail = null;
+  var selectedInspectorNombre = null;
+  var selectedInspector2Email = null;
+  var selectedInspector2Nombre = null;
+  var instalacionesList = [];
+  var instalacionSeleccionada = null;
+  var todosInspectores = [];
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  let currentUser = null;
-  let userData = null;
-  let selectedAlcance = "PAA";
-  let selectedTipo = "ANUAL";
-  let selectedInspectorEmail = null;
-  let selectedInspectorNombre = null;
-
-  // Fecha de hoy por defecto
   document.getElementById("fechaInspeccion").value = new Date().toISOString().split("T")[0];
 
-  onAuthStateChanged(auth, async user => {
+  auth.onAuthStateChanged(function(user) {
     if (!user) { location.href = "index.html"; return; }
     currentUser = user;
-    try {
-      const snap = await getDoc(doc(db, "usuarios", user.email));
-      if (!snap.exists() || !snap.data().activo) { location.href = "index.html"; return; }
+    db.collection("usuarios").doc(user.email).get().then(function(snap) {
+      if (!snap.exists || !snap.data().activo) { location.href = "index.html"; return; }
       userData = snap.data();
       renderInspector();
-    } catch(e) {
-      console.error(e);
+      cargarInstalaciones();
+    }).catch(function(e) { console.error("Error auth:", e); });
+  });
+
+  // ── INSTALACIONES ──
+
+  function cargarInstalaciones() {
+    db.collection("instalaciones").get().then(function(snap) {
+      instalacionesList = [];
+      snap.forEach(function(d) {
+        if (d.data().activo !== false) {
+          instalacionesList.push(Object.assign({ id: d.id }, d.data()));
+        }
+      });
+    }).catch(function(e) { console.warn("No se pudieron cargar instalaciones:", e.message); });
+  }
+
+  function escHtml(s) {
+    return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  window.onNombreInput = function() {
+    var v = document.getElementById("nombreInstalacion").value;
+    if (instalacionSeleccionada && v !== instalacionSeleccionada.nombre) {
+      instalacionSeleccionada = null;
+      document.getElementById("acVinculada").classList.remove("vis");
+    }
+    if (v.length < 2) { document.getElementById("acDropdown").style.display = "none"; return; }
+    var q = v.toLowerCase();
+    var resultados = instalacionesList.filter(function(i) {
+      return (i.nombre || "").toLowerCase().includes(q) ||
+             (i.municipio || "").toLowerCase().includes(q) ||
+             (i.codigo || "").toLowerCase().includes(q);
+    }).slice(0, 8);
+    var dropdown = document.getElementById("acDropdown");
+    if (!resultados.length) { dropdown.style.display = "none"; return; }
+    dropdown.innerHTML = resultados.map(function(i) {
+      var lugar = [i.municipio, i.provincia].filter(Boolean).join(", ");
+      var cod = i.codigo ? ' <span style="font-size:10px;font-family:monospace;color:var(--gold)">(' + escHtml(i.codigo) + ')</span>' : "";
+      return '<div class="ac-item" onclick="seleccionarInstalacion(\'' + i.id + '\')">' +
+        '<span class="ac-nombre">' + escHtml(i.nombre || "Sin nombre") + cod + '</span>' +
+        (lugar ? '<span class="ac-lugar">' + escHtml(lugar) + '</span>' : '') +
+        '</div>';
+    }).join("");
+    dropdown.style.display = "block";
+  };
+
+  window.seleccionarInstalacion = function(id) {
+    var inst = instalacionesList.find(function(i) { return i.id === id; });
+    if (!inst) return;
+    instalacionSeleccionada = inst;
+    document.getElementById("nombreInstalacion").value = inst.nombre || "";
+    function fill(fieldId, value) {
+      document.getElementById(fieldId).value = (value && value !== "__PENDIENTE__") ? value : "";
+    }
+    fill("direccion", inst.direccion);
+    fill("municipio", inst.municipio);
+    fill("provincia", inst.provincia);
+    fill("propietario", inst.propietario);
+    fill("gestor", inst.gestorActual);
+    fill("solicitante", inst.solicitanteActual);
+    document.getElementById("acDropdown").style.display = "none";
+    var txt = "Vinculada: " + (inst.nombre || "");
+    if (inst.codigo) txt += " · " + inst.codigo;
+    document.getElementById("acVincTxt").textContent = txt;
+    document.getElementById("acVinculada").classList.add("vis");
+  };
+
+  window.limpiarInstalacion = function() {
+    instalacionSeleccionada = null;
+    document.getElementById("acVinculada").classList.remove("vis");
+    document.getElementById("nombreInstalacion").value = "";
+    document.getElementById("nombreInstalacion").focus();
+  };
+
+  document.addEventListener("click", function(e) {
+    if (!e.target.closest(".ac-wrap")) {
+      document.getElementById("acDropdown").style.display = "none";
     }
   });
 
+  // ── INSPECTOR ──
+
   function renderInspector() {
-    const container = document.getElementById("inspectorContainer");
+    var container = document.getElementById("inspectorContainer");
     if (userData.rol === "admin" || userData.rol === "director") {
-      // Admin y director pueden seleccionar inspector
-      cargarSelectInspectores(container);
+      document.getElementById("inspector2Card").style.display = "block";
+      cargarSelectInspectores("inspectorContainer", false);
+      cargarSelectInspectores("inspector2Container", true);
     } else {
-      // Inspector solo ve su propio nombre, no puede cambiarlo
       selectedInspectorEmail = currentUser.email;
-      selectedInspectorNombre = userData.nombre || currentUser.displayName;
-      container.innerHTML = `
-        <div class="inspector-display">
-          <img class="inspector-avatar" src="${currentUser.photoURL || ""}" onerror="this.style.display='none'">
-          <span class="inspector-name">${selectedInspectorNombre}</span>
-          <span class="inspector-lock">&#128274;</span>
-        </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px">
-          Solo puedes crear inspecciones asignadas a ti mismo.
-        </div>`;
+      selectedInspectorNombre = userData.nombre || currentUser.displayName || currentUser.email;
+      container.innerHTML =
+        '<div class="inspector-display">' +
+        '<img class="inspector-avatar" src="' + escHtml(currentUser.photoURL || "") + '" onerror="this.style.display=\'none\'">' +
+        '<span class="inspector-name">' + escHtml(selectedInspectorNombre) + '</span>' +
+        '<span class="inspector-lock">&#128274;</span>' +
+        '</div>' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:6px">Solo puedes crear inspecciones asignadas a ti mismo.</div>';
     }
   }
 
-  async function cargarSelectInspectores(container) {
-    container.innerHTML = `<div style="color:var(--muted);font-size:13px">Cargando inspectores...</div>`;
-    try {
-      const snap = await getDocs(collection(db, "usuarios"));
-      const inspectores = [];
-      snap.forEach(d => {
-        const u = d.data();
-        if (u.activo) inspectores.push({ email: d.id, ...u });
-      });
-      let options = inspectores.map(i =>
-        `<option value="${i.email}" data-nombre="${i.nombre || i.email}">${i.nombre || i.email} (${i.rol})</option>`
-      ).join("");
-      container.innerHTML = `
-        <div class="f">
-          <label>Asignar a</label>
-          <select id="selectInspector" onchange="onInspectorChange(this)">
-            <option value="">-- Selecciona inspector --</option>
-            ${options}
-          </select>
-        </div>`;
-      // Preseleccionar el propio usuario
-      const sel = document.getElementById("selectInspector");
-      if (sel) {
-        sel.value = currentUser.email;
-        onInspectorChange(sel);
+  function cargarSelectInspectores(containerId, opcional) {
+    var container = document.getElementById(containerId);
+    var esPrimario = containerId === "inspectorContainer";
+    var selectId = esPrimario ? "selectInspector" : "selectInspector2";
+    var onchangeFn = esPrimario ? "onInspector1Change" : "onInspector2Change";
+
+    function renderSelect(inspectores) {
+      var options = inspectores.map(function(i) {
+        return '<option value="' + escHtml(i.email) + '" data-nombre="' + escHtml(i.nombre || i.email) + '">' +
+          escHtml(i.nombre || i.email) + ' (' + escHtml(i.rol || "inspector") + ')</option>';
+      }).join("");
+      container.innerHTML =
+        '<div class="f">' +
+        '<label>' + (esPrimario ? "Asignar a" : "Segundo inspector") + '</label>' +
+        '<select id="' + selectId + '" onchange="' + onchangeFn + '(this)">' +
+        (opcional ? '<option value="">&#8212; Sin inspector secundario &#8212;</option>' : '<option value="">&#8212; Selecciona inspector &#8212;</option>') +
+        options + '</select></div>';
+      if (esPrimario) {
+        var sel = document.getElementById("selectInspector");
+        if (sel) { sel.value = currentUser.email; onInspector1Change(sel); }
       }
-    } catch(e) {
-      container.innerHTML = `<div style="color:var(--red);font-size:13px">Error cargando inspectores.</div>`;
     }
+
+    if (todosInspectores.length) { renderSelect(todosInspectores); return; }
+    db.collection("usuarios").get().then(function(snap) {
+      todosInspectores = [];
+      snap.forEach(function(d) {
+        if (d.data().activo) todosInspectores.push(Object.assign({ email: d.id }, d.data()));
+      });
+      renderSelect(todosInspectores);
+    }).catch(function(e) {
+      container.innerHTML = '<div style="color:var(--red);font-size:13px">Error cargando inspectores.</div>';
+    });
   }
 
-  window.onInspectorChange = (sel) => {
-    const opt = sel.options[sel.selectedIndex];
-    selectedInspectorEmail = sel.value;
-    selectedInspectorNombre = opt.dataset.nombre || sel.value;
+  window.onInspector1Change = function(sel) {
+    var opt = sel.options[sel.selectedIndex];
+    selectedInspectorEmail = sel.value || null;
+    selectedInspectorNombre = (opt && sel.value) ? (opt.dataset.nombre || sel.value) : null;
   };
 
-  window.selAlcance = (btn) => {
+  window.onInspector2Change = function(sel) {
+    var opt = sel.options[sel.selectedIndex];
+    selectedInspector2Email = sel.value || null;
+    selectedInspector2Nombre = (sel.value && opt) ? (opt.dataset.nombre || sel.value) : null;
+  };
+
+  // ── TIPO ALCANCE / VISITA ──
+
+  window.selAlcance = function(btn) {
     if (btn.classList.contains("disabled")) return;
-    document.querySelectorAll(".alcance-btn").forEach(b => b.classList.remove("selected"));
+    document.querySelectorAll(".alcance-btn").forEach(function(b) { b.classList.remove("selected"); });
     btn.classList.add("selected");
     selectedAlcance = btn.dataset.val;
   };
 
-  window.selTipo = (btn) => {
-    document.querySelectorAll(".tipo-btn").forEach(b => b.classList.remove("selected"));
+  window.selTipo = function(btn) {
+    document.querySelectorAll(".tipo-btn").forEach(function(b) { b.classList.remove("selected"); });
     btn.classList.add("selected");
     selectedTipo = btn.dataset.val;
   };
 
-  window.crearInspeccion = async () => {
-    const nombre = document.getElementById("nombreInstalacion").value.trim();
-    const fecha = document.getElementById("fechaInspeccion").value;
+  // ── EQUIPOS ──
+
+  function cargarEquiposInspector(email) {
+    return db.collection("usuarios").doc(email).get().then(function(uSnap) {
+      if (!uSnap.exists) return [];
+      var asignados = uSnap.data().equiposAsignados || [];
+      if (!asignados.length) return [];
+      return Promise.all(asignados.map(function(cod) { return db.collection("equipos").doc(cod).get(); }))
+        .then(function(snaps) {
+          return snaps.filter(function(d) { return d.exists && d.data().activo !== false; }).map(function(d) {
+            var data = d.data();
+            return {
+              codigo: d.id,
+              tipo: data.tipo || "",
+              medicion: data.medicion || "",
+              marca: data.marca || "",
+              nSerie: data.nSerie || "",
+              calibracion: data.calibracion ? {
+                fechaProxima: data.calibracion.fechaProxima || "",
+                fechaUltima: data.calibracion.fechaUltima || "",
+                laboratorio: data.calibracion.laboratorio || ""
+              } : {}
+            };
+          });
+        });
+    }).catch(function(e) { console.warn("Error cargando equipos:", e.message); return []; });
+  }
+
+  // ── CREAR INSPECCIÓN ──
+
+  function generarNRegistro(codigo, alcance, fecha) {
+    var partes = fecha.split("-");
+    if (partes.length !== 3) return "";
+    var aammdd = partes[0].slice(2) + partes[1] + partes[2];
+    return codigo + "/" + alcance + "/" + aammdd + "/Rev0";
+  }
+
+  window.crearInspeccion = function() {
+    var nombre = document.getElementById("nombreInstalacion").value.trim();
+    var fecha = document.getElementById("fechaInspeccion").value;
 
     if (!nombre) {
-      alert("El nombre de la instalaci\u00f3n es obligatorio.");
+      alert("El nombre de la instalación es obligatorio.");
       document.getElementById("nombreInstalacion").focus();
       return;
     }
     if (!fecha) {
-      alert("La fecha de inspecci\u00f3n es obligatoria.");
+      alert("La fecha de inspección es obligatoria.");
       document.getElementById("fechaInspeccion").focus();
       return;
     }
@@ -327,13 +473,34 @@
     }
 
     document.getElementById("loadingOverlay").classList.add("visible");
+    document.getElementById("loadingMsg").textContent = "Cargando equipos...";
     document.getElementById("btnCrear").disabled = true;
 
-    try {
-      const inspeccion = {
+    cargarEquiposInspector(selectedInspectorEmail).then(function(equiposMedicion) {
+      document.getElementById("loadingMsg").textContent = "Creando inspección...";
+
+      var instalacionId = "";
+      var codigoInstalacion = "";
+      var nRegistro = "";
+      if (instalacionSeleccionada) {
+        instalacionId = instalacionSeleccionada.id || "";
+        codigoInstalacion = instalacionSeleccionada.codigo || "";
+        if (codigoInstalacion) {
+          nRegistro = generarNRegistro(codigoInstalacion, selectedAlcance, fecha);
+        }
+      }
+
+      var horaInicio = document.getElementById("horaInicio").value;
+      var horaFin = document.getElementById("horaFin").value;
+
+      var inspeccion = {
         tipoAlcance: selectedAlcance,
         tipoInspeccion: selectedTipo,
         nombreInstalacion: nombre,
+        instalacionId: instalacionId,
+        codigoInstalacion: codigoInstalacion,
+        nRegistro: nRegistro,
+        revision: 0,
         direccion: document.getElementById("direccion").value.trim(),
         municipio: document.getElementById("municipio").value.trim(),
         provincia: document.getElementById("provincia").value.trim(),
@@ -342,29 +509,29 @@
         gestor: document.getElementById("gestor").value.trim(),
         solicitante: document.getElementById("solicitante").value.trim(),
         fechaInspeccion: fecha,
-        horaInicio: document.getElementById("horaInicio").value,
-        horaFin: document.getElementById("horaFin").value,
+        horaInicio: horaInicio,
+        horaFin: horaFin,
         notas: document.getElementById("notas").value.trim(),
         inspectorEmail: selectedInspectorEmail,
         inspectorNombre: selectedInspectorNombre,
+        inspector2Email: selectedInspector2Email || "",
+        inspector2Nombre: selectedInspector2Nombre || "",
         creadoPor: currentUser.email,
         estado: "borrador",
-        sesiones: [{
-          fecha: fecha,
-          horaInicio: document.getElementById("horaInicio").value,
-          horaFin: document.getElementById("horaFin").value
-        }],
-        fechaCreacion: serverTimestamp(),
+        sesiones: [{ fecha: fecha, horaInicio: horaInicio, horaFin: horaFin }],
+        equiposMedicion: equiposMedicion,
+        fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
       };
 
-      const ref = await addDoc(collection(db, "inspecciones"), inspeccion);
-      location.href = `inspeccion.html?id=${ref.id}`;
-    } catch(e) {
+      return db.collection("inspecciones").add(inspeccion);
+    }).then(function(ref) {
+      location.href = "inspeccion.html?id=" + ref.id;
+    }).catch(function(e) {
       console.error(e);
-      alert("Error al crear la inspecci\u00f3n. Int\u00e9ntalo de nuevo.");
+      alert("Error al crear la inspección: " + e.message);
       document.getElementById("loadingOverlay").classList.remove("visible");
       document.getElementById("btnCrear").disabled = false;
-    }
+    });
   };
 
   function updateOnline() {

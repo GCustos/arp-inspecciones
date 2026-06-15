@@ -189,6 +189,25 @@
     .btn-import-no{flex:1;padding:8px;background:var(--surf);color:var(--muted);border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer}
     @media(max-width:600px){.jt-wrap{display:none}.juegos-movil{display:block}}
     @media(min-width:601px){.juegos-movil{display:none}}
+    /* Equipos de medición */
+    .equipo-row{display:flex;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);gap:10px}
+    .equipo-row:last-child{border-bottom:none}
+    .equipo-codigo{font-family:monospace;font-size:11px;font-weight:700;color:var(--gold);background:rgba(200,153,58,.12);padding:2px 7px;border-radius:4px;flex-shrink:0;margin-top:1px}
+    .equipo-info{flex:1;min-width:0}
+    .equipo-tipo{font-size:12px;color:var(--text);font-weight:500}
+    .equipo-cal{font-size:10px;color:var(--muted);margin-top:2px}
+    .equipo-del{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px;flex-shrink:0;line-height:1}
+    .equipo-del:hover{color:var(--red)}
+    .equipo-add-form{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+    .eq-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+    .eq-field{margin:0}
+    .eq-field label{display:block;font-size:10px;font-weight:600;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+    .eq-field input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:12px;background:var(--surf);color:var(--text)}
+    .eq-field input:focus{outline:none;border-color:var(--gold);background:white}
+    .eq-btns{display:flex;gap:8px;margin-top:8px}
+    .btn-eq-ok{flex:1;padding:8px;background:var(--gold);color:white;border:none;border-radius:7px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
+    .btn-eq-cancel{flex:1;padding:8px;background:var(--surf);color:var(--muted);border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:12px;cursor:pointer}
+    .btn-eq-cancel:hover{border-color:var(--red);color:var(--red)}
   </style>
 </head>
 <body>
@@ -216,6 +235,30 @@
     <div id="genChecklist">
       <div class="spinner-wrap"><div class="spinner"></div>Cargando inspección...</div>
     </div>
+
+    <!-- EQUIPOS DE MEDICIÓN -->
+    <div class="card" id="equiposCard">
+      <div class="card-title">Equipos de medici&#243;n</div>
+      <div id="equiposList">
+        <div style="color:var(--muted);font-size:12px;text-align:center;padding:6px">Cargando equipos...</div>
+      </div>
+      <div class="equipo-add-form" id="equipoAddForm">
+        <div class="eq-grid">
+          <div class="eq-field"><label>C&#243;digo</label><input type="text" id="eqCodigo" placeholder="ej. GON01"></div>
+          <div class="eq-field"><label>Tipo / medici&#243;n</label><input type="text" id="eqTipo" placeholder="ej. GON&#205;METRO"></div>
+        </div>
+        <div class="eq-grid">
+          <div class="eq-field"><label>Marca</label><input type="text" id="eqMarca" placeholder="Marca"></div>
+          <div class="eq-field"><label>N&#186; serie</label><input type="text" id="eqNSerie" placeholder="N&#186; serie"></div>
+        </div>
+        <div class="eq-btns">
+          <button class="btn-eq-ok" onclick="confirmarEquipoManual()">&#10003; A&#241;adir</button>
+          <button class="btn-eq-cancel" onclick="cancelarEquipoManual()">Cancelar</button>
+        </div>
+      </div>
+      <button class="btn-add-nc" id="btnAddEquipo" onclick="addEquipoManual()" style="margin-top:8px">&#43; A&#241;adir equipo</button>
+    </div>
+
     <div class="card" style="padding:0;overflow:hidden">
       <div style="padding:10px 14px 6px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Observaciones generales</div>
       <textarea class="obs-gral" id="obsGral" placeholder="Observaciones generales de la inspección..." onchange="markDirty()"></textarea>
@@ -390,7 +433,7 @@
   let modalNCPrevVal=''; // FIX: guardar valor previo para revertir si cancela
   let modalNCFotos=[]; // fotos del defecto en modal
 
-  const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], fotos:[], ensayos:"" };
+  const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], fotos:[], ensayos:"", equiposMedicion:[] };
 
   const GEN_ITEMS = [
     {id:"g1",ref:"4.1",sec:"Selección de Lugar y Entorno",desc:"Evacuación posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosión)."},
@@ -410,6 +453,73 @@
     {key:"zs",label:"Zona\nsegur."},
   ];
   const COL_LABELS = {ie:"Integridad estructural",af:"Anclajes y fijaciones",ej:"Elementos de juego",ra:"Riesgos y atrapamientos",zs:"Zona de seguridad/Entorno"};
+
+  // ── EQUIPOS DE MEDICIÓN ──
+  function cargarEquiposDesdeInspector(email) {
+    if (!email) { renderEquipos(); return; }
+    db.collection('usuarios').doc(email).get().then(function(uSnap) {
+      if (!uSnap.exists) { renderEquipos(); return; }
+      var asignados = uSnap.data().equiposAsignados || [];
+      if (!asignados.length) { renderEquipos(); return; }
+      return Promise.all(asignados.map(function(cod) { return db.collection('equipos').doc(cod).get(); }))
+        .then(function(snaps) {
+          S.equiposMedicion = snaps.filter(function(d) { return d.exists && d.data().activo !== false; }).map(function(d) {
+            var data = d.data();
+            return { codigo: d.id, tipo: data.tipo||'', medicion: data.medicion||'', marca: data.marca||'', nSerie: data.nSerie||'', calibracion: data.calibracion||{} };
+          });
+          renderEquipos();
+          markDirty();
+        });
+    }).catch(function(e) { console.warn('Error cargando equipos:', e.message); renderEquipos(); });
+  }
+
+  function renderEquipos() {
+    var list = document.getElementById('equiposList');
+    if (!S.equiposMedicion.length) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:6px">Sin equipos registrados.</div>';
+      return;
+    }
+    list.innerHTML = S.equiposMedicion.map(function(eq, i) {
+      var cal = eq.calibracion || {};
+      var prox = cal.fechaProxima || '';
+      var desc = (eq.tipo || eq.medicion || 'Equipo') + (eq.marca ? ' · ' + eq.marca : '');
+      var sub = (eq.nSerie ? 'S/N: ' + eq.nSerie : '') + (prox ? (eq.nSerie ? ' · ' : '') + 'Cal: ' + prox : '');
+      return '<div class="equipo-row">' +
+        (eq.codigo ? '<span class="equipo-codigo">' + eq.codigo + '</span>' : '') +
+        '<div class="equipo-info"><div class="equipo-tipo">' + desc + '</div>' + (sub ? '<div class="equipo-cal">' + sub + '</div>' : '') + '</div>' +
+        '<button class="equipo-del" onclick="delEquipo(' + i + ')">&#215;</button>' +
+        '</div>';
+    }).join('');
+  }
+
+  window.delEquipo = function(i) { S.equiposMedicion.splice(i, 1); renderEquipos(); markDirty(); };
+
+  window.addEquipoManual = function() {
+    document.getElementById('equipoAddForm').style.display = 'block';
+    document.getElementById('btnAddEquipo').style.display = 'none';
+    ['eqCodigo','eqTipo','eqMarca','eqNSerie'].forEach(function(id) { document.getElementById(id).value = ''; });
+  };
+
+  window.cancelarEquipoManual = function() {
+    document.getElementById('equipoAddForm').style.display = 'none';
+    document.getElementById('btnAddEquipo').style.display = '';
+  };
+
+  window.confirmarEquipoManual = function() {
+    var tipo = document.getElementById('eqTipo').value.trim();
+    if (!tipo) { alert('El tipo de equipo es obligatorio.'); return; }
+    S.equiposMedicion.push({
+      codigo: document.getElementById('eqCodigo').value.trim(),
+      tipo: tipo.toUpperCase(),
+      medicion: '',
+      marca: document.getElementById('eqMarca').value.trim(),
+      nSerie: document.getElementById('eqNSerie').value.trim(),
+      calibracion: {}
+    });
+    cancelarEquipoManual();
+    renderEquipos();
+    markDirty();
+  };
 
   // FIX: Función sanitizar — elimina undefined/null antes de enviar a Firestore
   function sanitizar(obj) {
@@ -544,11 +654,17 @@
       if(data.ncs) S.ncs=data.ncs;
       if(data.fotos) S.fotos=data.fotos;
       if(data.ensayos) S.ensayos=data.ensayos;
+      if(data.equiposMedicion&&data.equiposMedicion.length) {
+        S.equiposMedicion=data.equiposMedicion;
+      } else {
+        // Inspecciones antiguas: cargar equipos desde perfil del inspector en segundo plano
+        cargarEquiposDesdeInspector(data.inspectorEmail||'');
+      }
       document.getElementById("hdrTitulo").textContent=data.nombreInstalacion||"Sin nombre";
       document.getElementById("hdrSub").textContent=(data.tipoAlcance||"PAA")+" · "+(data.tipoInspeccion||"")+" · "+(data.inspectorNombre||"");
       actualizarEstado(data.estado||"borrador");
       if(!S.circuitos.length&&data.nombreInstalacion) buscarCircuitosAnteriores(data.nombreInstalacion);
-      renderGen(); renderCircuitos(); renderNCs(); renderFotos();
+      renderGen(); renderCircuitos(); renderNCs(); renderFotos(); renderEquipos();
       document.getElementById("obsGral").value=S.obsGral;
       document.getElementById("ensayos").value=S.ensayos;
     } catch(e){ showError('Error al cargar la inspección: '+e.message+' (código: '+(e.code||'?')+')'); }
@@ -1073,6 +1189,7 @@
       ncs:S.ncs,
       fotos:S.fotos,
       ensayos:document.getElementById("ensayos").value||"",
+      equiposMedicion:S.equiposMedicion,
       estado,
       ultimaModificacion:firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -1136,6 +1253,7 @@
           obsGral:document.getElementById('obsGral').value||'',
           circuitos:S.circuitos, ncs:S.ncs, fotos:S.fotos,
           ensayos:document.getElementById('ensayos').value||'',
+          equiposMedicion:S.equiposMedicion,
           nombreInstalacion:document.getElementById('hdrTitulo').textContent,
           inspectorNombre:document.getElementById('hdrSub').textContent.split(' · ')[2]||''
         }));
