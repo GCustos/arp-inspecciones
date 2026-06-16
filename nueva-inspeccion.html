@@ -379,6 +379,7 @@
     fill("municipio", inst.municipio);
     fill("provincia", inst.provincia);
     fill("propietario", inst.propietario);
+    fill("cif", inst.cif);
     fill("gestor", inst.gestorActual);
     fill("solicitante", inst.solicitanteActual);
     document.getElementById("acDropdown").style.display = "none";
@@ -565,6 +566,7 @@
         municipio: document.getElementById("municipio").value.trim(),
         provincia: document.getElementById("provincia").value.trim(),
         propietario: document.getElementById("propietario").value.trim(),
+        cif: document.getElementById("cif").value.trim(),
         gestorActual: document.getElementById("gestor").value.trim(),
         solicitanteActual: document.getElementById("solicitante").value.trim(),
         aliases: [],
@@ -584,9 +586,28 @@
       var instalacionId = "";
       var codigoInstalacion = "";
       var nRegistro = "";
+      var actualizarInstalacionPromise = Promise.resolve();
       if (instalacionSeleccionada) {
         instalacionId = instalacionSeleccionada.id || "";
         codigoInstalacion = instalacionSeleccionada.codigo || "";
+        // FIX: completar datos pendientes de la instalación con lo que rellene el usuario
+        var PENDIENTE = "__PENDIENTE__";
+        var actualizacion = {};
+        function rellenaSiFalta(campo, fieldId) {
+          var actual = instalacionSeleccionada[campo];
+          var nuevo = document.getElementById(fieldId).value.trim();
+          if ((!actual || actual === PENDIENTE) && nuevo) actualizacion[campo] = nuevo;
+        }
+        rellenaSiFalta("direccion", "direccion");
+        rellenaSiFalta("municipio", "municipio");
+        rellenaSiFalta("provincia", "provincia");
+        rellenaSiFalta("propietario", "propietario");
+        rellenaSiFalta("cif", "cif");
+        rellenaSiFalta("gestorActual", "gestor");
+        rellenaSiFalta("solicitanteActual", "solicitante");
+        if (Object.keys(actualizacion).length) {
+          actualizarInstalacionPromise = db.collection("instalaciones").doc(instalacionId).set(actualizacion, { merge: true });
+        }
       } else if (instalacionEsNueva) {
         instalacionId = instalacionIdNueva;
         codigoInstalacion = codigoInstalacionNueva;
@@ -628,7 +649,9 @@
         fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
       };
 
-      return db.collection("inspecciones").add(inspeccion);
+      return actualizarInstalacionPromise.then(function() {
+        return db.collection("inspecciones").add(inspeccion);
+      });
     }).then(function(ref) {
       location.href = "inspeccion.html?id=" + ref.id;
     }).catch(function(e) {
