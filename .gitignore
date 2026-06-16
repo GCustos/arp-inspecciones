@@ -1,0 +1,7 @@
+# Claves de servicio Firebase — NUNCA subir a git
+*adminsdk*.json
+
+# Scripts de administración — el código se sube, los datos NUNCA
+_scripts/node_modules/
+_scripts/db-dump/
+_scripts/informe-*.txt

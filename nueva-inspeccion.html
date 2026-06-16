@@ -52,6 +52,16 @@
     .ac-vinc-txt{flex:1;font-size:11px;color:var(--gold);font-weight:600}
     .ac-vinc-del{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;padding:0}
     .ac-vinc-del:hover{color:var(--red)}
+    .ac-nueva{display:none;background:#FFF5E6;border:1px solid #E8B86D;border-radius:7px;padding:10px 12px;margin-top:6px}
+    .ac-nueva.vis{display:block}
+    .ac-nueva-txt{font-size:11px;color:var(--text);margin-bottom:6px}
+    .ac-nueva-row{display:flex;align-items:center;gap:8px}
+    .ac-nueva-row input{width:80px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-family:monospace;font-weight:700;text-align:center;font-size:13px;text-transform:uppercase}
+    .ac-nueva-row input.invalido{border-color:var(--red);background:#FDEDEC}
+    .ac-nueva-row input.valido{border-color:var(--green);background:#EAFAF1}
+    .ac-nueva-msg{font-size:11px;font-weight:600}
+    .ac-nueva-msg.err{color:var(--red)}
+    .ac-nueva-msg.ok{color:var(--green)}
     /* Botones acción */
     .btn-crear{width:100%;padding:16px;background:var(--gold);color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:8px;box-shadow:0 4px 12px rgba(200,153,58,0.3)}
     .btn-crear:hover{transform:translateY(-1px)}
@@ -112,6 +122,13 @@
       <div class="ac-vinculada" id="acVinculada">
         <span class="ac-vinc-txt" id="acVincTxt"></span>
         <button class="ac-vinc-del" onclick="limpiarInstalacion()" title="Cambiar instalaci&#243;n">&#215;</button>
+      </div>
+      <div class="ac-nueva" id="acNueva">
+        <div class="ac-nueva-txt">No existe esta instalaci&#243;n. Crear nueva con c&#243;digo (2-4 letras):</div>
+        <div class="ac-nueva-row">
+          <input type="text" id="codigoNuevaInstalacion" maxlength="4" placeholder="COD" oninput="onCodigoNuevoInput()">
+          <span class="ac-nueva-msg" id="codigoNuevaMsg"></span>
+        </div>
       </div>
     </div>
     <div class="f">
@@ -241,7 +258,16 @@
   var selectedInspector2Nombre = null;
   var instalacionesList = [];
   var instalacionSeleccionada = null;
+  var instalacionEsNueva = false;
+  var codigoNuevoValido = false;
   var todosInspectores = [];
+
+  function slugify(s) {
+    return String(s || "").toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+  }
 
   document.getElementById("fechaInspeccion").value = new Date().toISOString().split("T")[0];
 
@@ -279,15 +305,27 @@
       instalacionSeleccionada = null;
       document.getElementById("acVinculada").classList.remove("vis");
     }
+    instalacionEsNueva = false;
+    codigoNuevoValido = false;
+    document.getElementById("acNueva").classList.remove("vis");
     if (v.length < 2) { document.getElementById("acDropdown").style.display = "none"; return; }
     var q = v.toLowerCase();
     var resultados = instalacionesList.filter(function(i) {
       return (i.nombre || "").toLowerCase().includes(q) ||
              (i.municipio || "").toLowerCase().includes(q) ||
-             (i.codigo || "").toLowerCase().includes(q);
+             (i.codigo || "").toLowerCase().includes(q) ||
+             (i.aliases || []).some(function(a) { return (a || "").toLowerCase().includes(q); });
     }).slice(0, 8);
     var dropdown = document.getElementById("acDropdown");
-    if (!resultados.length) { dropdown.style.display = "none"; return; }
+    if (!resultados.length) {
+      dropdown.style.display = "none";
+      instalacionEsNueva = true;
+      document.getElementById("acNueva").classList.add("vis");
+      document.getElementById("codigoNuevaInstalacion").value = "";
+      document.getElementById("codigoNuevaMsg").textContent = "";
+      document.getElementById("codigoNuevaInstalacion").classList.remove("invalido", "valido");
+      return;
+    }
     dropdown.innerHTML = resultados.map(function(i) {
       var lugar = [i.municipio, i.provincia].filter(Boolean).join(", ");
       var cod = i.codigo ? ' <span style="font-size:10px;font-family:monospace;color:var(--gold)">(' + escHtml(i.codigo) + ')</span>' : "";
@@ -299,10 +337,40 @@
     dropdown.style.display = "block";
   };
 
+  window.onCodigoNuevoInput = function() {
+    var input = document.getElementById("codigoNuevaInstalacion");
+    var cod = input.value.trim().toUpperCase();
+    input.value = cod;
+    var msg = document.getElementById("codigoNuevaMsg");
+    codigoNuevoValido = false;
+    input.classList.remove("invalido", "valido");
+    if (!cod) { msg.textContent = ""; msg.className = "ac-nueva-msg"; return; }
+    if (cod.length < 2) {
+      msg.textContent = "El código debe tener al menos 2 letras.";
+      msg.className = "ac-nueva-msg err";
+      input.classList.add("invalido");
+      return;
+    }
+    var existe = instalacionesList.some(function(i) { return (i.codigo || "").toUpperCase() === cod; });
+    if (existe) {
+      msg.textContent = "Ese código ya existe — elige otro.";
+      msg.className = "ac-nueva-msg err";
+      input.classList.add("invalido");
+      return;
+    }
+    msg.textContent = "Código disponible.";
+    msg.className = "ac-nueva-msg ok";
+    input.classList.add("valido");
+    codigoNuevoValido = true;
+  };
+
   window.seleccionarInstalacion = function(id) {
     var inst = instalacionesList.find(function(i) { return i.id === id; });
     if (!inst) return;
     instalacionSeleccionada = inst;
+    instalacionEsNueva = false;
+    codigoNuevoValido = false;
+    document.getElementById("acNueva").classList.remove("vis");
     document.getElementById("nombreInstalacion").value = inst.nombre || "";
     function fill(fieldId, value) {
       document.getElementById(fieldId).value = (value && value !== "__PENDIENTE__") ? value : "";
@@ -471,12 +539,46 @@
       alert("Selecciona un inspector.");
       return;
     }
+    if (instalacionEsNueva && !instalacionSeleccionada && !codigoNuevoValido) {
+      alert("Introduce un código válido y disponible para la nueva instalación, o selecciona una existente de la lista.");
+      document.getElementById("codigoNuevaInstalacion").focus();
+      return;
+    }
 
     document.getElementById("loadingOverlay").classList.add("visible");
     document.getElementById("loadingMsg").textContent = "Cargando equipos...";
     document.getElementById("btnCrear").disabled = true;
 
-    cargarEquiposInspector(selectedInspectorEmail).then(function(equiposMedicion) {
+    var instalacionIdNueva = "";
+    var codigoInstalacionNueva = "";
+    var crearInstalacionPromise = Promise.resolve();
+
+    if (instalacionEsNueva && !instalacionSeleccionada) {
+      document.getElementById("loadingMsg").textContent = "Creando instalación...";
+      codigoInstalacionNueva = document.getElementById("codigoNuevaInstalacion").value.trim().toUpperCase();
+      instalacionIdNueva = slugify(nombre) || ("inst_" + Date.now());
+      crearInstalacionPromise = db.collection("instalaciones").doc(instalacionIdNueva).set({
+        nombre: nombre,
+        codigo: codigoInstalacionNueva,
+        alcances: [selectedAlcance],
+        direccion: document.getElementById("direccion").value.trim(),
+        municipio: document.getElementById("municipio").value.trim(),
+        provincia: document.getElementById("provincia").value.trim(),
+        propietario: document.getElementById("propietario").value.trim(),
+        gestorActual: document.getElementById("gestor").value.trim(),
+        solicitanteActual: document.getElementById("solicitante").value.trim(),
+        aliases: [],
+        activo: true,
+        ultimaInspeccion: fecha,
+        creadoPor: currentUser.email,
+        fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    crearInstalacionPromise.then(function() {
+      document.getElementById("loadingMsg").textContent = "Cargando equipos...";
+      return cargarEquiposInspector(selectedInspectorEmail);
+    }).then(function(equiposMedicion) {
       document.getElementById("loadingMsg").textContent = "Creando inspección...";
 
       var instalacionId = "";
@@ -485,9 +587,12 @@
       if (instalacionSeleccionada) {
         instalacionId = instalacionSeleccionada.id || "";
         codigoInstalacion = instalacionSeleccionada.codigo || "";
-        if (codigoInstalacion) {
-          nRegistro = generarNRegistro(codigoInstalacion, selectedAlcance, fecha);
-        }
+      } else if (instalacionEsNueva) {
+        instalacionId = instalacionIdNueva;
+        codigoInstalacion = codigoInstalacionNueva;
+      }
+      if (codigoInstalacion) {
+        nRegistro = generarNRegistro(codigoInstalacion, selectedAlcance, fecha);
       }
 
       var horaInicio = document.getElementById("horaInicio").value;
