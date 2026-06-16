@@ -177,6 +177,16 @@
     .autosave-badge.visible{display:block}
     .err-banner{background:#FFEBEE;border:1px solid #FFCDD2;border-radius:10px;padding:12px 14px;margin:16px;font-size:12px;color:var(--red);line-height:1.5;display:none}
     .err-banner.visible{display:block}
+    .lock-banner{background:#1A1A1A;border-radius:10px;padding:14px 16px;margin:16px;font-size:13px;color:white;line-height:1.5;display:none}
+    .lock-banner.visible{display:block}
+    .lock-banner b{color:var(--gold)}
+    .btn-reabrir{display:block;width:100%;margin-top:10px;padding:11px;background:var(--gold);color:white;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    body.locked .tab-inner,body.locked .bottom-bar{pointer-events:none;opacity:.55}
+    .nc-rev-badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(200,153,58,.15);color:var(--gold);margin-left:6px}
+    .nc-close-box{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)}
+    .nc-close-box label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px}
+    .nc-close-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+    .nc-close-row input[type=checkbox]{width:16px;height:16px}
     .spinner-wrap{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
     .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -228,6 +238,20 @@
 </div>
 
 <div class="err-banner" id="errBanner"></div>
+<div class="lock-banner" id="lockBanner"></div>
+
+<!-- MODAL REABRIR REVISIÓN -->
+<div class="modal-overlay" id="modalReabrir">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header"><span class="modal-title">Abrir nueva revisión</span></div>
+    <div class="f">
+      <label>Inspector asignado a la revisita *</label>
+      <select id="reabrirInspectorSel"><option value="">Cargando inspectores...</option></select>
+    </div>
+    <button class="btn-modal-ok" onclick="confirmarReabrir()">&#10003; Abrir revisión</button>
+    <button class="btn-modal-cancel" onclick="document.getElementById('modalReabrir').classList.remove('open')">Cancelar</button>
+  </div>
+</div>
 
 <!-- TAB 1: GENERAL -->
 <div class="tab-content active" id="tc1">
@@ -427,13 +451,16 @@
   if (!inspeccionId) { location.href="inspecciones.html"; }
 
   let currentUser=null, isDirty=false, cargaIniciada=false;
+  let docDataFull={}; // FIX: copia íntegra del doc cargado, para respaldo offline completo al completar
   let modalJuegoRef=null, circuitosAnteriores=null;
   let modalNCRef=null;
   let modalNCPrio='';
   let modalNCPrevVal=''; // FIX: guardar valor previo para revertir si cancela
   let modalNCFotos=[]; // fotos del defecto en modal
+  let miRol=null; // rol del usuario actual: admin/director/inspector
+  let todosInspectoresRev=[]; // cache para selector de reapertura
 
-  const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], fotos:[], ensayos:"", equiposMedicion:[] };
+  const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], fotos:[], ensayos:"", equiposMedicion:[], revision:0, historialRevisiones:[], nRegistro:"", codigoInstalacion:"", tipoAlcance:"", estado:"borrador" };
 
   const GEN_ITEMS = [
     {id:"g1",ref:"4.1",sec:"Selección de Lugar y Entorno",desc:"Evacuación posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosión)."},
@@ -641,8 +668,10 @@
       const snap = await db.collection("inspecciones").doc(inspeccionId).get();
       if(!snap.exists){ showError('Inspección no encontrada. ID: '+inspeccionId); return; }
       const data = snap.data();
+      docDataFull=data;
       try {
         const uSnap = await db.collection("usuarios").doc(currentUser.email).get();
+        if(uSnap.exists) miRol=uSnap.data().rol||null;
         if(uSnap.exists&&uSnap.data().rol==="inspector"&&data.inspectorEmail!==currentUser.email){
           alert("No tienes acceso a esta inspección."); location.href="inspecciones.html"; return;
         }
@@ -654,6 +683,12 @@
       if(data.ncs) S.ncs=data.ncs;
       if(data.fotos) S.fotos=data.fotos;
       if(data.ensayos) S.ensayos=data.ensayos;
+      S.revision=data.revision!==undefined?data.revision:0;
+      S.historialRevisiones=data.historialRevisiones||[];
+      S.nRegistro=data.nRegistro||"";
+      S.codigoInstalacion=data.codigoInstalacion||"";
+      S.tipoAlcance=data.tipoAlcance||"PAA";
+      S.estado=data.estado||"borrador";
       if(data.equiposMedicion&&data.equiposMedicion.length) {
         S.equiposMedicion=data.equiposMedicion;
       } else {
@@ -667,6 +702,7 @@
       renderGen(); renderCircuitos(); renderNCs(); renderFotos(); renderEquipos();
       document.getElementById("obsGral").value=S.obsGral;
       document.getElementById("ensayos").value=S.ensayos;
+      if(S.estado==='completada') aplicarBloqueo();
     } catch(e){ showError('Error al cargar la inspección: '+e.message+' (código: '+(e.code||'?')+')'); }
   }
 
@@ -706,6 +742,79 @@
     const el=document.getElementById("hdrEstado");
     el.className="hdr-estado estado-"+(estado==='en_curso'?'curso':estado);
     el.textContent={borrador:"Borrador",en_curso:"En curso",completada:"Completada"}[estado]||estado;
+  }
+
+  // ── BLOQUEO / REAPERTURA REV.N ──
+  function aplicarBloqueo(){
+    document.body.classList.add('locked');
+    const esAdmin=miRol==='admin'||miRol==='director';
+    const b=document.getElementById('lockBanner');
+    let html=`Inspección <b>completada</b> (Rev.${S.revision}) — bloqueada para edición.`;
+    if(esAdmin){
+      html+=`<button class="btn-reabrir" onclick="abrirModalReabrir()">Abrir Rev.${S.revision+1}</button>`;
+    }
+    b.innerHTML=html;
+    b.classList.add('visible');
+  }
+
+  function abrirModalReabrir(){
+    const sel=document.getElementById('reabrirInspectorSel');
+    function render(){
+      sel.innerHTML='<option value="">— Selecciona inspector —</option>'+
+        todosInspectoresRev.map(i=>`<option value="${i.email}" data-nombre="${(i.nombre||i.email).replace(/"/g,'&quot;')}">${i.nombre||i.email} (${i.rol||'inspector'})</option>`).join('');
+    }
+    if(todosInspectoresRev.length){ render(); }
+    else {
+      sel.innerHTML='<option value="">Cargando...</option>';
+      db.collection('usuarios').get().then(snap=>{
+        todosInspectoresRev=[];
+        snap.forEach(d=>{ if(d.data().activo) todosInspectoresRev.push(Object.assign({email:d.id},d.data())); });
+        render();
+      }).catch(e=>{ sel.innerHTML='<option value="">Error cargando inspectores</option>'; });
+    }
+    document.getElementById('modalReabrir').classList.add('open');
+  }
+
+  function bumpNRegistro(nRegistro,newRev){
+    if(!nRegistro) return nRegistro;
+    return /Rev\d+$/.test(nRegistro) ? nRegistro.replace(/Rev\d+$/,'Rev'+newRev) : nRegistro;
+  }
+
+  async function confirmarReabrir(){
+    const sel=document.getElementById('reabrirInspectorSel');
+    const email=sel.value;
+    if(!email){ alert('Selecciona un inspector para la revisita.'); return; }
+    const opt=sel.options[sel.selectedIndex];
+    const nombre=opt.dataset.nombre||email;
+    try {
+      const docSnap=await db.collection('inspecciones').doc(inspeccionId).get();
+      const resultadoActual=(docSnap.exists&&docSnap.data().resultado)||'';
+      const snapshot=sanitizar({
+        revision:S.revision,
+        fechaCompletada:new Date().toISOString(),
+        resultado:resultadoActual,
+        checklist:S.gen, checklistObs:S.genObs, obsGral:document.getElementById('obsGral').value||'',
+        circuitos:S.circuitos, ncs:S.ncs, fotos:S.fotos, ensayos:document.getElementById('ensayos').value||'',
+        equiposMedicion:S.equiposMedicion, nRegistro:S.nRegistro
+      });
+      snapshot.reabiertoPor=currentUser.email;
+      const nuevaRevision=S.revision+1;
+      const nuevoNRegistro=bumpNRegistro(S.nRegistro,nuevaRevision);
+      const historial=[...S.historialRevisiones,snapshot];
+      await db.collection('inspecciones').doc(inspeccionId).update({
+        historialRevisiones:historial,
+        revision:nuevaRevision,
+        nRegistro:nuevoNRegistro,
+        estado:'en_curso',
+        inspectorEmail:email,
+        inspectorNombre:nombre,
+        sesiones:firebase.firestore.FieldValue.arrayUnion({fecha:new Date().toISOString().split('T')[0],horaInicio:'',horaFin:''}),
+        ultimaModificacion:firebase.firestore.FieldValue.serverTimestamp()
+      });
+      location.reload();
+    } catch(e){
+      alert('Error al abrir la revisión: '+e.message);
+    }
   }
 
   // TABS
@@ -1090,7 +1199,7 @@
 
     // Evitar duplicado de autoId
     if(!S.ncs.find(n=>n.autoId===autoId)){
-      S.ncs.push({autoId,tipo,elem,desc:obs,norma,prio:modalNCPrio,origen,fotosDefecto:[...modalNCFotos],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false});
+      S.ncs.push({autoId,tipo,elem,desc:obs,norma,prio:modalNCPrio,origen,fotosDefecto:[...modalNCFotos],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision});
     }
 
     document.getElementById('modalNC').classList.remove('open');
@@ -1117,6 +1226,7 @@
         <div class="nc-card ${incompleta?'nc-incompleta':''}">
           <div class="nc-hdr">
             <span class="nc-num">NC ${i+1}${nc.autoId?" · auto":""}</span>
+            ${nc.origenRevision?`<span class="nc-rev-badge">Añadida en Rev.${nc.origenRevision}</span>`:''}
             <div class="nc-badges">
               ${nc.tipo?`<span class="nc-tipo-badge">${nc.tipo}</span>`:'<span style="font-size:11px;color:var(--red)">Sin tipo</span>'}
               ${nc.prio?`<span class="nc-prio-badge p-${nc.prio}">${nc.prio}</span>`:'<span style="font-size:11px;color:var(--red)">Sin gravedad</span>'}
@@ -1143,11 +1253,52 @@
               ${["GRAVE","MEDIA","LEVE","DOCUMENTAL","OBSERVACION"].map(p=>`<button class="prio-btn ${nc.prio===p?'p-'+p:''}" onclick="S.ncs[${i}].prio='${p}';markDirty();renderNCs()">${p}</button>`).join("")}
             </div>
           </div>
+          <div class="nc-close-box">
+            <div class="nc-close-row">
+              <input type="checkbox" id="ncCerrada${i}" ${nc.cerrada?'checked':''} onchange="S.ncs[${i}].cerrada=this.checked;markDirty();renderNCs()">
+              <label for="ncCerrada${i}" style="margin:0">NC corregida y cerrada</label>
+            </div>
+            <label>Resolución / corrección aplicada</label>
+            <textarea onchange="S.ncs[${i}].resolucion=this.value;markDirty()" placeholder="Describe la corrección realizada...">${nc.resolucion||""}</textarea>
+            <label style="margin-top:8px">Fecha de corrección</label>
+            <input type="date" value="${nc.fechaCorreccion||''}" onchange="S.ncs[${i}].fechaCorreccion=this.value;markDirty()">
+            <label style="margin-top:8px">Fotos de corrección</label>
+            <div class="foto-grid">
+              ${(nc.fotosCorreccion||[]).map((f,fi)=>`
+                <div class="foto-thumb">
+                  <img src="${f.url||f.dataUrl||''}" alt="corrección ${fi+1}">
+                  <button class="foto-del" onclick="S.ncs[${i}].fotosCorreccion.splice(${fi},1);renderNCs();markDirty()">&#215;</button>
+                </div>`).join('')}
+            </div>
+            <div class="foto-add-row">
+              <button class="btn-foto" onclick="document.getElementById('ncCorrCam${i}').click()">&#128247; Cámara</button>
+              <button class="btn-foto" onclick="document.getElementById('ncCorrGal${i}').click()">&#128444; Galería</button>
+            </div>
+            <input type="file" id="ncCorrCam${i}" accept="image/*" capture="environment" style="display:none" onchange="handleFotoCorreccion(this,${i})">
+            <input type="file" id="ncCorrGal${i}" accept="image/*" style="display:none" onchange="handleFotoCorreccion(this,${i})">
+          </div>
         </div>`;
     }).join("");
   }
 
-  function addNC(){ S.ncs.push({elem:"",tipo:"",desc:"",norma:"UNE-EN 15567-1:2015+A1:2021",prio:"",origen:"manual",fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false}); markDirty(); renderNCs(); goTab(3); }
+  function handleFotoCorreccion(inp,i){
+    const f=inp.files[0];
+    if(!f) return;
+    const r=new FileReader();
+    r.onload=e=>{
+      comprimirImagen(e.target.result, compressed=>{
+        const path=`inspecciones/${inspeccionId}/correccion/${S.ncs[i].autoId||'manual'}_${Date.now()}.jpg`;
+        uploadFotoToStorage(compressed, path).then(res=>{
+          S.ncs[i].fotosCorreccion.push({url:res.url,name:String(f.name||'foto.jpg'),pendiente:res.pendiente});
+          renderNCs(); markDirty();
+        });
+      });
+    };
+    r.readAsDataURL(f);
+    inp.value="";
+  }
+
+  function addNC(){ S.ncs.push({elem:"",tipo:"",desc:"",norma:"UNE-EN 15567-1:2015+A1:2021",prio:"",origen:"manual",fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision}); markDirty(); renderNCs(); goTab(3); }
   function delNC(i){ S.ncs.splice(i,1); markDirty(); renderNCs(); }
 
   // FOTOS GENERALES — FIX: comprimir
@@ -1232,7 +1383,7 @@
     }
     // FIX: OBSERVACION no bloquea certificado ni cuenta como NC para resultado
     // Solo OBSERVACION no bloquea. GRAVE/MEDIA/LEVE/DOCUMENTAL = DESFAVORABLE
-    const ncsBloqueantes=S.ncs.filter(n=>n.prio&&n.prio!=="OBSERVACION");
+    const ncsBloqueantes=S.ncs.filter(n=>n.prio&&n.prio!=="OBSERVACION"&&!n.cerrada);
     const resultado=ncsBloqueantes.length===0?"FAVORABLE":"DESFAVORABLE";
     const msg=ncsBloqueantes.length===0
       ?"La inspección tiene resultado FAVORABLE.\n¿Deseas completarla?"
@@ -1246,16 +1397,17 @@
       });
       isDirty=false;
       // Guardar snapshot en localStorage antes de redirigir (triple backup)
+      // FIX: parte de docDataFull (todos los campos de identidad) y sobreescribe con el estado actual
       try {
         localStorage.setItem('insp_'+inspeccionId, JSON.stringify({
+          ...docDataFull,
           id:inspeccionId, resultado, estado:'completada',
           checklist:S.gen, checklistObs:S.genObs,
           obsGral:document.getElementById('obsGral').value||'',
           circuitos:S.circuitos, ncs:S.ncs, fotos:S.fotos,
           ensayos:document.getElementById('ensayos').value||'',
           equiposMedicion:S.equiposMedicion,
-          nombreInstalacion:document.getElementById('hdrTitulo').textContent,
-          inspectorNombre:document.getElementById('hdrSub').textContent.split(' · ')[2]||''
+          revision:S.revision, historialRevisiones:S.historialRevisiones, nRegistro:S.nRegistro
         }));
       } catch(le) { console.warn('localStorage save failed:', le.message); }
       location.href="resultado.html?id="+inspeccionId;

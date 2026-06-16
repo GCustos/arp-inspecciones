@@ -61,6 +61,9 @@
   <button class="btn-nueva" onclick="location.href='nueva-inspeccion.html'">
     &#43; Nueva inspección
   </button>
+  <button class="btn-nueva" id="btnAdminLink" style="display:none;background:white;color:var(--dark);border:1.5px solid var(--border);box-shadow:none" onclick="location.href='admin.html'">
+    &#9881; Panel admin
+  </button>
   <!-- FIX: banner offline visible -->
   <div class="offline-info" id="offlineInfo">&#128317; Sin conexión — mostrando datos guardados localmente</div>
   <div id="listContainer">
@@ -168,6 +171,7 @@
     try {
       let q;
       if (userRole === 'admin' || userRole === 'director') {
+        document.getElementById('btnAdminLink').style.display = 'flex';
         q = db.collection('inspecciones').orderBy('fechaCreacion', 'desc');
       } else {
         q = db.collection('inspecciones')

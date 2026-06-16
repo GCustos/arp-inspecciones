@@ -590,23 +590,50 @@
       if (instalacionSeleccionada) {
         instalacionId = instalacionSeleccionada.id || "";
         codigoInstalacion = instalacionSeleccionada.codigo || "";
-        // FIX: completar datos pendientes de la instalación con lo que rellene el usuario
+        // FIX: completar datos pendientes, y proponer/aplicar cambios sobre datos reales según rol
         var PENDIENTE = "__PENDIENTE__";
+        var esAdminODirector = (userData.rol === "admin" || userData.rol === "director");
         var actualizacion = {};
-        function rellenaSiFalta(campo, fieldId) {
+        var cambiosPropuestos = [];
+        function revisaCampo(campo, fieldId) {
           var actual = instalacionSeleccionada[campo];
           var nuevo = document.getElementById(fieldId).value.trim();
-          if ((!actual || actual === PENDIENTE) && nuevo) actualizacion[campo] = nuevo;
+          if (!nuevo) return;
+          var vacio = (!actual || actual === PENDIENTE);
+          if (vacio) {
+            actualizacion[campo] = nuevo;
+          } else if (actual !== nuevo) {
+            if (esAdminODirector) {
+              actualizacion[campo] = nuevo;
+            } else {
+              cambiosPropuestos.push({ campo: campo, valorAnterior: actual, valorNuevo: nuevo });
+            }
+          }
         }
-        rellenaSiFalta("direccion", "direccion");
-        rellenaSiFalta("municipio", "municipio");
-        rellenaSiFalta("provincia", "provincia");
-        rellenaSiFalta("propietario", "propietario");
-        rellenaSiFalta("cif", "cif");
-        rellenaSiFalta("gestorActual", "gestor");
-        rellenaSiFalta("solicitanteActual", "solicitante");
+        revisaCampo("direccion", "direccion");
+        revisaCampo("municipio", "municipio");
+        revisaCampo("provincia", "provincia");
+        revisaCampo("propietario", "propietario");
+        revisaCampo("cif", "cif");
+        revisaCampo("gestorActual", "gestor");
+        revisaCampo("solicitanteActual", "solicitante");
         if (Object.keys(actualizacion).length) {
           actualizarInstalacionPromise = db.collection("instalaciones").doc(instalacionId).set(actualizacion, { merge: true });
+        }
+        if (cambiosPropuestos.length) {
+          var propuestasPromise = Promise.all(cambiosPropuestos.map(function(c) {
+            return db.collection("cambiosPropuestos").add({
+              instalacionId: instalacionId,
+              instalacionNombre: instalacionSeleccionada.nombre || nombre,
+              campo: c.campo,
+              valorAnterior: c.valorAnterior,
+              valorNuevo: c.valorNuevo,
+              propuestoPor: currentUser.email,
+              estado: "pendiente",
+              fecha: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }));
+          actualizarInstalacionPromise = actualizarInstalacionPromise.then(function() { return propuestasPromise; });
         }
       } else if (instalacionEsNueva) {
         instalacionId = instalacionIdNueva;
