@@ -750,6 +750,7 @@
     const esAdmin=miRol==='admin'||miRol==='director';
     const b=document.getElementById('lockBanner');
     let html=`Inspección <b>completada</b> (Rev.${S.revision}) — bloqueada para edición.`;
+    html+=`<a href="resultado.html?id=${inspeccionId}" style="display:block;margin-top:8px;color:var(--gold);font-weight:600;font-size:13px">Descargar documentos (Informe / Registro / Certificado) &#8594;</a>`;
     if(esAdmin){
       html+=`<button class="btn-reabrir" onclick="abrirModalReabrir()">Abrir Rev.${S.revision+1}</button>`;
     }
@@ -1393,7 +1394,8 @@
       await db.collection("inspecciones").doc(inspeccionId).update({
         ...buildPayload("completada"),
         resultado,
-        fechaCompletada:firebase.firestore.FieldValue.serverTimestamp()
+        fechaCompletada:firebase.firestore.FieldValue.serverTimestamp(),
+        fechaCompletadaLocal:new Date().toISOString()
       });
       isDirty=false;
       // Guardar snapshot en localStorage antes de redirigir (triple backup)
@@ -1407,7 +1409,8 @@
           circuitos:S.circuitos, ncs:S.ncs, fotos:S.fotos,
           ensayos:document.getElementById('ensayos').value||'',
           equiposMedicion:S.equiposMedicion,
-          revision:S.revision, historialRevisiones:S.historialRevisiones, nRegistro:S.nRegistro
+          revision:S.revision, historialRevisiones:S.historialRevisiones, nRegistro:S.nRegistro,
+          fechaCompletadaLocal:new Date().toISOString()
         }));
       } catch(le) { console.warn('localStorage save failed:', le.message); }
       location.href="resultado.html?id="+inspeccionId;
