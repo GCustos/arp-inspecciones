@@ -554,6 +554,7 @@
     if (obj !== null && typeof obj === 'object') {
       const clean = {};
       for (const k of Object.keys(obj)) {
+        if (k === 'dataUrl') continue;
         const v = obj[k];
         if (v === undefined || v === null) {
           clean[k] = "";
@@ -567,6 +568,69 @@
     }
     if (obj === undefined || obj === null) return "";
     return obj;
+  }
+
+  // ── INDEXEDDB — sala de espera offline para fotos ──
+  const FOTO_DB_NAME = 'arpFotosDB';
+  const FOTO_STORE = 'fotosPendientes';
+  let _fotosDB = null;
+
+  function abrirFotosDB() {
+    if (_fotosDB) return Promise.resolve(_fotosDB);
+    return new Promise(function(resolve, reject) {
+      var req = indexedDB.open(FOTO_DB_NAME, 1);
+      req.onupgradeneeded = function() { req.result.createObjectStore(FOTO_STORE); };
+      req.onsuccess = function() { _fotosDB = req.result; resolve(_fotosDB); };
+      req.onerror = function() { reject(req.error); };
+    });
+  }
+
+  function guardarFotoLocal(key, dataUrl, storagePath) {
+    return abrirFotosDB().then(function(db) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction(FOTO_STORE, 'readwrite');
+        tx.objectStore(FOTO_STORE).put({ dataUrl: dataUrl, storagePath: storagePath }, key);
+        tx.oncomplete = function() { resolve(); };
+        tx.onerror = function() { reject(tx.error); };
+      });
+    });
+  }
+
+  function leerFotoLocal(key) {
+    return abrirFotosDB().then(function(db) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction(FOTO_STORE, 'readonly');
+        var req = tx.objectStore(FOTO_STORE).get(key);
+        req.onsuccess = function() { resolve(req.result || null); };
+        req.onerror = function() { reject(req.error); };
+      });
+    });
+  }
+
+  function borrarFotoLocal(key) {
+    return abrirFotosDB().then(function(db) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction(FOTO_STORE, 'readwrite');
+        tx.objectStore(FOTO_STORE).delete(key);
+        tx.oncomplete = function() { resolve(); };
+        tx.onerror = function() { reject(tx.error); };
+      });
+    });
+  }
+
+  function generarFotoKey() {
+    return 'foto_' + inspeccionId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+  }
+
+  // Carga lazy de fotos pendientes desde IndexedDB en elementos <img data-localkey>
+  function cargarFotosPendientesUI() {
+    document.querySelectorAll('img[data-localkey]').forEach(function(img) {
+      var key = img.dataset.localkey;
+      if (!key || img.src.startsWith('data:')) return;
+      leerFotoLocal(key).then(function(data) {
+        if (data && data.dataUrl) img.src = data.dataUrl;
+      }).catch(function() {});
+    });
   }
 
   // FIX: Comprimir imagen antes de guardar
@@ -588,8 +652,14 @@
   // Guarda base64 en IndexedDB (Firestore) offline, sube a Storage cuando conecta
   async function uploadFotoToStorage(dataUrl, path) {
     if (!navigator.onLine) {
-      // Offline: devolver dataUrl para guardar en Firestore temporalmente
-      return { url: dataUrl, pendiente: true };
+      var key = generarFotoKey();
+      try {
+        await guardarFotoLocal(key, dataUrl, path);
+        return { localKey: key, pendiente: true };
+      } catch(e) {
+        console.warn('IndexedDB save failed, falling back to inline:', e.message);
+        return { url: dataUrl, pendiente: true };
+      }
     }
     try {
       const ref = storage.ref(path);
@@ -597,49 +667,69 @@
       const url = await ref.getDownloadURL();
       return { url, pendiente: false };
     } catch(e) {
-      console.warn('Storage upload failed, using base64:', e.message);
-      return { url: dataUrl, pendiente: true };
+      console.warn('Storage upload failed, saving to IndexedDB:', e.message);
+      var key = generarFotoKey();
+      try {
+        await guardarFotoLocal(key, dataUrl, path);
+        return { localKey: key, pendiente: true };
+      } catch(e2) {
+        return { url: dataUrl, pendiente: true };
+      }
     }
   }
 
-  // Subir fotos pendientes (base64) a Storage cuando hay conexión
+  async function subirFotoPendiente(f, fallbackPath) {
+    if (!f.pendiente) return null;
+    var dataUrl = null;
+    var path = fallbackPath;
+    if (f.localKey) {
+      var local = await leerFotoLocal(f.localKey).catch(function() { return null; });
+      if (!local || !local.dataUrl) return null;
+      dataUrl = local.dataUrl;
+      path = local.storagePath || fallbackPath;
+    } else if (f.url && f.url.startsWith('data:')) {
+      dataUrl = f.url;
+    }
+    if (!dataUrl) return null;
+    try {
+      var ref = storage.ref(path);
+      await ref.putString(dataUrl, 'data_url');
+      var url = await ref.getDownloadURL();
+      if (f.localKey) await borrarFotoLocal(f.localKey).catch(function() {});
+      return { url: url, name: f.name || 'foto.jpg', pendiente: false };
+    } catch(e) { return null; }
+  }
+
   async function sincronizarFotosPendientes() {
     if (!navigator.onLine || !inspeccionId) return;
-    let cambios = false;
+    var cambios = false;
 
-    // Fotos generales
-    for (let i = 0; i < S.fotos.length; i++) {
-      const f = S.fotos[i];
-      if (f.pendiente && f.url && f.url.startsWith('data:')) {
-        const r = await uploadFotoToStorage(f.url, `inspecciones/${inspeccionId}/general/${Date.now()}_${i}.jpg`);
-        if (!r.pendiente) { S.fotos[i] = { url: r.url, name: f.name, pendiente: false }; cambios = true; }
-      }
+    for (var i = 0; i < S.fotos.length; i++) {
+      var r = await subirFotoPendiente(S.fotos[i], 'inspecciones/' + inspeccionId + '/general/' + Date.now() + '_' + i + '.jpg');
+      if (r) { S.fotos[i] = r; cambios = true; }
     }
-    // Fotos por juego
-    for (let ci = 0; ci < S.circuitos.length; ci++) {
-      for (let ji = 0; ji < (S.circuitos[ci].juegos||[]).length; ji++) {
-        const fotos = S.circuitos[ci].juegos[ji].fotos || [];
-        for (let fi = 0; fi < fotos.length; fi++) {
-          const f = fotos[fi];
-          if (f.pendiente && f.url && f.url.startsWith('data:')) {
-            const r = await uploadFotoToStorage(f.url, `inspecciones/${inspeccionId}/juegos/${ci}_${ji}/${Date.now()}_${fi}.jpg`);
-            if (!r.pendiente) { S.circuitos[ci].juegos[ji].fotos[fi] = { url: r.url, name: f.name, pendiente: false }; cambios = true; }
-          }
+    for (var ci = 0; ci < S.circuitos.length; ci++) {
+      for (var ji = 0; ji < (S.circuitos[ci].juegos || []).length; ji++) {
+        var fotos = S.circuitos[ci].juegos[ji].fotos || [];
+        for (var fi = 0; fi < fotos.length; fi++) {
+          var r = await subirFotoPendiente(fotos[fi], 'inspecciones/' + inspeccionId + '/juegos/' + ci + '_' + ji + '/' + Date.now() + '_' + fi + '.jpg');
+          if (r) { S.circuitos[ci].juegos[ji].fotos[fi] = r; cambios = true; }
         }
       }
     }
-    // Fotos NCs
-    for (let ni = 0; ni < S.ncs.length; ni++) {
-      const fotsD = S.ncs[ni].fotosDefecto || [];
-      for (let fi = 0; fi < fotsD.length; fi++) {
-        const f = fotsD[fi];
-        if (f.pendiente && f.url && f.url.startsWith('data:')) {
-          const r = await uploadFotoToStorage(f.url, `inspecciones/${inspeccionId}/ncs/${ni}/${Date.now()}_${fi}.jpg`);
-          if (!r.pendiente) { S.ncs[ni].fotosDefecto[fi] = { url: r.url, name: f.name, pendiente: false }; cambios = true; }
-        }
+    for (var ni = 0; ni < S.ncs.length; ni++) {
+      var fotsD = S.ncs[ni].fotosDefecto || [];
+      for (var fi = 0; fi < fotsD.length; fi++) {
+        var r = await subirFotoPendiente(fotsD[fi], 'inspecciones/' + inspeccionId + '/ncs/' + ni + '/defecto_' + Date.now() + '_' + fi + '.jpg');
+        if (r) { S.ncs[ni].fotosDefecto[fi] = r; cambios = true; }
+      }
+      var fotsC = S.ncs[ni].fotosCorreccion || [];
+      for (var fi2 = 0; fi2 < fotsC.length; fi2++) {
+        var r = await subirFotoPendiente(fotsC[fi2], 'inspecciones/' + inspeccionId + '/ncs/' + ni + '/correccion_' + Date.now() + '_' + fi2 + '.jpg');
+        if (r) { S.ncs[ni].fotosCorreccion[fi2] = r; cambios = true; }
       }
     }
-    if (cambios) { markDirty(); guardarSilencioso(); }
+    if (cambios) { markDirty(); guardarSilencioso(); renderFotos(); renderCircuitos(); renderNCs(); }
   }
 
   // Intentar sincronizar al recuperar conexión
@@ -700,6 +790,7 @@
       actualizarEstado(data.estado||"borrador");
       if(!S.circuitos.length&&data.nombreInstalacion) buscarCircuitosAnteriores(data.nombreInstalacion);
       renderGen(); renderCircuitos(); renderNCs(); renderFotos(); renderEquipos();
+      setTimeout(cargarFotosPendientesUI, 100);
       document.getElementById("obsGral").value=S.obsGral;
       document.getElementById("ensayos").value=S.ensayos;
       if(S.estado==='completada') aplicarBloqueo();
@@ -1092,7 +1183,7 @@
     const g=document.getElementById('modalFotosGrid');
     g.innerHTML=j.fotos.map((f,i)=>`
       <div class="foto-thumb">
-        <img src="${f.url||f.dataUrl||''}" alt="foto ${i+1}">
+        <img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="foto ${i+1}">
         <button class="foto-del" onclick="delFotoJuego(${i})">&#215;</button>
       </div>`).join("");
   }
@@ -1108,7 +1199,7 @@
           // Intentar subir a Storage, si falla guardar base64 como pendiente
           uploadFotoToStorage(compressed, `inspecciones/${inspeccionId}/juegos/${ci}_${ji}/${Date.now()}.jpg`)
             .then(r => {
-              S.circuitos[ci].juegos[ji].fotos.push({url: r.url, name:String(f.name||'foto.jpg'), pendiente: r.pendiente});
+              S.circuitos[ci].juegos[ji].fotos.push(Object.assign({}, r, {name:String(f.name||'foto.jpg')}));
               renderModalFotos(); markDirty();
             });
         });
@@ -1267,7 +1358,7 @@
             <div class="foto-grid">
               ${(nc.fotosCorreccion||[]).map((f,fi)=>`
                 <div class="foto-thumb">
-                  <img src="${f.url||f.dataUrl||''}" alt="corrección ${fi+1}">
+                  <img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="corrección ${fi+1}">
                   <button class="foto-del" onclick="S.ncs[${i}].fotosCorreccion.splice(${fi},1);renderNCs();markDirty()">&#215;</button>
                 </div>`).join('')}
             </div>
@@ -1290,8 +1381,8 @@
       comprimirImagen(e.target.result, compressed=>{
         const path=`inspecciones/${inspeccionId}/correccion/${S.ncs[i].autoId||'manual'}_${Date.now()}.jpg`;
         uploadFotoToStorage(compressed, path).then(res=>{
-          S.ncs[i].fotosCorreccion.push({url:res.url,name:String(f.name||'foto.jpg'),pendiente:res.pendiente});
-          renderNCs(); markDirty();
+          S.ncs[i].fotosCorreccion.push(Object.assign({},res,{name:String(f.name||'foto.jpg')}));
+          renderNCs(); markDirty(); setTimeout(cargarFotosPendientesUI, 50);
         });
       });
     };
@@ -1310,8 +1401,8 @@
         comprimirImagen(e.target.result, compressed=>{
           uploadFotoToStorage(compressed, `inspecciones/${inspeccionId}/general/${Date.now()}.jpg`)
             .then(r => {
-              S.fotos.push({url: r.url, name:String(f.name||'foto.jpg'), pendiente: r.pendiente});
-              renderFotos(); markDirty();
+              S.fotos.push(Object.assign({}, r, {name:String(f.name||'foto.jpg')}));
+              renderFotos(); markDirty(); setTimeout(cargarFotosPendientesUI, 50);
             });
         });
       };
@@ -1323,7 +1414,7 @@
     const g=document.getElementById("fotoGrid");
     g.innerHTML=S.fotos.map((f,i)=>`
       <div class="foto-thumb">
-        <img src="${f.url||f.dataUrl||''}" alt="foto ${i+1}">
+        <img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="foto ${i+1}">
         <button class="foto-del" onclick="S.fotos.splice(${i},1);renderFotos();markDirty()">&#215;</button>
       </div>`).join("");
   }
@@ -1425,7 +1516,7 @@
         comprimirImagen(e.target.result, compressed => {
           uploadFotoToStorage(compressed, `inspecciones/${inspeccionId}/ncs/temp_${Date.now()}.jpg`)
             .then(result => {
-              modalNCFotos.push({url: result.url, dataUrl: compressed, name: String(f.name||'foto.jpg'), pendiente: result.pendiente});
+              modalNCFotos.push(Object.assign({}, result, {dataUrl: compressed, name: String(f.name||'foto.jpg')}));
               renderModalNCFotos();
             });
         });

@@ -558,8 +558,36 @@ Documentos realizados en el informe de inspecci√≥n por ADELL RIESGOS Y PREVENCI√
 
 
   // Helper: load image URL as base64 for jsPDF
-  function loadImageAsBase64(url) {
+  // IndexedDB helpers para leer fotos pendientes (copia ligera de inspeccion.html)
+  var _fotosDB_res = null;
+  function abrirFotosDB_res() {
+    if (_fotosDB_res) return Promise.resolve(_fotosDB_res);
+    return new Promise(function(resolve, reject) {
+      var req = indexedDB.open('arpFotosDB', 1);
+      req.onupgradeneeded = function() { req.result.createObjectStore('fotosPendientes'); };
+      req.onsuccess = function() { _fotosDB_res = req.result; resolve(_fotosDB_res); };
+      req.onerror = function() { reject(req.error); };
+    });
+  }
+  function leerFotoLocal_res(key) {
+    return abrirFotosDB_res().then(function(db) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction('fotosPendientes', 'readonly');
+        var req = tx.objectStore('fotosPendientes').get(key);
+        req.onsuccess = function() { resolve(req.result || null); };
+        req.onerror = function() { reject(req.error); };
+      });
+    });
+  }
+
+  function loadImageAsBase64(url, localKey) {
     return new Promise((resolve) => {
+      if (localKey) {
+        leerFotoLocal_res(localKey).then(function(data) {
+          resolve(data && data.dataUrl ? data.dataUrl : null);
+        }).catch(function() { resolve(null); });
+        return;
+      }
       if (!url || url.startsWith('data:')) { resolve(url); return; }
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -579,22 +607,14 @@ Documentos realizados en el informe de inspecci√≥n por ADELL RIESGOS Y PREVENCI√
     // Fotos generales
     const fotos = data.fotos || [];
     for (let i = 0; i < fotos.length; i++) {
-      if (fotos[i].url && !fotos[i].url.startsWith('data:')) {
-        fotos[i].dataUrl = await loadImageAsBase64(fotos[i].url);
-      } else {
-        fotos[i].dataUrl = fotos[i].dataUrl || fotos[i].url;
-      }
+      fotos[i].dataUrl = await loadImageAsBase64(fotos[i].url, fotos[i].localKey);
     }
     // Fotos por juego
     for (const circ of (data.circuitos || [])) {
       for (const j of (circ.juegos || [])) {
         for (let i = 0; i < (j.fotos || []).length; i++) {
           const f = j.fotos[i];
-          if (f.url && !f.url.startsWith('data:')) {
-            j.fotos[i].dataUrl = await loadImageAsBase64(f.url);
-          } else {
-            j.fotos[i].dataUrl = f.dataUrl || f.url;
-          }
+          j.fotos[i].dataUrl = await loadImageAsBase64(f.url, f.localKey);
         }
       }
     }
@@ -603,11 +623,7 @@ Documentos realizados en el informe de inspecci√≥n por ADELL RIESGOS Y PREVENCI√
       for (const arr of [nc.fotosDefecto || [], nc.fotosCorreccion || []]) {
         for (let i = 0; i < arr.length; i++) {
           const f = arr[i];
-          if (f.url && !f.url.startsWith('data:')) {
-            arr[i].dataUrl = await loadImageAsBase64(f.url);
-          } else {
-            arr[i].dataUrl = f.dataUrl || f.url;
-          }
+          arr[i].dataUrl = await loadImageAsBase64(f.url, f.localKey);
         }
       }
     }
