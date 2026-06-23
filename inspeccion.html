@@ -322,17 +322,7 @@
       <div id="ncList"></div>
       <button class="btn-add-nc" onclick="addNC()">&#43; Añadir no conformidad</button>
     </div>
-    <div class="card">
-      <div class="card-title">Fotos del informe</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:4px">Fotos generales de la instalación para el informe PDF.</p>
-      <div class="foto-grid" id="fotoGrid"></div>
-      <div class="foto-add-row">
-        <button class="btn-foto" onclick="document.getElementById('fileInputCam').click()">&#128247; Cámara</button>
-        <button class="btn-foto" onclick="document.getElementById('fileInputGal').click()">&#128444; Galería</button>
-      </div>
-      <input type="file" id="fileInputCam" accept="image/*" capture="environment" multiple style="display:none" onchange="handleFotos(this)">
-      <input type="file" id="fileInputGal" accept="image/*" multiple style="display:none" onchange="handleFotos(this)">
-    </div>
+    <!-- Fotos del informe eliminadas: las fotos van en cada juego y NC -->
     <div class="card">
       <div class="card-title">Ensayos no realizados</div>
       <div class="f">
@@ -626,19 +616,8 @@
     });
   }
 
-  function generarFotoKey() {
+  function generarLocalKey() {
     return 'foto_' + inspeccionId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-  }
-
-  // Carga lazy de fotos pendientes desde IndexedDB en elementos <img data-localkey>
-  function cargarFotosPendientesUI() {
-    document.querySelectorAll('img[data-localkey]').forEach(function(img) {
-      var key = img.dataset.localkey;
-      if (!key || img.src.startsWith('data:')) return;
-      leerFotoLocal(key).then(function(data) {
-        if (data && data.dataUrl) img.src = data.dataUrl;
-      }).catch(function() {});
-    });
   }
 
   // FIX: Comprimir imagen antes de guardar
@@ -660,7 +639,7 @@
   // Guarda base64 en IndexedDB (Firestore) offline, sube a Storage cuando conecta
   async function uploadFotoToStorage(dataUrl, path) {
     if (!navigator.onLine) {
-      var key = generarFotoKey();
+      var key = generarLocalKey();
       try {
         await guardarFotoLocal(key, dataUrl, path);
         return { localKey: key, pendiente: true };
@@ -676,7 +655,7 @@
       return { url, pendiente: false };
     } catch(e) {
       console.warn('Storage upload failed, saving to IndexedDB:', e.message);
-      var key = generarFotoKey();
+      var key = generarLocalKey();
       try {
         await guardarFotoLocal(key, dataUrl, path);
         return { localKey: key, pendiente: true };
@@ -1351,7 +1330,7 @@
           <div class="f"><label>Tipo de no conformidad</label>
             <select onchange="S.ncs[${i}].tipo=this.value;markDirty();renderNCs()">
               <option value="">&#8212; Selecciona &#8212;</option>
-              ${["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente"].map(t=>`<option ${nc.tipo===t?'selected':''}>${t}</option>`).join('')}
+              ${["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente","Riesgo de atrapamiento"].map(t=>`<option ${nc.tipo===t?'selected':''}>${t}</option>`).join('')}
             </select>
           </div>
           <div class="f"><label>Elemento afectado</label>
@@ -1370,7 +1349,7 @@
           </div>
           <div class="nc-close-box">
             <div class="nc-close-row">
-              <input type="checkbox" id="ncCerrada${i}" ${nc.cerrada?'checked':''} onchange="S.ncs[${i}].cerrada=this.checked;markDirty();renderNCs()">
+              <input type="checkbox" id="ncCerrada${i}" ${nc.cerrada?'checked':''} onchange="cerrarNC(${i},this.checked)">
               <label for="ncCerrada${i}" style="margin:0">NC corregida y cerrada</label>
             </div>
             <label>Resolución / corrección aplicada</label>
@@ -1394,6 +1373,20 @@
           </div>
         </div>`;
     }).join("");
+  }
+
+  function cerrarNC(i,cerrada){
+    S.ncs[i].cerrada=cerrada;
+    // Auto-cambiar check del juego a S si la NC se cierra (y era de un juego)
+    var aid=S.ncs[i].autoId||'';
+    if(cerrada&&aid.startsWith('j_')){
+      var parts=aid.split('_');
+      var ci=parseInt(parts[1]),ji=parseInt(parts[2]),col=parts[3];
+      if(S.circuitos[ci]&&S.circuitos[ci].juegos[ji]&&col){
+        S.circuitos[ci].juegos[ji][col]='S';
+      }
+    }
+    markDirty(); renderNCs(); renderCircuitos();
   }
 
   function handleFotoCorreccion(inp,i){
@@ -1511,6 +1504,25 @@
       if (inp) inp.value = S.horaFin;
     }
     autoCapturarHoraInicio();
+    // Validar fotos de juegos
+    var juegosSinFoto=[];
+    S.circuitos.forEach(function(c,ci){
+      (c.juegos||[]).forEach(function(j,ji){
+        if(!(j.fotos&&j.fotos.length)) juegosSinFoto.push(c.nombre+" — "+(j.nombre||"Juego "+(ji+1)));
+      });
+    });
+    if(juegosSinFoto.length){
+      goTab(2);
+      alert("Faltan fotos en "+juegosSinFoto.length+" juego(s):\n"+juegosSinFoto.slice(0,5).join("\n")+(juegosSinFoto.length>5?"\n...y "+(juegosSinFoto.length-5)+" más":""));
+      return;
+    }
+    // Validar fotos de NC (al menos 1 foto de defecto por NC no cerrada)
+    var ncsSinFoto=S.ncs.filter(function(n,i){ return !n.cerrada&&n.prio&&n.prio!=="OBSERVACION"&&!(n.fotosDefecto&&n.fotosDefecto.length); });
+    if(ncsSinFoto.length){
+      goTab(3);
+      alert("Hay "+ncsSinFoto.length+" no conformidad(es) sin foto de defecto. Añade al menos una foto antes de completar.");
+      return;
+    }
     const incompletas=S.ncs.filter(n=>!n.tipo||!n.prio);
     if(incompletas.length){
       goTab(3);

@@ -109,6 +109,7 @@
 <div class="screen" id="loadingScreen" style="display:flex">
   <div class="spinner"></div>
   <div style="font-size:14px;color:var(--muted)">Verificando acceso...</div>
+  <button onclick="logout()" style="margin-top:20px;background:none;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer">Cerrar sesi&#243;n</button>
 </div>
 
 <div class="screen" id="deniedScreen">
@@ -127,7 +128,7 @@
         <div class="hdr-sub">ARP Prevención S.L.</div>
       </div>
     </div>
-    <img class="user-avatar-small" id="headerAvatar" src="" alt="" onclick="toggleMenu()" onerror="this.style.display='none'">
+    <div id="headerAvatar" onclick="toggleMenu()" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--gold);background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;cursor:pointer" title="Menú"></div>
   </div>
   <div class="user-menu" id="userMenu">
     <div class="menu-item" id="menuName" style="font-weight:600;cursor:default"></div>
@@ -328,10 +329,12 @@
 
   function mostrarApp(user, ud) {
     show('appScreen');
-    document.getElementById('headerAvatar').src = (user.photoURL || '');
-    document.getElementById('welcomeName').textContent = ud.nombre || user.displayName || user.email || '';
+    var nombre = ud.nombre || user.displayName || user.email || '';
+    var iniciales = nombre.split(' ').map(function(p){return p[0]||'';}).join('').slice(0,2).toUpperCase() || '?';
+    document.getElementById('headerAvatar').textContent = iniciales;
+    document.getElementById('welcomeName').textContent = nombre;
     document.getElementById('welcomeRole').textContent = ud.rol || 'inspector';
-    document.getElementById('menuName').textContent = ud.nombre || user.displayName || '';
+    document.getElementById('menuName').textContent = nombre;
     document.getElementById('menuEmail').textContent = user.email || '';
     if (ud.rol === 'admin') document.getElementById('adminCard').style.display = 'flex';
   }

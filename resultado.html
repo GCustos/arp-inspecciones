@@ -1568,7 +1568,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.text('N° SERIE/N° EQUIPO', ML+CW*0.75, y+4.5, {align:'center'});
       y += 7;
 
-      const equipos = D.equiposUsados || [];
+      const equipos = D.equiposMedicion || D.equiposUsados || [];
       const equiposMedicion = equipos.filter(e => !e.tipo?.toLowerCase().includes('epi') && !e.tipo?.toLowerCase().includes('arnes'));
       for (let i=0; i<Math.max(5, equiposMedicion.length); i++) {
         const eq = equiposMedicion[i] || {};
