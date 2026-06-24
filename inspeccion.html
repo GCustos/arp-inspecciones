@@ -458,7 +458,7 @@
   let miRol=null; // rol del usuario actual: admin/director/inspector
   let todosInspectoresRev=[]; // cache para selector de reapertura
 
-  const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], fotos:[], ensayos:"", equiposMedicion:[], revision:0, historialRevisiones:[], nRegistro:"", codigoInstalacion:"", tipoAlcance:"", estado:"borrador", fechaInspeccion:"", horaInicio:"", horaFin:"" };
+  const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], ensayos:"", equiposMedicion:[], revision:0, historialRevisiones:[], nRegistro:"", codigoInstalacion:"", tipoAlcance:"", estado:"borrador", fechaInspeccion:"", horaInicio:"", horaFin:"" };
 
   const GEN_ITEMS = [
     {id:"g1",ref:"4.1",sec:"Selección de Lugar y Entorno",desc:"Evacuación posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosión)."},
@@ -701,10 +701,7 @@
     if (!navigator.onLine || !inspeccionId) return;
     var cambios = false;
 
-    for (var i = 0; i < S.fotos.length; i++) {
-      var r = await subirFotoPendiente(S.fotos[i], 'inspecciones/' + inspeccionId + '/general/' + Date.now() + '_' + i + '.jpg');
-      if (r) { S.fotos[i] = r; cambios = true; }
-    }
+    // fotos generales eliminadas
     for (var ci = 0; ci < S.circuitos.length; ci++) {
       for (var ji = 0; ji < (S.circuitos[ci].juegos || []).length; ji++) {
         var fotos = S.circuitos[ci].juegos[ji].fotos || [];
@@ -726,7 +723,7 @@
         if (r) { S.ncs[ni].fotosCorreccion[fi2] = r; cambios = true; }
       }
     }
-    if (cambios) { markDirty(); guardarSilencioso(); renderFotos(); renderCircuitos(); renderNCs(); }
+    if (cambios) { markDirty(); guardarSilencioso(); renderCircuitos(); renderNCs(); }
   }
 
   // Intentar sincronizar al recuperar conexión
@@ -768,7 +765,7 @@
       if(data.obsGral) S.obsGral=data.obsGral;
       if(data.circuitos) S.circuitos=data.circuitos;
       if(data.ncs) S.ncs=data.ncs;
-      if(data.fotos) S.fotos=data.fotos;
+      // fotos generales eliminadas — las fotos van en juegos y NCs
       if(data.ensayos) S.ensayos=data.ensayos;
       S.revision=data.revision!==undefined?data.revision:0;
       S.historialRevisiones=data.historialRevisiones||[];
@@ -789,7 +786,7 @@
       document.getElementById("hdrSub").textContent=(data.tipoAlcance||"PAA")+" · "+(data.tipoInspeccion||"")+" · "+(data.inspectorNombre||"");
       actualizarEstado(data.estado||"borrador");
       if(!S.circuitos.length&&data.nombreInstalacion) buscarCircuitosAnteriores(data.nombreInstalacion);
-      renderGen(); renderCircuitos(); renderNCs(); renderFotos(); renderEquipos();
+      renderGen(); renderCircuitos(); renderNCs(); renderEquipos();
       setTimeout(cargarFotosPendientesUI, 100);
       document.getElementById("obsGral").value=S.obsGral;
       document.getElementById("ensayos").value=S.ensayos;
@@ -1473,31 +1470,7 @@
   function delNC(i){ S.ncs.splice(i,1); markDirty(); renderNCs(); }
 
   // FOTOS GENERALES — FIX: comprimir
-  function handleFotos(inp){
-    Array.from(inp.files).forEach(f=>{
-      const r=new FileReader();
-      r.onload=e=>{
-        comprimirImagen(e.target.result, compressed=>{
-          uploadFotoToStorage(compressed, `inspecciones/${inspeccionId}/general/${Date.now()}.jpg`)
-            .then(r => {
-              S.fotos.push(Object.assign({}, r, {name:String(f.name||'foto.jpg')}));
-              renderFotos(); markDirty(); setTimeout(cargarFotosPendientesUI, 50);
-            });
-        });
-      };
-      r.readAsDataURL(f);
-    });
-    inp.value="";
-  }
-  function renderFotos(){
-    var g=document.getElementById("fotoGrid");
-    if(!g) return;
-    g.innerHTML=S.fotos.map((f,i)=>`
-      <div class="foto-thumb">
-        <img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="foto ${i+1}">
-        <button class="foto-del" onclick="S.fotos.splice(${i},1);renderFotos();markDirty()">&#215;</button>
-      </div>`).join("");
-  }
+  // handleFotos y renderFotos eliminados — fotos generales ya no existen
 
   // GUARDAR / COMPLETAR
   function markDirty(){ isDirty=true; }
@@ -1510,8 +1483,7 @@
       obsGral:document.getElementById("obsGral").value||"",
       circuitos:S.circuitos,
       ncs:S.ncs,
-      fotos:S.fotos,
-      ensayos:document.getElementById("ensayos").value||"",
+            ensayos:document.getElementById("ensayos").value||"",
       equiposMedicion:S.equiposMedicion,
       fechaInspeccion:S.fechaInspeccion,
       horaInicio:S.horaInicio,
@@ -1617,8 +1589,7 @@
           id:inspeccionId, resultado, estado:'completada',
           checklist:S.gen, checklistObs:S.genObs,
           obsGral:document.getElementById('obsGral').value||'',
-          circuitos:S.circuitos, ncs:S.ncs, fotos:S.fotos,
-          ensayos:document.getElementById('ensayos').value||'',
+          circuitos:S.circuitos, ncs:S.ncs,           ensayos:document.getElementById('ensayos').value||'',
           equiposMedicion:S.equiposMedicion,
           revision:S.revision, historialRevisiones:S.historialRevisiones, nRegistro:S.nRegistro,
           fechaCompletadaLocal:new Date().toISOString()
