@@ -620,6 +620,16 @@
     return 'foto_' + inspeccionId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
   }
 
+  function cargarFotosPendientesUI() {
+    document.querySelectorAll('img[data-localkey]').forEach(function(img) {
+      var key = img.dataset.localkey;
+      if (!key || img.src.startsWith('data:')) return;
+      leerFotoLocal(key).then(function(data) {
+        if (data && data.dataUrl) img.src = data.dataUrl;
+      }).catch(function() {});
+    });
+  }
+
   // FIX: Comprimir imagen antes de guardar
   function comprimirImagen(dataUrl, callback, maxWidth=1200, quality=0.72) {
     const img = new Image();
