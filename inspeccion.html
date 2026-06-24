@@ -1376,6 +1376,18 @@
   }
 
   function cerrarNC(i,cerrada){
+    if(cerrada){
+      var nc=S.ncs[i];
+      var faltan=[];
+      if(!(nc.fotosCorreccion&&nc.fotosCorreccion.length)) faltan.push('foto de corrección');
+      if(!nc.fechaCorreccion) faltan.push('fecha de corrección');
+      if(!nc.resolucion||!nc.resolucion.trim()) faltan.push('texto de resolución');
+      if(faltan.length){
+        alert('Para cerrar esta NC falta:\n— '+faltan.join('\n— '));
+        document.getElementById('ncCerrada'+i).checked=false;
+        return;
+      }
+    }
     S.ncs[i].cerrada=cerrada;
     // Auto-cambiar check del juego a S si la NC se cierra (y era de un juego)
     var aid=S.ncs[i].autoId||'';
