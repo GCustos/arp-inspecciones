@@ -367,7 +367,17 @@
     doc.setTextColor(...GOLD); doc.setFont('helvetica','bold');
     doc.text(refStr, PW/2, PH-7, {align:'center'});
     doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-    doc.text(`Página ${pg} de ${tot}`, PW-MR, PH-7, {align:'right'});
+    doc.text(`Página ${pg}`, PW-MR, PH-7, {align:'right'});
+  }
+
+  function estamparTotalPaginas(doc, totalReal) {
+    for (var p = 1; p <= totalReal; p++) {
+      doc.setPage(p);
+      doc.setFillColor(255,255,255);
+      doc.rect(PW-MR-30, PH-10, 30, 5, 'F');
+      doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      doc.text('Página ' + p + ' de ' + totalReal, PW-MR, PH-7, {align:'right'});
+    }
   }
 
   // Pie de portada
@@ -642,15 +652,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       const fmtRev = D.formatoDocumento?.revision || CONFIG?.paa?.formatoRevision || 9;
       const fmtFechaStr = D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '26/02/2026';
 
-      // Calcular total páginas aproximado
-      // Fijas: Portada+Índice+Datos+Metod+Mant+Result+Desc+General+Circ+Anexos+Caract = 11
-      // Variables: fotos descripción extra (1 por cada 9 juegos adicionales) + páginas NCs
-      const ncsCount = (D.ncs||[]).length;
-      const nJuegos = (D.circuitos||[]).reduce((s,c)=>s+(c.juegos||[]).length,0);
-      const nFotoPages = Math.max(0, Math.ceil(nJuegos / 9) - 1);
-      const ncPages = ncsCount > 0 ? 1 + Math.floor((ncsCount - 1) / 2) : 0;
-      const estPags = 11 + nFotoPages + ncPages;
-      const totPag = [Math.max(estPags, 12)];
+      const totPag = [0]; // se calcula al final con doc.getNumberOfPages()
       const nPag = [0];
 
       // ═══ PÁGINA 1: PORTADA ═══
@@ -1378,6 +1380,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       // El total es aproximado — en producción se haría en 2 pasadas
 
       // Guardar
+      estamparTotalPaginas(doc, doc.getNumberOfPages());
       const fileName = (ref.replace(/\//g,'_').replace(/\s/g,'_') || 'informe') + '.pdf';
       doc.save(fileName);
 
