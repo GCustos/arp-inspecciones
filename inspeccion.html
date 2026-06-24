@@ -1237,6 +1237,7 @@
     document.getElementById('modalNCTipoLibreWrap').style.display='none';
     document.getElementById('modalNCObs').value='';
     document.getElementById('modalNCNorma').value='UNE-EN 15567-1:2015+A1:2021';
+    document.getElementById('modalNCErr').textContent='Debes seleccionar el tipo y la gravedad.';
     document.getElementById('modalNCErr').classList.remove('vis');
     document.getElementById('modalNCFotoWrap').style.display='none';
     document.getElementById('modalNCFotoPreview').innerHTML='';
@@ -1283,6 +1284,11 @@
     const norma=document.getElementById('modalNCNorma').value.trim();
 
     if(!tipo||!modalNCPrio){
+      document.getElementById('modalNCErr').classList.add('vis');
+      return;
+    }
+    if(!modalNCFotos.length){
+      document.getElementById('modalNCErr').textContent='Añade al menos una foto del defecto.';
       document.getElementById('modalNCErr').classList.add('vis');
       return;
     }
@@ -1357,6 +1363,22 @@
               ${["GRAVE","MEDIA","LEVE","DOCUMENTAL","OBSERVACION"].map(p=>`<button class="prio-btn ${nc.prio===p?'p-'+p:''}" onclick="S.ncs[${i}].prio='${p}';markDirty();renderNCs()">${p}</button>`).join("")}
             </div>
           </div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)">
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px">Fotos del defecto</label>
+            <div class="foto-grid">
+              ${(nc.fotosDefecto||[]).map((f,fi)=>`
+                <div class="foto-thumb">
+                  <img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="defecto ${fi+1}">
+                  <button class="foto-del" onclick="S.ncs[${i}].fotosDefecto.splice(${fi},1);renderNCs();markDirty()">&#215;</button>
+                </div>`).join('')}
+            </div>
+            <div class="foto-add-row">
+              <button class="btn-foto" onclick="document.getElementById('ncDefCam${i}').click()">&#128247; Cámara</button>
+              <button class="btn-foto" onclick="document.getElementById('ncDefGal${i}').click()">&#128444; Galería</button>
+            </div>
+            <input type="file" id="ncDefCam${i}" accept="image/*" capture="environment" style="display:none" onchange="handleFotoDefecto(this,${i})">
+            <input type="file" id="ncDefGal${i}" accept="image/*" style="display:none" onchange="handleFotoDefecto(this,${i})">
+          </div>
           <div class="nc-close-box">
             <div class="nc-close-row">
               <input type="checkbox" id="ncCerrada${i}" ${nc.cerrada?'checked':''} onchange="cerrarNC(${i},this.checked)">
@@ -1409,6 +1431,24 @@
       }
     }
     markDirty(); renderNCs(); renderCircuitos();
+  }
+
+  function handleFotoDefecto(inp,i){
+    var f=inp.files[0];
+    if(!f) return;
+    var r=new FileReader();
+    r.onload=function(e){
+      comprimirImagen(e.target.result, function(compressed){
+        var path='inspecciones/'+inspeccionId+'/ncs/'+(S.ncs[i].autoId||'manual')+'_defecto_'+Date.now()+'.jpg';
+        uploadFotoToStorage(compressed, path).then(function(res){
+          if(!S.ncs[i].fotosDefecto) S.ncs[i].fotosDefecto=[];
+          S.ncs[i].fotosDefecto.push({url:res.url,localKey:res.localKey,name:String(f.name||'foto.jpg'),pendiente:res.pendiente});
+          renderNCs(); markDirty(); setTimeout(cargarFotosPendientesUI,50);
+        });
+      });
+    };
+    r.readAsDataURL(f);
+    inp.value="";
   }
 
   function handleFotoCorreccion(inp,i){
