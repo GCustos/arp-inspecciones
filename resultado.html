@@ -954,9 +954,6 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           col++;
         }
         y = rowY + imgH + 12;
-
-        doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(...GOLD);
-        doc.text(ref, PW/2, y, {align:'center'}); y += 8;
       }
 
 
@@ -1083,7 +1080,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         const vGlobal = hayN?'N':allNA?'NA':allS?'S':'S';
 
         const ncsDelCol = (D.ncs||[]).filter(n => n.autoId && n.autoId.includes('_'+col.key));
-        const notaCol = ncsDelCol.map((n,i)=>`${i+1}. ${n.elem||''}`).join(' ');
+        const notaCol = ncsDelCol.map((n,i)=>`${i+1}. ${n.elem||''}${n.desc?' — '+n.desc:''}`).join(' ');
 
         // Color fila según NC más grave del criterio
         const prioCol = ncsDelCol.length ? ncsDelCol.reduce((max,n) => {
@@ -1242,6 +1239,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           // Observación (agrupa descripciones)
           var descTexto = nc.descs.filter(Boolean).join('. ');
           doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+          y += 3;
           doc.text('Observación:', ML, y); y += 5;
           if (descTexto) {
             y = addTextBlock(doc, descTexto, ML, y, CW, 8, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
@@ -1329,10 +1327,6 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
             doc.text('FAVORABLE', ML+CW/2+2, y+7);
           }
           y += 14;
-
-          // Referencia pie
-          doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(...GOLD);
-          doc.text(ref, PW/2, y, {align:'center'}); y += 8;
 
         }
       }
@@ -1555,18 +1549,19 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.text('Hora de inicio', ML+CW*0.65, y);
       doc.text('Hora fin', ML+CW*0.82, y); y += 4;
 
-      const sesiones = D.sesiones && D.sesiones.length ? D.sesiones : [{fecha:D.fechaInspeccion||'',horaInicio:D.horaInicio||'',horaFin:D.horaFin||''}];
-      sesiones.forEach(s => {
-        doc.setDrawColor(...DARK);
-        doc.rect(ML, y, CW*0.63, 8, 'D');
-        doc.rect(ML+CW*0.65, y, CW*0.15, 8, 'D');
-        doc.rect(ML+CW*0.82, y, CW*0.18, 8, 'D');
-        doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-        doc.text(fmtFecha(s.fecha||''), ML+2, y+5.5);
-        doc.text(s.horaInicio||'', ML+CW*0.65+2, y+5.5);
-        doc.text(s.horaFin||'', ML+CW*0.82+2, y+5.5);
-        y += 12;
-      });
+      // Usar fecha/hora de raíz (actualizados por el inspector) con fallback a sesiones
+      var regFecha = D.fechaInspeccion || (D.sesiones && D.sesiones.length ? D.sesiones[0].fecha : '') || '';
+      var regHoraI = D.horaInicio || (D.sesiones && D.sesiones.length ? D.sesiones[0].horaInicio : '') || '';
+      var regHoraF = D.horaFin || (D.sesiones && D.sesiones.length ? D.sesiones[0].horaFin : '') || '';
+      doc.setDrawColor(...DARK);
+      doc.rect(ML, y, CW*0.63, 8, 'D');
+      doc.rect(ML+CW*0.65, y, CW*0.15, 8, 'D');
+      doc.rect(ML+CW*0.82, y, CW*0.18, 8, 'D');
+      doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+      doc.text(fmtFecha(regFecha), ML+2, y+5.5);
+      doc.text(regHoraI, ML+CW*0.65+2, y+5.5);
+      doc.text(regHoraF, ML+CW*0.82+2, y+5.5);
+      y += 12;
 
       // Lugar
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
