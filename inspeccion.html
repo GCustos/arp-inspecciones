@@ -1427,7 +1427,8 @@
     inp.value="";
   }
   function renderFotos(){
-    const g=document.getElementById("fotoGrid");
+    var g=document.getElementById("fotoGrid");
+    if(!g) return;
     g.innerHTML=S.fotos.map((f,i)=>`
       <div class="foto-thumb">
         <img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="foto ${i+1}">
