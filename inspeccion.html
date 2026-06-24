@@ -1284,6 +1284,7 @@
     const norma=document.getElementById('modalNCNorma').value.trim();
 
     if(!tipo||!modalNCPrio){
+      document.getElementById('modalNCErr').textContent='Debes seleccionar el tipo y la gravedad.';
       document.getElementById('modalNCErr').classList.add('vis');
       return;
     }
@@ -1442,7 +1443,7 @@
         var path='inspecciones/'+inspeccionId+'/ncs/'+(S.ncs[i].autoId||'manual')+'_defecto_'+Date.now()+'.jpg';
         uploadFotoToStorage(compressed, path).then(function(res){
           if(!S.ncs[i].fotosDefecto) S.ncs[i].fotosDefecto=[];
-          S.ncs[i].fotosDefecto.push({url:res.url,localKey:res.localKey,name:String(f.name||'foto.jpg'),pendiente:res.pendiente});
+          S.ncs[i].fotosDefecto.push(Object.assign({},res,{name:String(f.name||'foto.jpg')}));
           renderNCs(); markDirty(); setTimeout(cargarFotosPendientesUI,50);
         });
       });
@@ -1468,7 +1469,7 @@
     inp.value="";
   }
 
-  function addNC(){ S.ncs.push({elem:"",tipo:"",desc:"",norma:"UNE-EN 15567-1:2015+A1:2021",prio:"",origen:"manual",fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision}); markDirty(); renderNCs(); goTab(3); }
+  function addNC(){ S.ncs.push({elem:"",tipo:"",desc:"",norma:"UNE-EN 15567-1:2015+A1:2021",prio:"",origen:"manual",fotosDefecto:[],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision}); markDirty(); renderNCs(); goTab(3); }
   function delNC(i){ S.ncs.splice(i,1); markDirty(); renderNCs(); }
 
   // FOTOS GENERALES — FIX: comprimir
