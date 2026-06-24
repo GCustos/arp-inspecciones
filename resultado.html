@@ -905,9 +905,11 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('II. Descripción de los juegos', ML, y); y += 8;
 
-      // Fotos por circuito — grid 3 columnas
+      // Fotos por circuito — grid 3 columnas, cada circuito en página nueva
+      let circIdx = 0;
       for (const circ of circuitos) {
-        if (y > PH-40) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+        if (circIdx > 0 || y > PH-60) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+        circIdx++;
         // Cabecera circuito
         doc.setFillColor(...DARK); doc.rect(ML, y, CW, 8, 'F');
         doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
@@ -1192,8 +1194,12 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           const nc = todasNCs[ncIdx];
           const ncColor = colorNC(nc.prio);
           const ncBg = bgNC(nc.prio);
+          const hasFotoD = nc.fotosDefecto && nc.fotosDefecto.length > 0;
+          const hasFotoC = nc.fotosCorreccion && nc.fotosCorreccion.length > 0;
 
-          if (y + 50 > PH-18) {
+          // Estimar alto total de esta NC para no partirla
+          let estAlto = 8 + (nc.elem?7:0) + 10 + (hasFotoD?48:0) + 15 + 12 + 7 + (hasFotoC?44:28) + 14 + 10;
+          if (y + estAlto > PH-18) {
             doc.addPage(); nPag[0]++;
             addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
             y = MT + 8;
@@ -1220,7 +1226,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           }
 
           // Foto defecto
-          if (nc.fotosDefecto && nc.fotosDefecto.length > 0) {
+          if (hasFotoD) {
             const fw = 55, fh = 40;
             const fotoSrc = nc.fotosDefecto[0].dataUrl || nc.fotosDefecto[0].url;
             if (fotoSrc) {
@@ -1241,28 +1247,32 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           y = addTextBlock(doc, nc.norma||'', ML+4, y, CW-4, 8, MUTED, 'italic', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
           y += 3;
 
-          // Banner gravedad — fondo color NC completo (como en informes reales)
+          // Banner gravedad
           if (y + 10 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
           const bannerW = CW*0.65;
-          // Lado izquierdo: fondo ncBg, texto color NC
           doc.setFillColor(...ncBg); doc.setDrawColor(...ncColor); doc.setLineWidth(0.5);
           doc.rect(ML, y, bannerW, 9, 'FD');
           doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...ncColor);
           doc.text(textNC(nc.prio), ML+2, y+5.5, {maxWidth:bannerW-4});
-          // Lado derecho: fondo ncColor (color sólido), texto blanco
           doc.setFillColor(...ncColor); doc.setDrawColor(...ncColor);
           doc.rect(ML+bannerW, y, CW-bannerW, 9, 'FD');
           doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
           doc.text('Prioridad: ' + nc.prio, ML+bannerW+2, y+5.5);
           y += 12;
 
-          // Modificación (foto corrección)
+          // Modificación: texto resolución a la derecha + foto debajo
           doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
           doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
-          doc.rect(ML, y, CW, 7, 'D');
-          doc.text('Modificación', ML+2, y+4.5); y += 7;
+          doc.rect(ML, y, CW/3, 7, 'D');
+          doc.rect(ML+CW/3, y, CW*2/3, 7, 'D');
+          doc.text('Modificación', ML+2, y+4.5);
+          if (nc.resolucion) {
+            doc.setFont('helvetica','normal'); doc.setFontSize(8);
+            doc.text(nc.resolucion, ML+CW/3+2, y+4.5, {maxWidth:CW*2/3-4});
+          }
+          y += 7;
 
-          if (nc.fotosCorreccion && nc.fotosCorreccion.length > 0) {
+          if (hasFotoC) {
             const fw2 = 55, fh2 = 40;
             const fotoCorr = nc.fotosCorreccion[0].dataUrl || nc.fotosCorreccion[0].url;
             if (fotoCorr) {
@@ -1279,16 +1289,13 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
             doc.rect(ML, y, CW, 25, 'D'); y += 25;
           }
 
-          // Resolución
+          // Resolución: solo muestra FAVORABLE/resultado
           if (y + 12 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
           doc.setDrawColor(...DARK); doc.rect(ML, y, CW/2, 11, 'D');
           doc.rect(ML+CW/2, y, CW/2, 11, 'D');
           doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
           doc.text('RESOLUCIÓN', ML+2, y+7);
-          if (nc.resolucion) {
-            doc.setFont('helvetica','normal');
-            doc.text(nc.resolucion, ML+CW/2+2, y+7, {maxWidth:CW/2-4});
-          } else if (nc.cerrada) {
+          if (nc.cerrada) {
             doc.setFont('helvetica','bold'); doc.setTextColor(...GREEN_C);
             doc.text('FAVORABLE', ML+CW/2+2, y+7);
           }
@@ -1728,9 +1735,22 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       y += 10;
 
       const KEYS = ['ie','af','ej','ra','zs'];
+      // Para Rev.1+: obtener checks de la revisión anterior para comparar
+      const prevCircuitos = (D.historialRevisiones && D.historialRevisiones.length)
+        ? D.historialRevisiones[D.historialRevisiones.length-1].circuitos || []
+        : null;
+      function getPrevVal(ci2,ji2,k2) {
+        if (!prevCircuitos) return null;
+        var pc = prevCircuitos[ci2];
+        if (!pc || !pc.juegos || !pc.juegos[ji2]) return null;
+        return pc.juegos[ji2][k2] || null;
+      }
+
+      let ciIdx2 = 0;
       for (const circ of circuitos) {
         if (y + 8 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; }
         let circWritten = false;
+        let jiIdx2 = 0;
         for (const j of (circ.juegos||[])) {
           if (y + 7 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; circWritten = false; }
           doc.setFillColor(...WHITE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.1);
@@ -1747,8 +1767,17 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
             doc.setFillColor(...WHITE);
             doc.rect(ML+cw0+cw1+ki*cw2, y, cw2, 7, 'D');
             const v2 = j[k]||'';
+            const prev = getPrevVal(ciIdx2,jiIdx2,k);
             doc.setFontSize(10); doc.setFont('helvetica','bold');
-            if(v2==='S'){doc.setTextColor(...GREEN_C);}else if(v2==='N'){doc.setTextColor(...RED);}else{doc.setTextColor(...MUTED);}
+            if (prevCircuitos && prev !== null) {
+              // Rev.N: colorear según cambio
+              if (v2==='S' && prev==='N') { doc.setTextColor(...GREEN_C); } // corregido
+              else if (v2==='N' && prev==='S') { doc.setTextColor(...RED); } // empeorado
+              else { doc.setTextColor(...DARK); } // sin cambio = negro
+            } else {
+              // Rev.0: colores normales
+              if(v2==='S'){doc.setTextColor(...GREEN_C);}else if(v2==='N'){doc.setTextColor(...RED);}else{doc.setTextColor(...MUTED);}
+            }
             doc.text(v2, ML+cw0+cw1+ki*cw2+cw2/2, y+5, {align:'center'});
           });
           doc.setFillColor(...WHITE);
@@ -1758,7 +1787,9 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
             doc.text(j.obs, ML+cw0+cw1+5*cw2+1, y+4, {maxWidth:obsW2-2});
           }
           y += 7;
+          jiIdx2++;
         }
+        ciIdx2++;
       }
 
       addPieReg();
