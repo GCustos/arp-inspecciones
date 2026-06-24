@@ -1176,9 +1176,23 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
 
 
       // ═══ LISTADO DE OBSERVACIONES ═══
-      const ncsInforme = (D.ncs||[]).filter(n => n.prio !== 'OBSERVACION');
-      const obsInforme = (D.ncs||[]).filter(n => n.prio === 'OBSERVACION');
-      const todasNCs = [...ncsInforme, ...obsInforme];
+      // Agrupar NCs por tipo — una entrada por tipo con todos los elementos afectados
+      const PRIO_ORD = {GRAVE:4,MEDIA:3,LEVE:2,DOCUMENTAL:1,OBSERVACION:0};
+      const ncGruposMap = {};
+      (D.ncs||[]).forEach(function(nc) {
+        var key = nc.tipo || 'Sin tipo';
+        if (!ncGruposMap[key]) ncGruposMap[key] = { tipo:key, prio:'', elems:[], descs:[], fotosDefecto:[], fotosCorreccion:[], norma:nc.norma||'', resoluciones:[], cerradas:true };
+        var g = ncGruposMap[key];
+        if ((PRIO_ORD[nc.prio]||0) > (PRIO_ORD[g.prio]||0)) g.prio = nc.prio;
+        if (nc.elem) g.elems.push({texto:nc.elem, prio:nc.prio});
+        if (nc.desc) g.descs.push(nc.desc);
+        if (nc.fotosDefecto && nc.fotosDefecto.length) g.fotosDefecto.push(nc.fotosDefecto[0]);
+        if (nc.fotosCorreccion && nc.fotosCorreccion.length) g.fotosCorreccion.push(nc.fotosCorreccion[0]);
+        if (nc.resolucion) g.resoluciones.push(nc.resolucion);
+        if (!nc.cerrada) g.cerradas = false;
+        if (!g.norma && nc.norma) g.norma = nc.norma;
+      });
+      const todasNCs = Object.values(ncGruposMap).sort(function(a,b){ return (PRIO_ORD[b.prio]||0)-(PRIO_ORD[a.prio]||0); });
 
       if (todasNCs.length > 0) {
         doc.addPage(); nPag[0]++;
@@ -1194,8 +1208,8 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           const nc = todasNCs[ncIdx];
           const ncColor = colorNC(nc.prio);
           const ncBg = bgNC(nc.prio);
-          const hasFotoD = nc.fotosDefecto && nc.fotosDefecto.length > 0;
-          const hasFotoC = nc.fotosCorreccion && nc.fotosCorreccion.length > 0;
+          const hasFotoD = nc.fotosDefecto.length > 0;
+          const hasFotoC = nc.fotosCorreccion.length > 0;
 
           // Estimar alto total de esta NC para no partirla
           let estAlto = 8 + (nc.elem?7:0) + 10 + (hasFotoD?48:0) + 15 + 12 + 7 + (hasFotoC?44:28) + 14 + 10;
@@ -1211,32 +1225,44 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
           doc.text(`${ncIdx+1}. ${nc.tipo||'Sin tipo'}`, ML+2, y+5.5); y += 8;
 
-          // Elemento afectado
-          if (nc.elem) {
-            doc.setFillColor(...WHITE); doc.rect(ML, y, CW, 7, 'FD');
-            doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-            doc.text(nc.elem, ML+2, y+4.5); y += 7;
+          // Elementos afectados (agrupados) con gravedad a la derecha
+          if (nc.elems.length) {
+            var elemH = Math.max(7, nc.elems.length * 5 + 2);
+            doc.setFillColor(...WHITE); doc.rect(ML, y, CW, elemH, 'FD');
+            nc.elems.forEach(function(el, ei) {
+              doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+              doc.text('• ' + el.texto, ML+2, y + 4.5 + ei*5, {maxWidth:CW-30});
+              var elColor = colorNC(el.prio);
+              doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...elColor);
+              doc.text(el.prio||'', PW-MR-2, y + 4.5 + ei*5, {align:'right'});
+            });
+            y += elemH;
           }
 
-          // Observación
+          // Observación (agrupa descripciones)
+          var descTexto = nc.descs.filter(Boolean).join('. ');
           doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
           doc.text('Observación:', ML, y); y += 5;
-          if (nc.desc) {
-            y = addTextBlock(doc, nc.desc, ML, y, CW, 8, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+          if (descTexto) {
+            y = addTextBlock(doc, descTexto, ML, y, CW, 8, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
           }
 
-          // Foto defecto
+          // Fotos defecto (hasta 3 del grupo en grid)
           if (hasFotoD) {
-            const fw = 55, fh = 40;
-            const fotoSrc = nc.fotosDefecto[0].dataUrl || nc.fotosDefecto[0].url;
-            if (fotoSrc) {
-              if (y + fh + 5 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+            var fotosD = nc.fotosDefecto.slice(0,3);
+            var fwD = fotosD.length>1 ? (CW/3-3) : 55;
+            var fhD = fotosD.length>1 ? 35 : 40;
+            if (y + fhD + 5 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+            fotosD.forEach(function(fd, fi) {
+              var fotoSrc = fd ? (fd.dataUrl||fd.url) : null;
+              if (!fotoSrc) return;
+              var fx = fotosD.length>1 ? (ML + fi*(fwD+3)) : (PW/2-fwD/2);
               try {
-                const fmt = fotoSrc.includes('data:image/png')?'PNG':'JPEG';
-                doc.addImage(fotoSrc, fmt, PW/2-fw/2, y, fw, fh);
-                y += fh + 4;
+                var fmt = fotoSrc.includes('data:image/png')?'PNG':'JPEG';
+                doc.addImage(fotoSrc, fmt, fx, y, fwD, fhD);
               } catch(e) {}
-            }
+            });
+            y += fhD + 4;
           }
 
           // Referencia normativa
@@ -1261,30 +1287,33 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           y += 12;
 
           // Modificación: texto resolución a la derecha + foto debajo
+          var resTxt = nc.resoluciones.filter(Boolean).join('. ');
           doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
           doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
           doc.rect(ML, y, CW/3, 7, 'D');
           doc.rect(ML+CW/3, y, CW*2/3, 7, 'D');
           doc.text('Modificación', ML+2, y+4.5);
-          if (nc.resolucion) {
+          if (resTxt) {
             doc.setFont('helvetica','normal'); doc.setFontSize(8);
-            doc.text(nc.resolucion, ML+CW/3+2, y+4.5, {maxWidth:CW*2/3-4});
+            doc.text(resTxt, ML+CW/3+2, y+4.5, {maxWidth:CW*2/3-4});
           }
           y += 7;
 
           if (hasFotoC) {
-            const fw2 = 55, fh2 = 40;
-            const fotoCorr = nc.fotosCorreccion[0].dataUrl || nc.fotosCorreccion[0].url;
-            if (fotoCorr) {
-              if (y + fh2 + 5 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+            var fotosC = nc.fotosCorreccion.slice(0,3);
+            var fwC = fotosC.length>1 ? (CW/3-3) : 55;
+            var fhC = fotosC.length>1 ? 35 : 40;
+            if (y + fhC + 5 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+            fotosC.forEach(function(fc, fi) {
+              var fotoCorr = fc ? (fc.dataUrl||fc.url) : null;
+              if (!fotoCorr) return;
+              var fx = fotosC.length>1 ? (ML + fi*(fwC+3)) : (PW/2-fwC/2);
               try {
-                const fmt = fotoCorr.includes('data:image/png')?'PNG':'JPEG';
-                doc.addImage(fotoCorr, fmt, PW/2-fw2/2, y, fw2, fh2);
-                y += fh2 + 2;
+                var fmt = fotoCorr.includes('data:image/png')?'PNG':'JPEG';
+                doc.addImage(fotoCorr, fmt, fx, y, fwC, fhC);
               } catch(e) {}
-            } else {
-              doc.rect(ML, y, CW, 25, 'D'); y += 25;
-            }
+            });
+            y += fhC + 2;
           } else {
             doc.rect(ML, y, CW, 25, 'D'); y += 25;
           }
@@ -1295,7 +1324,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           doc.rect(ML+CW/2, y, CW/2, 11, 'D');
           doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
           doc.text('RESOLUCIÓN', ML+2, y+7);
-          if (nc.cerrada) {
+          if (nc.cerradas) {
             doc.setFont('helvetica','bold'); doc.setTextColor(...GREEN_C);
             doc.text('FAVORABLE', ML+CW/2+2, y+7);
           }
