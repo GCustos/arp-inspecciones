@@ -132,8 +132,18 @@
       </div>
     </div>
     <div class="f">
-      <label>Direcci&#243;n</label>
-      <input type="text" id="direccion" placeholder="Direcci&#243;n completa">
+      <label>Direcci&#243;n (solo calle y n&#250;mero)</label>
+      <input type="text" id="direccion" placeholder="C. Ejemplo, 5">
+    </div>
+    <div class="r2">
+      <div class="f">
+        <label>C&#243;digo Postal</label>
+        <input type="text" id="cp" placeholder="28001" maxlength="5">
+      </div>
+      <div class="f">
+        <label>Localidad</label>
+        <input type="text" id="localidad" placeholder="Localidad">
+      </div>
     </div>
     <div class="r2">
       <div class="f">
@@ -376,6 +386,8 @@
       document.getElementById(fieldId).value = (value && value !== "__PENDIENTE__") ? value : "";
     }
     fill("direccion", inst.direccion);
+    fill("cp", inst.cp);
+    fill("localidad", inst.localidad);
     fill("municipio", inst.municipio);
     fill("provincia", inst.provincia);
     fill("propietario", inst.propietario);
@@ -563,6 +575,8 @@
         codigo: codigoInstalacionNueva,
         alcances: [selectedAlcance],
         direccion: document.getElementById("direccion").value.trim(),
+        cp: document.getElementById("cp").value.trim(),
+        localidad: document.getElementById("localidad").value.trim(),
         municipio: document.getElementById("municipio").value.trim(),
         provincia: document.getElementById("provincia").value.trim(),
         propietario: document.getElementById("propietario").value.trim(),
@@ -611,6 +625,8 @@
           }
         }
         revisaCampo("direccion", "direccion");
+        revisaCampo("cp", "cp");
+        revisaCampo("localidad", "localidad");
         revisaCampo("municipio", "municipio");
         revisaCampo("provincia", "provincia");
         revisaCampo("propietario", "propietario");
@@ -655,6 +671,8 @@
         nRegistro: nRegistro,
         revision: 0,
         direccion: document.getElementById("direccion").value.trim(),
+        cp: document.getElementById("cp").value.trim(),
+        localidad: document.getElementById("localidad").value.trim(),
         municipio: document.getElementById("municipio").value.trim(),
         provincia: document.getElementById("provincia").value.trim(),
         propietario: document.getElementById("propietario").value.trim(),

@@ -214,7 +214,8 @@
     const favorable = D.resultado === 'FAVORABLE';
     const ncs = (D.ncs || []).filter(n => n.prio && n.prio !== 'OBSERVACION');
     const obs = (D.ncs || []).filter(n => n.prio === 'OBSERVACION');
-    const totalJuegos = (D.circuitos || []).reduce((s,c) => s + (c.juegos||[]).length, 0);
+    const totalElementos = (D.circuitos || []).reduce((s,c) => s + (c.juegos||[]).length, 0);
+    const totalJuegos = (D.circuitos || []).reduce((s,c) => s + (c.juegos||[]).filter(j => j.tipo === 'R').length, 0);
     const juegosOk = (D.circuitos || []).reduce((s,c) =>
       s + (c.juegos||[]).filter(j => ['ie','af','ej','ra','zs'].every(k => j[k]==='S'||j[k]==='NA')).length, 0);
     const juegosNC = (D.circuitos || []).reduce((s,c) =>
@@ -253,9 +254,9 @@
       </div>
 
       <div class="stats-grid">
-        <div class="stat-box"><div class="stat-num">${totalJuegos}</div><div class="stat-label">Nº Juegos</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${juegosOk}</div><div class="stat-label">Juegos Conformes</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:${juegosNC?'var(--red)':'var(--green)'}">${juegosNC}</div><div class="stat-label">Juegos NC</div></div>
+        <div class="stat-box"><div class="stat-num">${totalJuegos} / ${totalElementos}</div><div class="stat-label">Juegos / Elem.</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${juegosOk}</div><div class="stat-label">Conformes</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:${juegosNC?'var(--red)':'var(--green)'}">${juegosNC}</div><div class="stat-label">Con NC</div></div>
         <div class="stat-box"><div class="stat-num" style="color:${ncsGenerales?'var(--red)':'var(--green)'}">${ncsGenerales}</div><div class="stat-label">NC Generales</div></div>
       </div>
 
@@ -371,7 +372,7 @@
   }
 
   function estamparTotalPaginas(doc, totalReal) {
-    for (var p = 1; p <= totalReal; p++) {
+    for (var p = 2; p <= totalReal; p++) {
       doc.setPage(p);
       doc.setFillColor(255,255,255);
       doc.rect(PW-MR-30, PH-10, 30, 5, 'F');
@@ -393,6 +394,18 @@
     doc.setFont('helvetica','normal');
     doc.text(`${c.web}   ${c.email}`, PW/2, PH-5, {align:'center'});
     // "Arp Prevención S.L" izquierda + "Página X de Y" derecha — igual que Harriartean
+  }
+
+  function composeDireccion(d) {
+    var parts = [];
+    if (d.direccion) parts.push(d.direccion);
+    var loc = '';
+    if (d.cp) loc += d.cp + ' ';
+    if (d.localidad) loc += d.localidad;
+    if (loc.trim()) parts.push(loc.trim());
+    if (d.municipio) parts.push(d.municipio);
+    if (d.provincia && d.provincia !== d.municipio) parts.push(d.provincia);
+    return parts.join(', ') || '';
   }
 
   function fmtFecha(str) {
@@ -652,8 +665,9 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       const fmtRev = D.formatoDocumento?.revision || CONFIG?.paa?.formatoRevision || 9;
       const fmtFechaStr = D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '26/02/2026';
 
-      const totPag = [0]; // se calcula al final con doc.getNumberOfPages()
+      const totPag = [0];
       const nPag = [0];
+      const indicePags = {};
 
       // ═══ PÁGINA 1: PORTADA ═══
       nPag[0]++;
@@ -682,12 +696,12 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.setFontSize(18); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
       doc.text(D.nombreInstalacion||'', PW-MR, y, {align:'right'}); y += 8;
       doc.setFontSize(12); doc.setTextColor(...MUTED);
-      doc.text(D.provincia||D.municipio||'', PW-MR, y, {align:'right'}); y += 2;
+      doc.text(D.localidad||D.municipio||'', PW-MR, y, {align:'right'}); y += 2;
       doc.line(ML, y, PW-MR, y); y += 8;
 
       // Dirección
       doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      doc.text(D.direccion||'', PW/2, y, {align:'center'}); y += 2;
+      doc.text(composeDireccion(D), PW/2, y, {align:'center'}); y += 2;
       doc.line(ML, y, PW-MR, y); y += 10;
 
       // Referencia
@@ -713,7 +727,6 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
       doc.text(CONFIG?.empresa?.nombreCorto||'Arp Prevención S.L.', ML, PH-3);
       doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text('Página 1 de ' + totPag[0], PW-MR, PH-3, {align:'right'});
 
       // ═══ PÁGINA 2: ÍNDICE ═══
       doc.addPage(); nPag[0]++;
@@ -724,21 +737,22 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.text('ÍNDICE', ML, y); y += 10;
 
       const indiceItems = [
-        ['METODOLOGÍA', '4'], ['   I. Naturaleza de la inspección', '4'],
-        ['   II. Material utilizado', '4'],
-        ['MANTENIMIENTO', '5'],
-        ['RESULTADOS DE LA INSPECCIÓN', '7'],
-        ['DESCRIPCIÓN DEL RECORRIDO', '8'],
-        ['INSPECCIÓN DE PARQUES DE AVENTURA', '12'],
-        ['ANEXOS', '14'],
-        ['LISTADO DE OBSERVACIONES', '15'],
-        ['CARACTERÍSTICAS DE INSPECCIÓN', '18'],
+        ['METODOLOGÍA', 'METODOLOGIA'], ['   I. Naturaleza de la inspección', 'METODOLOGIA'],
+        ['   II. Material utilizado', 'METODOLOGIA'],
+        ['MANTENIMIENTO', 'MANTENIMIENTO'],
+        ['RESULTADOS DE LA INSPECCIÓN', 'RESULTADOS'],
+        ['DESCRIPCIÓN DEL RECORRIDO', 'DESCRIPCION'],
+        ['INSPECCIÓN DE PARQUES DE AVENTURA', 'INSPECCION'],
+        ['ANEXOS', 'ANEXOS'],
+        ['LISTADO DE OBSERVACIONES', 'LISTADO'],
+        ['CARACTERÍSTICAS DE INSPECCIÓN', 'CARACTERISTICAS'],
       ];
-      indiceItems.forEach(([txt, pg]) => {
+      const indiceY0 = y;
+      const indicePagina = nPag[0];
+      indiceItems.forEach(([txt]) => {
         doc.setFontSize(10); doc.setFont('helvetica', txt.startsWith('   ')?'normal':'bold');
         doc.setTextColor(...DARK);
         doc.text(txt.trim(), ML, y);
-        doc.text(pg, PW-MR, y, {align:'right'});
         doc.setDrawColor(...BORDER); doc.setLineWidth(0.1);
         const dotX = ML + doc.getTextWidth(txt.trim()) + 3;
         doc.line(dotX, y, PW-MR-8, y);
@@ -811,6 +825,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
 
       // ═══ PÁGINAS 4-5: METODOLOGÍA ═══
       doc.addPage(); nPag[0]++;
+      indicePags['METODOLOGIA'] = nPag[0];
       addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
       y = MT + 8;
 
@@ -829,6 +844,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
 
       // ═══ MANTENIMIENTO ═══
       doc.addPage(); nPag[0]++;
+      indicePags['MANTENIMIENTO'] = nPag[0];
       addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
       y = MT + 8;
 
@@ -850,6 +866,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
 
       // ═══ RESULTADOS ═══
       doc.addPage(); nPag[0]++;
+      indicePags['RESULTADOS'] = nPag[0];
       addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
       y = MT + 8;
 
@@ -885,6 +902,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
 
       // ═══ DESCRIPCIÓN DEL RECORRIDO ═══
       doc.addPage(); nPag[0]++;
+      indicePags['DESCRIPCION'] = nPag[0];
       addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
       y = MT + 8;
 
@@ -897,10 +915,12 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('I. Localización', ML, y); y += 6;
       const circuitos = D.circuitos || [];
-      const totalJ = circuitos.reduce((s,c2)=>s+(c2.juegos||[]).length,0);
-      const locText = `El parque al que se hace referencia en el presente informe se encuentra ubicado en el municipio de ${D.municipio||''}, más concretamente en ${D.direccion||''}.
+      const totalElems = circuitos.reduce((s,c2)=>s+(c2.juegos||[]).length,0);
+      const totalJR = circuitos.reduce((s,c2)=>s+(c2.juegos||[]).filter(j=>j.tipo==='R').length,0);
+      const dirCompleta = composeDireccion(D);
+      const locText = `El parque al que se hace referencia en el presente informe se encuentra ubicado en el municipio de ${D.municipio||''}, más concretamente en ${dirCompleta}.
 
-La instalación objeto de la presente inspección se denomina ${D.nombreInstalacion||''}, consta de ${totalJ} juegos (divididos en ${circuitos.length} circuito${circuitos.length!==1?'s':''}).`;
+La instalación objeto de la presente inspección se denomina ${D.nombreInstalacion||''}, consta de ${totalJR} juegos (${totalElems} elementos inspeccionados, divididos en ${circuitos.length} circuito${circuitos.length!==1?'s':''}).`;
       y = addTextBlock(doc, locText, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
       y += 6;
 
@@ -961,6 +981,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
 
       // ═══ INSPECCIÓN DE PARQUES — GENERAL ═══
       doc.addPage(); nPag[0]++;
+      indicePags['INSPECCION'] = nPag[0];
       addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr, true);
       y = MT + 8;
 
@@ -1152,6 +1173,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
 
       // ═══ ANEXOS ═══
       doc.addPage(); nPag[0]++;
+      indicePags['ANEXOS'] = nPag[0];
       addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
       y = MT + 8;
 
@@ -1180,7 +1202,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       const ncGruposMap = {};
       (D.ncs||[]).forEach(function(nc) {
         var key = nc.tipo || 'Sin tipo';
-        if (!ncGruposMap[key]) ncGruposMap[key] = { tipo:key, prio:'', elems:[], descs:[], fotosDefecto:[], fotosCorreccion:[], norma:nc.norma||'', resoluciones:[], cerradas:true };
+        if (!ncGruposMap[key]) ncGruposMap[key] = { tipo:key, prio:nc.prio||'', elems:[], descs:[], fotosDefecto:[], fotosCorreccion:[], norma:nc.norma||'', resoluciones:[], cerradas:true };
         var g = ncGruposMap[key];
         if ((PRIO_ORD[nc.prio]||0) > (PRIO_ORD[g.prio]||0)) g.prio = nc.prio;
         if (nc.elem) g.elems.push({texto:nc.elem, prio:nc.prio});
@@ -1195,6 +1217,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
 
       if (todasNCs.length > 0) {
         doc.addPage(); nPag[0]++;
+        indicePags['LISTADO'] = nPag[0];
         addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
         y = MT + 8;
 
@@ -1335,6 +1358,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
 
       // ═══ CARACTERÍSTICAS DE INSPECCIÓN ═══
       doc.addPage(); nPag[0]++;
+      indicePags['CARACTERISTICAS'] = nPag[0];
       addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
       y = MT + 8;
 
@@ -1376,11 +1400,16 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.text('Revisor', PW-MR-30, y, {align:'right'});
 
 
-      // Actualizar total páginas en todas las páginas no es posible con jsPDF básico
-      // El total es aproximado — en producción se haría en 2 pasadas
-
-      // Guardar
+      // Estampar índice dinámico y total de páginas
       estamparTotalPaginas(doc, doc.getNumberOfPages());
+      doc.setPage(indicePagina);
+      var iy = indiceY0;
+      indiceItems.forEach(function(item) {
+        var pg = indicePags[item[1]] || '';
+        doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text(String(pg), PW-MR, iy, {align:'right'});
+        iy += 7;
+      });
       const fileName = (ref.replace(/\//g,'_').replace(/\s/g,'_') || 'informe') + '.pdf';
       doc.save(fileName);
 
@@ -1407,7 +1436,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
       const ref = getNRegistro();
       const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
-      const totalJ = (D.circuitos||[]).reduce((s,cc)=>s+(cc.juegos||[]).length,0);
+      const totalJ = (D.circuitos||[]).reduce((s,cc)=>s+(cc.juegos||[]).filter(j=>j.tipo==='R').length,0);
 
       // Fecha de inspección (última sesión)
       const fechaInsp = D.sesiones && D.sesiones.length
@@ -1437,7 +1466,8 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.text(D.nombreInstalacion||'', PW/2, y, {align:'center'}); y += 15;
 
       // Texto certificación
-      const textoCert = `${c.nombre.toUpperCase()}, organismo de inspección acreditado ${c.acreditacion||''}, certifica haber efectuado en fecha ${fechaInsp} la inspección de los equipamientos de RECORRIDO ACROBATICO EN ALTURA de las instalaciones de ${D.nombreInstalacion||''}, ${totalJ} JUEGOS, situado en ${D.direccion||''}, ${D.municipio||''}.
+      const dirCert = composeDireccion(D);
+      const textoCert = `${c.nombre.toUpperCase()}, organismo de inspección acreditado ${c.acreditacion||''}, certifica haber efectuado en fecha ${fechaInsp} la inspección de los equipamientos de RECORRIDO ACROBATICO EN ALTURA de las instalaciones de ${D.nombreInstalacion||''}, ${totalJ} JUEGOS, situado en ${dirCert}.
 
 La intervención realizada, da como resultado un "Informe de inspección", con la numeración ${ref}, que indica las observaciones relativas a las instalaciones y omisiones. Estas observaciones sólo son válidas en las condiciones presentes en la instalación en el momento de control, y no serán válidas en caso de modificaciones en las mismas.
 
@@ -1505,8 +1535,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       const fmtRev = D.formatoDocumento?.revision || 7;
       const fmtFechaStr = D.formatoDocumento?.fechaVigencia || '25/10/2021';
 
-      const nJuegosReg = (D.circuitos||[]).reduce((s,cc)=>s+(cc.juegos||[]).length,0);
-      const totPag2 = [2 + Math.ceil(nJuegosReg / 20) || 1];
+      const totPag2 = [0];
       const nPag2 = [0];
 
       function addCabReg(pg, tot) {
@@ -1820,6 +1849,15 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       }
 
       addPieReg();
+
+      var totalPagsReg = doc.getNumberOfPages();
+      for (var pr = 1; pr <= totalPagsReg; pr++) {
+        doc.setPage(pr);
+        doc.setFillColor(255,255,255);
+        doc.rect(PW-MR-25, 9, 25, 5, 'F');
+        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+        doc.text(pr + ' de ' + totalPagsReg, PW-MR, 12, {align:'right'});
+      }
 
       const regFile = (ref.replace(/\//g,'_').replace(/\s/g,'_') || 'registro') + '_REGISTRO.pdf';
       doc.save(regFile);
