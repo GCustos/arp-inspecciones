@@ -400,16 +400,17 @@
     // "Arp Prevención S.L" izquierda + "Página X de Y" derecha — igual que Harriartean
   }
 
-  function fitImage(src, maxW, maxH) {
-    var img = new Image();
-    img.src = src;
-    var nw = img.naturalWidth || maxW;
-    var nh = img.naturalHeight || maxH;
-    var ratio = nw / nh;
-    var w, h;
-    if (ratio > maxW / maxH) { w = maxW; h = maxW / ratio; }
-    else { h = maxH; w = maxH * ratio; }
-    return { w: w, h: h };
+  function fitImage(doc, src, maxW, maxH) {
+    try {
+      var props = doc.getImageProperties(src);
+      var ratio = props.width / props.height;
+      var w, h;
+      if (ratio > maxW / maxH) { w = maxW; h = maxW / ratio; }
+      else { h = maxH; w = maxH * ratio; }
+      return { w: w, h: h };
+    } catch(e) {
+      return { w: maxW, h: maxH };
+    }
   }
 
   function composeDireccion(d) {
@@ -973,7 +974,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
             if (src) {
               try {
                 const fmt = src.includes('data:image/png') ? 'PNG' : 'JPEG';
-                const fit = fitImage(src, imgW, imgH-8);
+                const fit = fitImage(doc, src, imgW, imgH-8);
                 const offsetX = (imgW - fit.w) / 2;
                 const offsetY = (imgH - 8 - fit.h) / 2;
                 doc.addImage(src, fmt, imgX + offsetX, rowY + offsetY, fit.w, fit.h);
@@ -1301,7 +1302,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
               var fx = fotosD.length>1 ? (ML + fi*(fwD+3)) : (PW/2-fwD/2);
               try {
                 var fmt = fotoSrc.includes('data:image/png')?'PNG':'JPEG';
-                var fitD = fitImage(fotoSrc, fwD, fhD);
+                var fitD = fitImage(doc, fotoSrc, fwD, fhD);
                 var oxD = (fwD - fitD.w) / 2;
                 var oyD = (fhD - fitD.h) / 2;
                 doc.addImage(fotoSrc, fmt, fx + oxD, y + oyD, fitD.w, fitD.h);
@@ -1355,7 +1356,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
               var fx = fotosC.length>1 ? (ML + fi*(fwC+3)) : (PW/2-fwC/2);
               try {
                 var fmt = fotoCorr.includes('data:image/png')?'PNG':'JPEG';
-                var fitC = fitImage(fotoCorr, fwC, fhC);
+                var fitC = fitImage(doc, fotoCorr, fwC, fhC);
                 var oxC = (fwC - fitC.w) / 2;
                 var oyC = (fhC - fitC.h) / 2;
                 doc.addImage(fotoCorr, fmt, fx + oxC, y + oyC, fitC.w, fitC.h);

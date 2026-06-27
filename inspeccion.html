@@ -1348,7 +1348,15 @@
             </select>
           </div>
           <div class="f"><label>Elemento afectado</label>
-            <input type="text" value="${(nc.elem||'').replace(/"/g,'&quot;')}" placeholder="ej. Tirolina Final" onchange="S.ncs[${i}].elem=this.value;markDirty()">
+            ${nc.autoId ? `<input type="text" value="${(nc.elem||'').replace(/"/g,'&quot;')}" disabled style="opacity:.7">` :
+            `<div class="r2"><div class="f" style="margin-bottom:0"><select onchange="ncSelCircuito(${i},this.value)">
+              <option value="">— Circuito —</option>
+              ${(S.circuitos||[]).map((c,ci)=>'<option value="'+ci+'"'+(nc._ci===ci?' selected':'')+'>'+c.nombre+'</option>').join('')}
+              <option value="g"${nc._ci==='g'?' selected':''}>General</option>
+            </select></div><div class="f" style="margin-bottom:0"><select onchange="ncSelJuego(${i},this.value)" id="ncJSel${i}">
+              <option value="">— Juego —</option>
+              ${nc._ci!==undefined&&nc._ci!=='g'?(S.circuitos[nc._ci]?.juegos||[]).map((j,ji)=>'<option value="'+ji+'"'+(nc._ji===ji?' selected':'')+'>'+j.nombre+'</option>').join(''):''}
+            </select></div></div>`}
           </div>
           <div class="f"><label>Descripción / observación</label>
             <textarea onchange="S.ncs[${i}].desc=this.value;markDirty()" placeholder="Describe la no conformidad...">${nc.desc||""}</textarea>
@@ -1468,6 +1476,18 @@
 
   function addNC(){ S.ncs.push({elem:"",tipo:"",desc:"",norma:"UNE-EN 15567-1:2015+A1:2021",prio:"",origen:"manual",fotosDefecto:[],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision}); markDirty(); renderNCs(); goTab(3); }
   function delNC(i){ S.ncs.splice(i,1); markDirty(); renderNCs(); }
+  function ncSelCircuito(i,v){
+    var nc=S.ncs[i]; nc._ci=v==='g'?'g':parseInt(v);
+    nc._ji=undefined; nc.elem=''; nc.autoId='';
+    if(v==='g'){ nc.autoId='g_manual_'+i; nc.elem='General'; }
+    markDirty(); renderNCs();
+  }
+  function ncSelJuego(i,v){
+    var nc=S.ncs[i]; var ji=parseInt(v); nc._ji=ji;
+    var circ=S.circuitos[nc._ci]; var juego=circ?.juegos?.[ji];
+    if(juego){ nc.elem=juego.nombre; nc.autoId='c'+nc._ci+'j'+ji+'_manual'; }
+    markDirty(); renderNCs();
+  }
 
   // FOTOS GENERALES — FIX: comprimir
   // handleFotos y renderFotos eliminados — fotos generales ya no existen
