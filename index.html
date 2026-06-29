@@ -303,7 +303,7 @@
       listening = false;
       btn.disabled = false;
       btn.textContent = 'Entrar';
-      var msg = 'Error de conexión.';
+      var msg = 'Error de conexión (' + (e.code||'desconocido') + ')';
       if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
         msg = 'Email o contraseña incorrectos.';
       } else if (e.code === 'auth/too-many-requests') {
