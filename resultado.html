@@ -214,16 +214,16 @@
     const favorable = D.resultado === 'FAVORABLE';
     const ncs = (D.ncs || []).filter(n => n.prio && n.prio !== 'OBSERVACION');
     const obs = (D.ncs || []).filter(n => n.prio === 'OBSERVACION');
-    const totalElementos = (D.circuitos || []).reduce((s,c) => s + (c.juegos||[]).length, 0);
     const totalJuegos = (D.circuitos || []).reduce((s,c) => s + (c.juegos||[]).filter(j => j.tipo === 'R').length, 0);
-    const elemOk = (D.circuitos || []).reduce((s,c) =>
-      s + (c.juegos||[]).filter(j => ['ie','af','ej','ra','zs'].every(k => j[k]==='S'||j[k]==='NA')).length, 0);
-    const elemNC = (D.circuitos || []).reduce((s,c) =>
-      s + (c.juegos||[]).filter(j => ['ie','af','ej','ra','zs'].some(k => j[k]==='N')).length, 0);
+    const totalAux = (D.circuitos || []).reduce((s,c) => s + (c.juegos||[]).filter(j => j.tipo !== 'R').length, 0);
     const juegosOk = (D.circuitos || []).reduce((s,c) =>
       s + (c.juegos||[]).filter(j => j.tipo === 'R' && ['ie','af','ej','ra','zs'].every(k => j[k]==='S'||j[k]==='NA')).length, 0);
     const juegosNC = (D.circuitos || []).reduce((s,c) =>
       s + (c.juegos||[]).filter(j => j.tipo === 'R' && ['ie','af','ej','ra','zs'].some(k => j[k]==='N')).length, 0);
+    const auxOk = (D.circuitos || []).reduce((s,c) =>
+      s + (c.juegos||[]).filter(j => j.tipo !== 'R' && ['ie','af','ej','ra','zs'].every(k => j[k]==='S'||j[k]==='NA')).length, 0);
+    const auxNC = (D.circuitos || []).reduce((s,c) =>
+      s + (c.juegos||[]).filter(j => j.tipo !== 'R' && ['ie','af','ej','ra','zs'].some(k => j[k]==='N')).length, 0);
     const ncsGenerales = (D.ncs || []).filter(n => n.prio && n.prio !== 'OBSERVACION' && n.autoId && n.autoId.startsWith('g')).length;
 
     document.getElementById('hdrTitulo').textContent = D.nombreInstalacion || 'Resultado';
@@ -257,11 +257,12 @@
         <div class="res-instalacion">${D.nombreInstalacion||''}</div>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-box"><div class="stat-num">${totalJuegos} / ${totalElementos}</div><div class="stat-label">Juegos / Elem.</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${juegosOk} / ${elemOk}</div><div class="stat-label">Conformes</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:${elemNC?'var(--red)':'var(--green)'}">${juegosNC} / ${elemNC}</div><div class="stat-label">Con NC</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:${ncsGenerales?'var(--red)':'var(--green)'}">${ncsGenerales}</div><div class="stat-label">NC Generales</div></div>
+      <div class="stats-grid" style="grid-template-columns:repeat(5,1fr)">
+        <div class="stat-box"><div class="stat-num">${totalJuegos}</div><div class="stat-label">Juegos</div></div>
+        <div class="stat-box"><div class="stat-num">${totalAux}</div><div class="stat-label">Aux.</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${juegosOk} / ${auxOk}</div><div class="stat-label">Conformes</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:${(juegosNC+auxNC)?'var(--red)':'var(--green)'}">${juegosNC} / ${auxNC}</div><div class="stat-label">Con NC</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:${ncsGenerales?'var(--red)':'var(--green)'}">${ncsGenerales}</div><div class="stat-label">NC Gen.</div></div>
       </div>
 
       <div class="card">
@@ -1122,7 +1123,11 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         const allS = vArr.length>0 && vArr.every(v=>v==='S'||v==='NA');
         const vGlobal = hayN?'N':allNA?'NA':allS?'S':'S';
 
-        const ncsDelCol = (D.ncs||[]).filter(n => n.autoId && n.autoId.includes('_'+col.key));
+        var ncsDelCol = (D.ncs||[]).filter(n => n.autoId && n.autoId.includes('_'+col.key));
+        if (col.key === COLS_PDF[COLS_PDF.length-1].key) {
+          (D.ncs||[]).forEach(function(n){ if(n.autoId && n.autoId.includes('_manual')) ncsDelCol.push(n); });
+          (D.ncs||[]).forEach(function(n){ if(n.autoId && n.autoId.startsWith('g')) ncsDelCol.push(n); });
+        }
         const notaCol = ncsDelCol.map((n,i)=>`${i+1}. ${n.elem||''}${n.desc?' — '+n.desc:''}`).join(' ');
 
         // Color fila según NC más grave del criterio
@@ -1864,9 +1869,10 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
           });
           doc.setFillColor(...WHITE);
           doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 7, 'D');
-          if (j.obs) {
-            doc.setFontSize(6.5); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-            doc.text(j.obs, ML+cw0+cw1+5*cw2+1, y+4, {maxWidth:obsW2-2});
+          var jObs = (D.ncs||[]).filter(function(nc){ var aid=nc.autoId||''; return aid.indexOf('c'+ciIdx2+'j'+jiIdx2)===0; }).map(function(nc){ return nc.desc||nc.tipo||''; }).filter(Boolean).join('. ');
+          if (jObs) {
+            doc.setFontSize(5.5); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+            doc.text(doc.splitTextToSize(jObs, obsW2-2), ML+cw0+cw1+5*cw2+1, y+3);
           }
           y += 7;
           jiIdx2++;

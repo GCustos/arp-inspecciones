@@ -374,12 +374,15 @@
     codigoNuevoValido = true;
   };
 
+  var circuitosHeredados = null;
+
   window.seleccionarInstalacion = function(id) {
     var inst = instalacionesList.find(function(i) { return i.id === id; });
     if (!inst) return;
     instalacionSeleccionada = inst;
     instalacionEsNueva = false;
     codigoNuevoValido = false;
+    circuitosHeredados = null;
     document.getElementById("acNueva").classList.remove("vis");
     document.getElementById("nombreInstalacion").value = inst.nombre || "";
     function fill(fieldId, value) {
@@ -399,6 +402,16 @@
     if (inst.codigo) txt += " · " + inst.codigo;
     document.getElementById("acVincTxt").textContent = txt;
     document.getElementById("acVinculada").classList.add("vis");
+    db.collection("inspecciones").where("instalacionId","==",id).where("estado","==","completada").orderBy("fechaCreacion","desc").limit(1).get().then(function(snap){
+      if(!snap.empty){
+        var prev=snap.docs[0].data();
+        if(prev.circuitos&&prev.circuitos.length){
+          circuitosHeredados=prev.circuitos.map(function(c){return{nombre:c.nombre,juegos:(c.juegos||[]).map(function(j){return{nombre:j.nombre,tipo:j.tipo||'R',rama:j.rama||'',ie:'',af:'',ej:'',ra:'',zs:'',obs:'',fotos:[]}})};});
+          txt+=" · "+circuitosHeredados.reduce(function(s,c){return s+c.juegos.length},0)+" elem. heredados";
+          document.getElementById("acVincTxt").textContent=txt;
+        }
+      }
+    }).catch(function(){});
   };
 
   window.limpiarInstalacion = function() {
@@ -693,6 +706,7 @@
         equiposMedicion: equiposMedicion,
         fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
       };
+      if (circuitosHeredados) inspeccion.circuitos = circuitosHeredados;
 
       return actualizarInstalacionPromise.then(function() {
         return db.collection("inspecciones").add(inspeccion);

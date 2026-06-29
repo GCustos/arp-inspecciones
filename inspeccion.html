@@ -339,6 +339,18 @@
 <div class="offline-badge" id="offlineBadge">Sin conexión &#8212; modo offline</div>
 <div class="autosave-badge" id="autosaveBadge">&#10003; Guardado</div>
 
+<!-- MODAL FIN CIRCUITO -->
+<div class="modal-overlay" id="modalFinCirc" onclick="document.getElementById('modalFinCirc').classList.remove('vis')">
+  <div class="modal-sheet" onclick="event.stopPropagation()" style="text-align:center;padding:20px">
+    <div class="modal-header"><span class="modal-title" id="modalFinCircTitulo"></span></div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+      <button class="btn-modal-ok" id="btnFinAddJuego" style="background:var(--gold)">Añadir juego a este circuito</button>
+      <button class="btn-modal-ok" id="btnFinSigCirc" style="background:var(--green)">Ir al siguiente circuito</button>
+      <button class="btn-modal-ok" id="btnFinNuevoCirc" style="background:var(--dark)">Crear circuito nuevo</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL NC OBLIGATORIO -->
 <div class="modal-overlay" id="modalNC">
   <div class="modal-sheet" onclick="event.stopPropagation()">
@@ -350,17 +362,6 @@
       <label>Tipo de no conformidad *</label>
       <select id="modalNCTipo" onchange="onTipoNCChange()">
         <option value="">&#8212; Selecciona tipo &#8212;</option>
-        <option>Cables con hilos rotos / desgastados</option>
-        <option>Madera deteriorada / podrida</option>
-        <option>Redes rotas / desgastadas</option>
-        <option>Anclajes / fijaciones deficientes</option>
-        <option>Eslinga deteriorada</option>
-        <option>Elemento punzante / cortante expuesto</option>
-        <option>Señalización insuficiente / incorrecta</option>
-        <option>Árbol soporte dañado / inclinado</option>
-        <option>EPI deteriorado / sin revisar</option>
-        <option>Documentación incompleta / ausente</option>
-        <option>Zona de seguridad insuficiente</option>
         <option value="__otro__">Otro (escribir)</option>
       </select>
     </div>
@@ -457,6 +458,8 @@
   let modalNCFotos=[]; // fotos del defecto en modal
   let miRol=null; // rol del usuario actual: admin/director/inspector
   let todosInspectoresRev=[]; // cache para selector de reapertura
+  var tiposNCList=["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente","Riesgo de atrapamiento"];
+  db.collection("config").doc("paa").get().then(function(snap){if(snap.exists&&snap.data().tiposNC){tiposNCList=snap.data().tiposNC.filter(function(t){return t.activo!==false}).map(function(t){return t.label})}}).catch(function(){});
 
   const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], ensayos:"", equiposMedicion:[], revision:0, historialRevisiones:[], nRegistro:"", codigoInstalacion:"", tipoAlcance:"", estado:"borrador", fechaInspeccion:"", horaInicio:"", horaFin:"" };
 
@@ -1038,10 +1041,13 @@
       abrirJuegoMovil(ci,siguiente);
     } else if(dir>0){
       const totalCirc=S.circuitos.length;
-      const eleccion=prompt(`Fin del circuito "${S.circuitos[ci].nombre}".\n0 — Añadir juego aquí\n${ci+1<totalCirc?'1 — Ir al siguiente circuito\n':''}${ci+1<totalCirc?'2':'1'} — Añadir circuito nuevo\n\nEscribe el número:`);
-      if(eleccion==='0'){ addJuegoToCircuito(ci); }
-      else if(eleccion==='1'&&ci+1<totalCirc){ juegoAbierto[ci+1]=0; renderCircuitos(); goTab(2); }
-      else { addCircuito(); }
+      var modal=document.getElementById('modalFinCirc');
+      document.getElementById('modalFinCircTitulo').textContent='Último juego de "'+S.circuitos[ci].nombre+'"';
+      document.getElementById('btnFinAddJuego').onclick=function(){modal.classList.remove('vis');addJuegoToCircuito(ci);};
+      document.getElementById('btnFinSigCirc').style.display=ci+1<totalCirc?'':'none';
+      document.getElementById('btnFinSigCirc').onclick=function(){modal.classList.remove('vis');juegoAbierto[ci+1]=0;renderCircuitos();goTab(2);};
+      document.getElementById('btnFinNuevoCirc').onclick=function(){modal.classList.remove('vis');addCircuito();};
+      modal.classList.add('vis');
     }
   }
 
@@ -1135,7 +1141,7 @@
             </div>
             <div class="juego-nav">
               <button class="btn-nav" onclick="navJuego(${ci},${ji},-1)" ${ji===0?'disabled style="opacity:.4"':''}>&#8592; Anterior</button>
-              <button class="btn-nav primary" onclick="navJuego(${ci},${ji},1)">${esUltimo?'Fin circuito &#8594;':'Siguiente &#8594;'}</button>
+              <button class="btn-nav primary" onclick="navJuego(${ci},${ji},1)">${esUltimo?'Siguiente &#8594;':'Siguiente &#8594;'}</button>
             </div>
           </div>` : `<div class="juego-body" id="jm_${ci}_${ji}"></div>`;
         return `
@@ -1229,7 +1235,9 @@
     modalNCRef=ref;
     modalNCPrio='';
     document.getElementById('modalNCContexto').innerHTML=`<strong>${ref.contexto}</strong>`;
-    document.getElementById('modalNCTipo').value='';
+    var sel=document.getElementById('modalNCTipo');
+    sel.innerHTML='<option value="">— Selecciona tipo —</option>'+tiposNCList.map(function(t){return'<option>'+t+'</option>'}).join('')+'<option value="__otro__">Otro (escribir)</option>';
+    sel.value='';
     document.getElementById('modalNCTipoLibre').value='';
     document.getElementById('modalNCTipoLibreWrap').style.display='none';
     document.getElementById('modalNCObs').value='';
@@ -1344,7 +1352,7 @@
           <div class="f"><label>Tipo de no conformidad</label>
             <select onchange="S.ncs[${i}].tipo=this.value;markDirty();renderNCs()">
               <option value="">&#8212; Selecciona &#8212;</option>
-              ${["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente","Riesgo de atrapamiento"].map(t=>`<option ${nc.tipo===t?'selected':''}>${t}</option>`).join('')}
+              ${tiposNCList.map(t=>`<option ${nc.tipo===t?'selected':''}>${t}</option>`).join('')}
             </select>
           </div>
           <div class="f"><label>Elemento afectado</label>
@@ -1553,13 +1561,6 @@
   }
 
   async function completar(){
-    // Auto-captura hora fin
-    if (!S.horaFin) {
-      S.horaFin = new Date().toTimeString().slice(0, 5);
-      var inp = document.getElementById("inpHoraFin");
-      if (inp) inp.value = S.horaFin;
-    }
-    autoCapturarHoraInicio();
     // Validar fotos de juegos
     var juegosSinFoto=[];
     S.circuitos.forEach(function(c,ci){
@@ -1587,6 +1588,13 @@
     }
     // FIX: OBSERVACION no bloquea certificado ni cuenta como NC para resultado
     // Solo OBSERVACION no bloquea. GRAVE/MEDIA/LEVE/DOCUMENTAL = DESFAVORABLE
+    // Auto-captura horas (solo después de pasar todas las validaciones)
+    autoCapturarHoraInicio();
+    if (!S.horaFin) {
+      S.horaFin = new Date().toTimeString().slice(0, 5);
+      var inpHF = document.getElementById("inpHoraFin");
+      if (inpHF) inpHF.value = S.horaFin;
+    }
     const ncsBloqueantes=S.ncs.filter(n=>n.prio&&n.prio!=="OBSERVACION"&&!n.cerrada);
     const resultado=ncsBloqueantes.length===0?"FAVORABLE":"DESFAVORABLE";
     const msg=ncsBloqueantes.length===0
