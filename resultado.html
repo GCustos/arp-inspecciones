@@ -1869,7 +1869,8 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
           });
           doc.setFillColor(...WHITE);
           doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 7, 'D');
-          var jObs = (D.ncs||[]).filter(function(nc){ var aid=nc.autoId||''; return aid.indexOf('c'+ciIdx2+'j'+jiIdx2)===0; }).map(function(nc){ return nc.desc||nc.tipo||''; }).filter(Boolean).join('. ');
+          var jPat = 'c'+ciIdx2+'j'+jiIdx2;
+          var jObs = (D.ncs||[]).filter(function(nc){ var aid=nc.autoId||''; return aid.indexOf(jPat)===0 && (aid.length===jPat.length || aid[jPat.length]==='_'); }).map(function(nc){ return nc.desc||nc.tipo||''; }).filter(Boolean).join('. ');
           if (jObs) {
             doc.setFontSize(5.5); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
             doc.text(doc.splitTextToSize(jObs, obsW2-2), ML+cw0+cw1+5*cw2+1, y+3);
