@@ -1504,15 +1504,16 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
       doc.text('Concedido a', PW/2, y, {align:'center'}); y += 8;
       doc.setFontSize(14); doc.setFont('helvetica','bold');
-      doc.text(D.nombreInstalacion||'', PW/2, y, {align:'center'}); y += 15;
+      doc.text(D.propietario||D.nombreInstalacion||'', PW/2, y, {align:'center'}); y += 15;
 
       // Texto certificación
       const dirCert = composeDireccion(D);
+      const solicitante = D.solicitante||D.propietario||'';
       const textoCert = `${c.nombre.toUpperCase()}, organismo de inspección acreditado ${c.acreditacion||''}, certifica haber efectuado en fecha ${fechaInsp} la inspección de los equipamientos de RECORRIDO ACROBATICO EN ALTURA de las instalaciones de ${D.nombreInstalacion||''}, ${totalJ} JUEGOS, situado en ${dirCert}.
 
 La intervención realizada, da como resultado un "Informe de inspección", con la numeración ${ref}, que indica las observaciones relativas a las instalaciones y omisiones. Estas observaciones sólo son válidas en las condiciones presentes en la instalación en el momento de control, y no serán válidas en caso de modificaciones en las mismas.
 
-${c.nombre}, certifica que los equipamientos cumplen con las exigencias marcadas en las normas UNE-EN 15567-1:2015+A1:2021. Recorrido acrobático en altura. Parte 1 tras la inspección in situ realizada, la validación de los distintos documentos exigidos por norma.
+${c.nombre}, certifica que los equipamientos cumplen con las exigencias marcadas en las normas UNE-EN 15567-1:2015+A1:2021. Recorrido acrobático en altura. Parte 1 tras la inspección in situ realizada, la validación de los distintos documentos exigidos por norma y las acciones correctoras realizadas por ${solicitante}.
 
 Visto que el informe presenta un resultado FAVORABLE, se considera que los equipamientos cumplen con las especificaciones de seguridad de las normas de aplicación en vigencia y que son aptos para su uso bajo las indicaciones y directrices del manual de uso y mantenimiento del constructor/instalador.`;
 

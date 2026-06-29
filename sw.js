@@ -1,6 +1,6 @@
 // ── ARP Inspecciones Service Worker ──
 // VERSIÓN: 2.5 — actualizar este número en cada deploy
-const CACHE_NAME = 'arp-v3.9';
+const CACHE_NAME = 'arp-v4.0';
 
 const PRECACHE = [
   '/arp-inspecciones/',
