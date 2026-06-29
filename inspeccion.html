@@ -1308,7 +1308,7 @@
       const j=S.circuitos[ref.ci].juegos[ref.ji];
       const circ=S.circuitos[ref.ci];
       elem=`${circ.nombre} — ${j.nombre||'Juego '+(ref.ji+1)}`;
-      autoId=`j_${ref.ci}_${ref.ji}_${ref.col}`;
+      autoId=`c${ref.ci}j${ref.ji}_${ref.col}`;
     }
     // FIX: marcar origen campo si fue tipo libre
     if(tipoSel==='__otro__') origen='campo';
@@ -1326,6 +1326,7 @@
 
   // NCs
   function renderNCs(){
+    var scrollY=window.scrollY;
     const c=document.getElementById("ncList");
     const warn=document.getElementById("ncWarn");
     const incompletas=S.ncs.filter(n=>!n.tipo||!n.prio);
@@ -1427,6 +1428,7 @@
           </div>
         </div>`;
     }).join("");
+    setTimeout(function(){window.scrollTo(0,scrollY)},0);
   }
 
   function cerrarNC(i,cerrada){
@@ -1445,9 +1447,9 @@
     S.ncs[i].cerrada=cerrada;
     // Auto-cambiar check del juego a S si la NC se cierra (y era de un juego)
     var aid=S.ncs[i].autoId||'';
-    if(cerrada&&aid.startsWith('j_')){
-      var parts=aid.split('_');
-      var ci=parseInt(parts[1]),ji=parseInt(parts[2]),col=parts[3];
+    var m=aid.match(/^c(\d+)j(\d+)_(\w+)$/);
+    if(cerrada&&m&&m[3]!=='manual'){
+      var ci=parseInt(m[1]),ji=parseInt(m[2]),col=m[3];
       if(S.circuitos[ci]&&S.circuitos[ci].juegos[ji]&&col){
         S.circuitos[ci].juegos[ji][col]='S';
       }
@@ -1624,6 +1626,9 @@
         fechaCompletada:firebase.firestore.FieldValue.serverTimestamp(),
         fechaCompletadaLocal:new Date().toISOString()
       });
+      if(docDataFull.instalacionId){
+        db.collection("instalaciones").doc(docDataFull.instalacionId).update({ultimaInspeccionId:inspeccionId}).catch(function(){});
+      }
       isDirty=false;
       // Guardar snapshot en localStorage antes de redirigir (triple backup)
       // FIX: parte de docDataFull (todos los campos de identidad) y sobreescribe con el estado actual

@@ -402,16 +402,18 @@
     if (inst.codigo) txt += " · " + inst.codigo;
     document.getElementById("acVincTxt").textContent = txt;
     document.getElementById("acVinculada").classList.add("vis");
-    db.collection("inspecciones").where("instalacionId","==",id).where("estado","==","completada").orderBy("fechaCreacion","desc").limit(1).get().then(function(snap){
-      if(!snap.empty){
-        var prev=snap.docs[0].data();
-        if(prev.circuitos&&prev.circuitos.length){
-          circuitosHeredados=prev.circuitos.map(function(c){return{nombre:c.nombre,juegos:(c.juegos||[]).map(function(j){return{nombre:j.nombre,tipo:j.tipo||'R',rama:j.rama||'',ie:'',af:'',ej:'',ra:'',zs:'',obs:'',fotos:[]}})};});
-          txt+=" · "+circuitosHeredados.reduce(function(s,c){return s+c.juegos.length},0)+" elem. heredados";
-          document.getElementById("acVincTxt").textContent=txt;
+    if(inst.ultimaInspeccionId){
+      db.collection("inspecciones").doc(inst.ultimaInspeccionId).get().then(function(doc){
+        if(doc.exists){
+          var prev=doc.data();
+          if(prev.circuitos&&prev.circuitos.length){
+            circuitosHeredados=prev.circuitos.map(function(c){return{nombre:c.nombre,juegos:(c.juegos||[]).map(function(j){return{nombre:j.nombre,tipo:j.tipo||'R',rama:j.rama||'',ie:'',af:'',ej:'',ra:'',zs:'',obs:'',fotos:[]}})};});
+            txt+=" · "+circuitosHeredados.reduce(function(s,c){return s+c.juegos.length},0)+" elem. heredados";
+            document.getElementById("acVincTxt").textContent=txt;
+          }
         }
-      }
-    }).catch(function(){});
+      }).catch(function(){});
+    }
   };
 
   window.limpiarInstalacion = function() {

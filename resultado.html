@@ -1022,7 +1022,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         const v = (D.checklist||{})[item.id]||'';
         const obs = (D.checklistObs||{})[item.id]||'';
         // Buscar NC asociada a este ítem para color de fondo
-        const ncAsoc = (D.ncs||[]).filter(n => n.checklistId === item.id || (n.autoId && n.autoId.includes(item.id)));
+        const ncAsoc = (D.ncs||[]).filter(n => n.checklistId === item.id || n.autoId === item.id);
         const prioFila = ncAsoc.length ? ncAsoc.reduce((max,n) => {
           const ord = {GRAVE:4,MEDIA:3,LEVE:2,DOCUMENTAL:1,OBSERVACION:0};
           return (ord[n.prio]||0) > (ord[max]||0) ? n.prio : max;
@@ -1870,7 +1870,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
           doc.setFillColor(...WHITE);
           doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 7, 'D');
           var jPat = 'c'+ciIdx2+'j'+jiIdx2;
-          var jObs = (D.ncs||[]).filter(function(nc){ var aid=nc.autoId||''; return aid.indexOf(jPat)===0 && (aid.length===jPat.length || aid[jPat.length]==='_'); }).map(function(nc){ return nc.desc||nc.tipo||''; }).filter(Boolean).join('. ');
+          var jObs = (D.ncs||[]).filter(function(nc){ var aid=nc.autoId||''; return aid.indexOf(jPat)===0 && (aid.length===jPat.length || aid[jPat.length]==='_'); }).map(function(nc){ return nc.desc||nc.tipo||''; }).filter(Boolean).join('\n');
           if (jObs) {
             doc.setFontSize(5.5); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
             doc.text(doc.splitTextToSize(jObs, obsW2-2), ML+cw0+cw1+5*cw2+1, y+3);
