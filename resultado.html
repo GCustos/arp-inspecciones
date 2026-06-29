@@ -240,14 +240,18 @@
       ncGrupos[key].items.push(nc.elem||'');
     });
 
-    const ncHtml = Object.values(ncGrupos).map(g => `
-      <div class="nc-item">
-        <span class="nc-badge p-${g.prio}">${g.prio}</span>
+    const allNcsDisplay = (D.ncs||[]).filter(n=>n.prio).map(nc => {
+      const cerrada = nc.cerrada;
+      return `<div class="nc-item" style="${cerrada?'opacity:.5':''}">
+        <span class="nc-badge p-${nc.prio}">${nc.prio}</span>
         <div style="flex:1">
-          <div style="font-weight:600;font-size:12px">${g.tipo}</div>
-          <div style="font-size:11px;color:var(--muted)">${g.items.filter(Boolean).join(' · ')}</div>
+          <div style="font-weight:600;font-size:12px;${cerrada?'text-decoration:line-through':''}">${nc.tipo||'Sin tipo'}</div>
+          <div style="font-size:11px;color:var(--muted)">${nc.elem||''}${nc.desc?' — '+nc.desc:''}</div>
+          ${cerrada?'<div style="font-size:10px;color:var(--green);font-weight:600">✓ CERRADA — '+( nc.resolucion||'Resuelta')+'</div>':''}
         </div>
-      </div>`).join('') || '<div style="font-size:13px;color:var(--muted);padding:8px 0">Sin no conformidades.</div>';
+      </div>`;
+    }).join('') || '<div style="font-size:13px;color:var(--muted);padding:8px 0">Sin no conformidades.</div>';
+    const ncHtml = allNcsDisplay;
 
     document.getElementById('mainContent').innerHTML = `
       <div class="res-header ${favorable?'favorable':'desfavorable'}">
@@ -1122,17 +1126,19 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         const hayN = vArr.includes('N');
         const allNA = vArr.length>0 && vArr.every(v=>v==='NA');
         const allS = vArr.length>0 && vArr.every(v=>v==='S'||v==='NA');
-        const vGlobal = hayN?'N':allNA?'NA':allS?'S':'S';
+        var vGlobal = hayN?'N':allNA?'NA':allS?'S':'S';
 
         var ncsDelCol = (D.ncs||[]).filter(n => n.autoId && n.autoId.includes('_'+col.key));
         if (col.key === COLS_PDF[COLS_PDF.length-1].key) {
           (D.ncs||[]).forEach(function(n){ if(n.autoId && n.autoId.includes('_manual')) ncsDelCol.push(n); });
           (D.ncs||[]).forEach(function(n){ if(n.autoId && n.autoId.startsWith('g')) ncsDelCol.push(n); });
         }
-        const notaCol = ncsDelCol.map(function(n){ ncNumGlobal++; return ncNumGlobal+'. '+((n.elem||'')+(n.desc?' — '+n.desc:'')); }).join(' ');
+        var ncsAbiertas = ncsDelCol.filter(function(n){ return !n.cerrada; });
+        var todasCerradas = ncsDelCol.length > 0 && ncsAbiertas.length === 0;
+        const notaCol = ncsDelCol.map(function(n){ ncNumGlobal++; return (n.cerrada?'(✓) ':'')+ncNumGlobal+'. '+((n.elem||'')+(n.desc?' — '+n.desc:'')); }).join(' ');
 
-        // Color fila según NC más grave del criterio
-        const prioCol = ncsDelCol.length ? ncsDelCol.reduce((max,n) => {
+        // Color fila según NC más grave ABIERTA del criterio
+        const prioCol = ncsAbiertas.length ? ncsAbiertas.reduce((max,n) => {
           const ord = {GRAVE:4,MEDIA:3,LEVE:2,DOCUMENTAL:1,OBSERVACION:0};
           return (ord[n.prio]||0) > (ord[max]||0) ? n.prio : max;
         }, '') : '';
@@ -1180,13 +1186,16 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
         descLinesCol.forEach((l,i) => doc.text(l, ML+2, y+5+i*4.5));
 
-        doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+        if (todasCerradas && vGlobal==='N') vGlobal = 'S';
+        doc.setFontSize(11); doc.setFont('helvetica','bold');
+        doc.setTextColor(...(todasCerradas ? GREEN_C : DARK));
         if (vGlobal==='S')  doc.text('X', ML+descW+colSW/2,                    y+rowHcol/2+2, {align:'center'});
         else if (vGlobal==='N')  doc.text('X', ML+descW+colSW+colNsW/2,        y+rowHcol/2+2, {align:'center'});
         else if (vGlobal==='NA') doc.text('X', ML+descW+colSW+colNsW+colNaW/2, y+rowHcol/2+2, {align:'center'});
 
         if (notaCol) {
-          doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+          doc.setFontSize(7); doc.setFont('helvetica','normal');
+          doc.setTextColor(...(todasCerradas ? GREEN_C : DARK));
           notaLinesCol.forEach((l,i) => doc.text(l, ML+descW+colSW+colNsW+colNaW+2, y+5+i*4.5));
         }
         y += rowHcol;
@@ -1768,12 +1777,16 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
           const descL = doc.splitTextToSize(it.desc, half-14);
           descL.forEach((l,li) => doc.text(l, ML+xOff+2, y+9+li*3.2));
 
-          // Valor S/N/NA — color según resultado
+          // Valor S/N/NA — color según resultado (Rev.N: negro si sin cambio)
           if (v) {
+            var prevGen = (D.historialRevisiones&&D.historialRevisiones.length) ? (D.historialRevisiones[D.historialRevisiones.length-1].checklist||{})[it.id]||'' : '';
             doc.setFontSize(10); doc.setFont('helvetica','bold');
-            if (v === 'S')       doc.setTextColor(...GREEN_C);
-            else if (v === 'N')  doc.setTextColor(...RED);
-            else                 doc.setTextColor(...DARK);
+            if (prevGen && v===prevGen) { doc.setTextColor(...DARK); }
+            else if (v==='S' && prevGen==='N') { doc.setTextColor(...GREEN_C); }
+            else if (v==='N' && prevGen==='S') { doc.setTextColor(...RED); }
+            else if (v==='S') { doc.setTextColor(...GREEN_C); }
+            else if (v==='N') { doc.setTextColor(...RED); }
+            else { doc.setTextColor(...DARK); }
             doc.text(v === 'N' ? 'NS' : v, ML+xOff+half-10, y+rH3/2+2);
           }
           // Obs si hay NC
