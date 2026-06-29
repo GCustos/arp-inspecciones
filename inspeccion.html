@@ -340,7 +340,7 @@
 <div class="autosave-badge" id="autosaveBadge">&#10003; Guardado</div>
 
 <!-- MODAL FIN CIRCUITO -->
-<div class="modal-overlay" id="modalFinCirc" onclick="document.getElementById('modalFinCirc').classList.remove('vis')">
+<div class="modal-overlay" id="modalFinCirc" onclick="document.getElementById('modalFinCirc').classList.remove('open')">
   <div class="modal-sheet" onclick="event.stopPropagation()" style="text-align:center;padding:20px">
     <div class="modal-header"><span class="modal-title" id="modalFinCircTitulo"></span></div>
     <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
@@ -1047,7 +1047,7 @@
       document.getElementById('btnFinSigCirc').style.display=ci+1<totalCirc?'':'none';
       document.getElementById('btnFinSigCirc').onclick=function(){modal.classList.remove('vis');juegoAbierto[ci+1]=0;renderCircuitos();goTab(2);};
       document.getElementById('btnFinNuevoCirc').onclick=function(){modal.classList.remove('vis');addCircuito();};
-      modal.classList.add('vis');
+      modal.classList.add('open');
     }
   }
 
@@ -1350,30 +1350,30 @@
             </div>
             <button class="nc-del" onclick="delNC(${i})">&#215;</button>
           </div>
-          <div class="f"><label>Tipo de no conformidad</label>
-            <select onchange="S.ncs[${i}].tipo=this.value;markDirty();renderNCs()">
-              <option value="">&#8212; Selecciona &#8212;</option>
-              ${tiposNCList.map(t=>`<option ${nc.tipo===t?'selected':''}>${t}</option>`).join('')}
-            </select>
-          </div>
           <div class="f"><label>Elemento afectado</label>
-            ${nc.autoId&&!nc.autoId.includes('_manual') ? `<input type="text" value="${(nc.elem||'').replace(/"/g,'&quot;')}" disabled style="opacity:.7">` :
-            `<div class="r2"><div class="f" style="margin-bottom:0"><select onchange="ncSelCircuito(${i},this.value)">
-              <option value="">— Circuito —</option>
-              ${(S.circuitos||[]).map((c,ci)=>'<option value="'+ci+'"'+(nc._ci===ci?' selected':'')+'>'+c.nombre+'</option>').join('')}
-              <option value="g"${nc._ci==='g'?' selected':''}>General</option>
-            </select></div><div class="f" style="margin-bottom:0"><select onchange="ncSelJuego(${i},this.value)" id="ncJSel${i}">
-              <option value="">— Juego —</option>
-              ${nc._ci!==undefined&&nc._ci!=='g'?(S.circuitos[nc._ci]?.juegos||[]).map((j,ji)=>'<option value="'+ji+'"'+(nc._ji===ji?' selected':'')+'>'+j.nombre+'</option>').join(''):''}
-            </select></div></div>
-            <div class="f" style="margin-bottom:0;margin-top:6px"><select onchange="ncSelColumna(${i},this.value)">
+            ${nc.autoId&&nc.origen==='auto' ? `<input type="text" value="${(nc.elem||'').replace(/"/g,'&quot;')}" disabled style="opacity:.7">` :
+            `<div class="f" style="margin-bottom:4px"><select onchange="ncSelColumna(${i},this.value)">
               <option value="">— Pregunta checklist —</option>
               <option value="ie"${nc._col==='ie'?' selected':''}>Integridad estructural</option>
               <option value="af"${nc._col==='af'?' selected':''}>Anclajes y fijaciones</option>
               <option value="ej"${nc._col==='ej'?' selected':''}>Elementos de juego</option>
               <option value="ra"${nc._col==='ra'?' selected':''}>Riesgos y atrapamientos</option>
               <option value="zs"${nc._col==='zs'?' selected':''}>Zona de seguridad</option>
-            </select></div>`}
+            </select></div>
+            <div class="r2"><div class="f" style="margin-bottom:0"><select onchange="ncSelCircuito(${i},this.value)">
+              <option value="">— Circuito —</option>
+              ${(S.circuitos||[]).map((c,ci)=>'<option value="'+ci+'"'+(nc._ci===ci?' selected':'')+'>'+c.nombre+'</option>').join('')}
+              <option value="g"${nc._ci==='g'?' selected':''}>General</option>
+            </select></div><div class="f" style="margin-bottom:0"><select onchange="ncSelJuego(${i},this.value)" id="ncJSel${i}">
+              <option value="">— Juego —</option>
+              ${nc._ci!==undefined&&nc._ci!=='g'?(S.circuitos[nc._ci]?.juegos||[]).map((j,ji)=>'<option value="'+ji+'"'+(nc._ji===ji?' selected':'')+'>'+j.nombre+'</option>').join(''):''}
+            </select></div></div>`}
+          </div>
+          <div class="f"><label>Tipo de no conformidad</label>
+            <select onchange="S.ncs[${i}].tipo=this.value;markDirty();renderNCs()">
+              <option value="">&#8212; Selecciona &#8212;</option>
+              ${tiposNCList.map(t=>`<option ${nc.tipo===t?'selected':''}>${t}</option>`).join('')}
+            </select>
           </div>
           <div class="f"><label>Descripción / observación</label>
             <textarea onchange="S.ncs[${i}].desc=this.value;markDirty()" placeholder="Describe la no conformidad...">${nc.desc||""}</textarea>
@@ -1428,7 +1428,7 @@
           </div>
         </div>`;
     }).join("");
-    setTimeout(function(){window.scrollTo(0,scrollY)},0);
+    requestAnimationFrame(function(){window.scrollTo(0,scrollY)});
   }
 
   function cerrarNC(i,cerrada){

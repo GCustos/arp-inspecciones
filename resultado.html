@@ -1115,6 +1115,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.text('II. Específica Circuitos y Juegos', ML, y); y += 8;
 
       // Tabla por criterio — formato tabla independiente igual que I. General
+      var ncNumGlobal = 0;
       for (const col of COLS_PDF) {
         const vArr = [];
         circuitos.forEach(circ => { (circ.juegos||[]).forEach(j => { if(j[col.key]) vArr.push(j[col.key]); }); });
@@ -1128,7 +1129,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           (D.ncs||[]).forEach(function(n){ if(n.autoId && n.autoId.includes('_manual')) ncsDelCol.push(n); });
           (D.ncs||[]).forEach(function(n){ if(n.autoId && n.autoId.startsWith('g')) ncsDelCol.push(n); });
         }
-        const notaCol = ncsDelCol.map((n,i)=>`${i+1}. ${n.elem||''}${n.desc?' — '+n.desc:''}`).join(' ');
+        const notaCol = ncsDelCol.map(function(n){ ncNumGlobal++; return ncNumGlobal+'. '+((n.elem||'')+(n.desc?' — '+n.desc:'')); }).join(' ');
 
         // Color fila según NC más grave del criterio
         const prioCol = ncsDelCol.length ? ncsDelCol.reduce((max,n) => {
@@ -1869,8 +1870,9 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
           });
           doc.setFillColor(...WHITE);
           doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 7, 'D');
-          var jPat = 'c'+ciIdx2+'j'+jiIdx2;
-          var jObs = (D.ncs||[]).filter(function(nc){ var aid=nc.autoId||''; return aid.indexOf(jPat)===0 && (aid.length===jPat.length || aid[jPat.length]==='_'); }).map(function(nc){ return nc.desc||nc.tipo||''; }).filter(Boolean).join('\n');
+          var jPat1 = 'c'+ciIdx2+'j'+jiIdx2;
+          var jPat2 = 'j_'+ciIdx2+'_'+jiIdx2+'_';
+          var jObs = (D.ncs||[]).filter(function(nc){ var aid=nc.autoId||''; return (aid.indexOf(jPat1)===0 && (aid.length===jPat1.length || aid[jPat1.length]==='_')) || aid.indexOf(jPat2)===0; }).map(function(nc){ return nc.desc||nc.tipo||''; }).filter(Boolean).join('\n');
           if (jObs) {
             doc.setFontSize(5.5); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
             doc.text(doc.splitTextToSize(jObs, obsW2-2), ML+cw0+cw1+5*cw2+1, y+3);
