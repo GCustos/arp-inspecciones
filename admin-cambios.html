@@ -72,9 +72,10 @@
   });
 
   function cargar() {
-    db.collection('cambiosPropuestos').where('estado', '==', 'pendiente').orderBy('fecha', 'desc').get().then(function(snap) {
+    db.collection('cambiosPropuestos').where('estado', '==', 'pendiente').get().then(function(snap) {
       var docs = [];
       snap.forEach(function(d) { docs.push(Object.assign({ id: d.id }, d.data())); });
+      docs.sort(function(a,b){ return (b.fecha||'') < (a.fecha||'') ? -1 : 1; });
       render(docs);
     }).catch(function(e) {
       document.getElementById('content').innerHTML = '<div class="empty-state">Error: ' + escHtml(e.message) + '</div>';
