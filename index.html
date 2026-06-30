@@ -300,6 +300,10 @@
     try {
       await auth.signInWithEmailAndPassword(email, pass);
     } catch(e) {
+      if (e.code === 'auth/network-request-failed') {
+        await new Promise(r => setTimeout(r, 600));
+        try { await auth.signInWithEmailAndPassword(email, pass); return; } catch(e2) { e = e2; }
+      }
       listening = false;
       btn.disabled = false;
       btn.textContent = 'Entrar';
@@ -323,8 +327,8 @@
   window.logout = async () => {
     document.getElementById('userMenu').classList.remove('open');
     Object.keys(localStorage).filter(k => k.startsWith('arpUser_')).forEach(k => localStorage.removeItem(k));
-    listening = true;
     await auth.signOut();
+    location.reload();
   };
 
   function mostrarApp(user, ud) {
