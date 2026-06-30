@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Equipos - ARP</title>
+  <style>
+    :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;--orange:#E67E22;}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
+    .app-header{background:var(--dark);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+    .btn-back{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;padding:0;line-height:1}
+    .hdr-mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white}
+    .hdr-title{color:white;font-size:15px;font-weight:600;flex:1}
+    .tabs{display:flex;background:var(--dark);padding:0 16px}
+    .tab{flex:1;padding:10px 0;font-size:13px;font-weight:600;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s}
+    .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+    .content{padding:16px;max-width:680px;margin:0 auto;padding-bottom:40px}
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+    .row-info{flex:1;min-width:0}
+    .row-title{font-size:13px;font-weight:600;color:var(--dark)}
+    .row-sub{font-size:11px;color:var(--muted);margin-top:2px}
+    .badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;text-transform:uppercase;flex-shrink:0}
+    .badge-vencido{background:#FFEBEE;color:var(--red)}
+    .badge-pronto{background:#FFF8E1;color:var(--orange)}
+    .badge-ok{background:#E8F5E9;color:var(--green)}
+    .empty-state{text-align:center;color:var(--muted);font-size:13px;padding:24px}
+    .coming-soon{text-align:center;padding:48px 20px;color:var(--muted)}
+    .coming-soon .cs-icon{font-size:40px;margin-bottom:12px}
+    .coming-soon .cs-title{font-size:15px;font-weight:600;color:var(--dark);margin-bottom:6px}
+    .coming-soon .cs-desc{font-size:12px;line-height:1.5}
+    .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="location.href='admin.html'">&#8592;</button>
+  <div class="hdr-mark">ARP</div>
+  <div class="hdr-title">Equipos</div>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="mostrarTab('calibracion',this)">Calibración</button>
+  <button class="tab" onclick="mostrarTab('epi',this)">EPI</button>
+</div>
+
+<div class="content" id="content">
+  <div class="spinner"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain:"arp-inspecciones.firebaseapp.com",
+      projectId:"arp-inspecciones",
+      storageBucket:"arp-inspecciones.firebasestorage.app",
+      messagingSenderId:"35880168451",
+      appId:"1:35880168451:web:090e3c250b4416ed0b3236"
+    });
+  }
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+  var tabActivo = 'calibracion';
+  var equiposData = [];
+
+  function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  auth.onAuthStateChanged(function(user) {
+    if (!user) { location.href = 'index.html'; return; }
+    db.collection('usuarios').doc(user.email).get().then(function(snap) {
+      if (!snap.exists || !snap.data().activo) { location.href = 'index.html'; return; }
+      var rol = snap.data().rol;
+      if (rol !== 'admin' && rol !== 'director') { location.href = 'index.html'; return; }
+      cargar();
+    });
+  });
+
+  function cargar() {
+    db.collection('equipos').get().then(function(snap) {
+      equiposData = [];
+      snap.forEach(function(d) { equiposData.push(Object.assign({ id: d.id }, d.data())); });
+      renderCalibacion();
+    }).catch(function(e) {
+      document.getElementById('content').innerHTML = '<div class="empty-state">Error: ' + escHtml(e.message) + '</div>';
+    });
+  }
+
+  window.mostrarTab = function(tab, btn) {
+    tabActivo = tab;
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    btn.classList.add('active');
+    if (tab === 'calibracion') renderCalibacion();
+    else renderEPI();
+  };
+
+  function renderCalibacion() {
+    var hoy = new Date();
+    var limite = new Date(); limite.setDate(limite.getDate() + 60);
+    var limStr = limite.toISOString().slice(0,10);
+    var hoyStr = hoy.toISOString().slice(0,10);
+
+    var relevantes = equiposData.filter(function(e) {
+      var f = e.calibracion && e.calibracion.fechaProxima;
+      return f && f <= limStr;
+    }).sort(function(a,b) {
+      return (a.calibracion.fechaProxima < b.calibracion.fechaProxima) ? -1 : 1;
+    });
+
+    if (!relevantes.length) {
+      document.getElementById('content').innerHTML = '<div class="card"><div class="empty-state">Ningún equipo caduca en los próximos 60 días.</div></div>';
+      return;
+    }
+    var html = '';
+    relevantes.forEach(function(e) {
+      var f = e.calibracion.fechaProxima;
+      var vencido = f < hoyStr;
+      html += '<div class="card">' +
+        '<div class="row-info">' +
+        '<div class="row-title">' + escHtml(e.id) + (e.medicion ? ' &middot; ' + escHtml(e.medicion) : '') + '</div>' +
+        '<div class="row-sub">Próxima calibración: ' + escHtml(f) + ' &middot; Inspector: ' + escHtml(e.asignadoA || '—') + '</div>' +
+        '</div>' +
+        '<span class="badge ' + (vencido ? 'badge-vencido' : 'badge-pronto') + '">' + (vencido ? 'Vencido' : 'Próximo') + '</span>' +
+        '</div>';
+    });
+    document.getElementById('content').innerHTML = html;
+  }
+
+  function renderEPI() {
+    document.getElementById('content').innerHTML =
+      '<div class="coming-soon">' +
+      '<div class="cs-icon">&#128736;</div>' +
+      '<div class="cs-title">EPI — Próximamente</div>' +
+      '<div class="cs-desc">Registro de equipos de protección individual:<br>arnés, disipador, casco, mosquetones...<br><br>Incluirá fecha de fabricación, primera puesta en servicio<br>y control de vida útil por normativa.</div>' +
+      '</div>';
+  }
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#C8993A">
-  <title>Admin - ARP</title>
+  <title>Administración - ARP</title>
   <style>
     :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;--orange:#E67E22;}
     *{box-sizing:border-box;margin:0;padding:0}
@@ -13,39 +13,31 @@
     .btn-back{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;padding:0;line-height:1}
     .hdr-mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white}
     .hdr-title{color:white;font-size:15px;font-weight:600;flex:1}
-    .content{padding:16px;max-width:780px;margin:0 auto;padding-bottom:40px}
-    .sec-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:20px 0 10px;display:flex;align-items:center;gap:8px}
-    .sec-title::after{content:"";flex:1;height:1px;background:var(--border)}
-    .sec-title .count{background:var(--gold);color:white;font-size:10px;font-weight:700;padding:1px 7px;border-radius:9px}
-    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px}
-    .row{display:flex;align-items:center;gap:10px}
-    .row-info{flex:1;min-width:0}
-    .row-title{font-size:13px;font-weight:600;color:var(--dark)}
-    .row-sub{font-size:11px;color:var(--muted);margin-top:2px}
-    .badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;text-transform:uppercase;flex-shrink:0}
-    .badge-vencido{background:#FFEBEE;color:var(--red)}
-    .badge-pronto{background:#FFF8E1;color:var(--orange)}
-    .badge-pendiente{background:#F5F5F5;color:var(--muted)}
-    .change-row{display:flex;flex-direction:column;gap:6px}
-    .change-vals{font-size:12px;color:var(--text)}
-    .change-vals .old{color:var(--red);text-decoration:line-through}
-    .change-vals .new{color:var(--green);font-weight:600}
-    .change-meta{font-size:11px;color:var(--muted)}
-    .change-btns{display:flex;gap:8px;margin-top:4px}
-    .btn-aceptar{flex:1;padding:8px;background:var(--green);color:white;border:none;border-radius:7px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
-    .btn-rechazar{flex:1;padding:8px;background:white;color:var(--red);border:1px solid var(--red);border-radius:7px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
-    .empty-state{text-align:center;color:var(--muted);font-size:12px;padding:16px}
-    .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:30px auto}
+    .content{padding:16px;max-width:680px;margin:0 auto;padding-bottom:40px}
+    .sec-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:8px 0 12px}
+    .panel-card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all 0.2s;text-decoration:none}
+    .panel-card:hover{border-color:var(--gold);box-shadow:0 4px 12px rgba(0,0,0,0.08);transform:translateY(-1px)}
+    .panel-card.disabled{opacity:0.45;cursor:not-allowed;pointer-events:none}
+    .card-icon{font-size:26px;flex-shrink:0;width:40px;text-align:center}
+    .card-body{flex:1;min-width:0}
+    .card-title{font-size:14px;font-weight:600;color:var(--dark)}
+    .card-desc{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+    .card-badge{flex-shrink:0;font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;white-space:nowrap}
+    .badge-alert{background:#FFEBEE;color:var(--red)}
+    .badge-warn{background:#FFF8E1;color:var(--orange)}
+    .badge-ok{background:#E8F5E9;color:var(--green)}
+    .badge-off{background:var(--surf);color:var(--muted)}
+    .badge-loading{background:var(--surf);color:var(--muted);opacity:0.6}
+    .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .no-access{text-align:center;padding:60px 20px;color:var(--muted)}
   </style>
 </head>
 <body>
 
 <div class="app-header">
-  <button class="btn-back" onclick="location.href='inspecciones.html'">&#8592;</button>
+  <button class="btn-back" onclick="history.back()">&#8592;</button>
   <div class="hdr-mark">ARP</div>
-  <div class="hdr-title">Admin</div>
+  <div class="hdr-title">Administración</div>
 </div>
 
 <div class="content" id="content">
@@ -58,164 +50,91 @@
 <script>
   if (!firebase.apps.length) {
     firebase.initializeApp({
-      apiKey: "AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
-      authDomain: "arp-inspecciones.firebaseapp.com",
-      projectId: "arp-inspecciones",
-      storageBucket: "arp-inspecciones.firebasestorage.app",
-      messagingSenderId: "35880168451",
-      appId: "1:35880168451:web:090e3c250b4416ed0b3236"
+      apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain:"arp-inspecciones.firebaseapp.com",
+      projectId:"arp-inspecciones",
+      storageBucket:"arp-inspecciones.firebasestorage.app",
+      messagingSenderId:"35880168451",
+      appId:"1:35880168451:web:090e3c250b4416ed0b3236"
     });
   }
   var auth = firebase.auth();
   var db = firebase.firestore();
 
-  function escHtml(s) {
-    return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  }
-
   auth.onAuthStateChanged(function(user) {
-    if (!user) { location.href = "index.html"; return; }
-    db.collection("usuarios").doc(user.email).get().then(function(snap) {
-      if (!snap.exists || !snap.data().activo) { location.href = "index.html"; return; }
+    if (!user) { location.href = 'index.html'; return; }
+    db.collection('usuarios').doc(user.email).get().then(function(snap) {
+      if (!snap.exists || !snap.data().activo) { location.href = 'index.html'; return; }
       var rol = snap.data().rol;
-      if (rol !== "admin" && rol !== "director") {
-        document.getElementById("content").innerHTML = '<div class="no-access">Esta sección es solo para admin/director.</div>';
+      if (rol !== 'admin' && rol !== 'director') {
+        document.getElementById('content').innerHTML = '<p style="text-align:center;color:var(--muted);padding:40px 20px">Acceso restringido a admin/director.</p>';
         return;
       }
-      miEmailGlobal = user.email;
-      cargarPanel();
+      renderMenu();
+      cargarContadores();
     });
   });
 
-  var miEmailGlobal = null;
-
-  function cargarPanel() {
-    Promise.all([
-      db.collection("cambiosPropuestos").where("estado", "==", "pendiente").get(),
-      db.collection("equipos").get(),
-      db.collection("instalaciones").get()
-    ]).then(function(results) {
-      renderCambios(results[0]);
-      renderEquipos(results[1]);
-      renderInstalaciones(results[2]);
-    }).catch(function(e) {
-      document.getElementById("content").innerHTML = '<div class="empty-state">Error cargando el panel: ' + escHtml(e.message) + '</div>';
-    });
+  function card(id, icon, titulo, desc, href) {
+    return '<div class="panel-card" onclick="location.href=\'' + href + '\'">' +
+      '<div class="card-icon">' + icon + '</div>' +
+      '<div class="card-body"><div class="card-title">' + titulo + '</div><div class="card-desc">' + desc + '</div></div>' +
+      '<div class="card-badge badge-loading" id="b-' + id + '">···</div>' +
+      '</div>';
   }
 
-  // ── SECCIÓN 1: CAMBIOS PROPUESTOS ──
-  function renderCambios(snap) {
-    var docs = [];
-    snap.forEach(function(d) { docs.push(Object.assign({ id: d.id }, d.data())); });
-    var html = '<div class="sec-title">Cambios propuestos<span class="count">' + docs.length + '</span></div>';
-    if (!docs.length) {
-      html += '<div class="card"><div class="empty-state">No hay cambios pendientes de revisar.</div></div>';
-    } else {
-      docs.forEach(function(c) {
-        html += '<div class="card change-row">' +
-          '<div class="row-title">' + escHtml(c.instalacionNombre || c.instalacionId) + ' · ' + escHtml(c.campo) + '</div>' +
-          '<div class="change-vals"><span class="old">' + escHtml(c.valorAnterior) + '</span> &#8594; <span class="new">' + escHtml(c.valorNuevo) + '</span></div>' +
-          '<div class="change-meta">Propuesto por ' + escHtml(c.propuestoPor) + '</div>' +
-          '<div class="change-btns">' +
-          '<button class="btn-aceptar" onclick="resolverCambio(\'' + c.id + '\',true)">&#10003; Aceptar</button>' +
-          '<button class="btn-rechazar" onclick="resolverCambio(\'' + c.id + '\',false)">&#215; Rechazar</button>' +
-          '</div></div>';
-      });
-    }
-    document.getElementById("content").innerHTML = html + '<div id="secEquipos"></div><div id="secInstalaciones"></div>';
+  function cardOff(icon, titulo, desc) {
+    return '<div class="panel-card disabled">' +
+      '<div class="card-icon">' + icon + '</div>' +
+      '<div class="card-body"><div class="card-title">' + titulo + '</div><div class="card-desc">' + desc + '</div></div>' +
+      '<div class="card-badge badge-off">Próximamente</div>' +
+      '</div>';
   }
 
-  window.resolverCambio = function(id, aceptar) {
-    var ref = db.collection("cambiosPropuestos").doc(id);
-    ref.get().then(function(snap) {
-      if (!snap.exists) return;
-      var c = snap.data();
-      var p = Promise.resolve();
-      if (aceptar) {
-        var upd = {};
-        upd[c.campo] = c.valorNuevo;
-        p = db.collection("instalaciones").doc(c.instalacionId).set(upd, { merge: true });
-      }
-      return p.then(function() {
-        return ref.update({
-          estado: aceptar ? "aceptado" : "rechazado",
-          revisadoPor: miEmailGlobal,
-          fechaRevision: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      });
-    }).then(function() {
-      cargarPanel();
-    }).catch(function(e) { alert("Error: " + e.message); });
-  };
-
-  // ── SECCIÓN 2: EQUIPOS POR CADUCAR ──
-  function renderEquipos(snap) {
-    var docs = [];
-    snap.forEach(function(d) { docs.push(Object.assign({ id: d.id }, d.data())); });
-    var hoy = new Date();
-    var limite = new Date(); limite.setDate(limite.getDate() + 60);
-    var relevantes = docs.filter(function(e) {
-      var f = e.calibracion && e.calibracion.fechaProxima;
-      return f && new Date(f) <= limite;
-    }).sort(function(a, b) {
-      return new Date(a.calibracion.fechaProxima) - new Date(b.calibracion.fechaProxima);
-    });
-    var html = '<div class="sec-title">Equipos por caducar (60 días)<span class="count">' + relevantes.length + '</span></div>';
-    if (!relevantes.length) {
-      html += '<div class="card"><div class="empty-state">Ningún equipo caduca en los próximos 60 días.</div></div>';
-    } else {
-      relevantes.forEach(function(e) {
-        var f = new Date(e.calibracion.fechaProxima);
-        var vencido = f < hoy;
-        html += '<div class="card row">' +
-          '<div class="row-info">' +
-          '<div class="row-title">' + escHtml(e.id) + ' · ' + escHtml(e.medicion || e.tipo || '') + '</div>' +
-          '<div class="row-sub">Calibración: ' + escHtml(e.calibracion.fechaProxima) + ' · Sede: ' + escHtml(e.asignadoA || '?') + '</div>' +
-          '</div>' +
-          '<span class="badge ' + (vencido ? 'badge-vencido' : 'badge-pronto') + '">' + (vencido ? 'Vencido' : 'Próximo') + '</span>' +
-          '</div>';
-      });
-    }
-    document.getElementById("secEquipos").innerHTML = html;
+  function renderMenu() {
+    document.getElementById('content').innerHTML =
+      '<div class="sec-label">Panel de administración</div>' +
+      card('cambios',       '&#128203;', 'Cambios propuestos',  'Revisión y aprobación de cambios en datos de instalaciones',    'admin-cambios.html') +
+      card('equipos',       '&#128295;', 'Equipos',             'Calibraciones próximas e inventario de material por inspector', 'admin-equipos.html') +
+      card('instalaciones', '&#127959;', 'Instalaciones',       'Instalaciones sin inspección en los últimos 12 meses',          'admin-instalaciones.html') +
+      cardOff('&#128203;', 'Checklist PAA',  'Editor de preguntas y criterios de inspección') +
+      cardOff('&#128119;', 'Inspectores',    'Gestión de usuarios, autorizaciones y formaciones');
   }
 
-  // ── SECCIÓN 3: INSTALACIONES PENDIENTES DE REVISIÓN ──
-  function renderInstalaciones(snap) {
-    var docs = [];
-    snap.forEach(function(d) { docs.push(Object.assign({ id: d.id }, d.data())); });
-    var hoy = new Date();
-    var hace12m = new Date(); hace12m.setMonth(hace12m.getMonth() - 12);
-    var PENDIENTE = "__PENDIENTE__";
-    var relevantes = docs.filter(function(i) {
-      if (i.activo === false) return false;
-      var u = i.ultimaInspeccion;
-      if (!u || u === PENDIENTE) return true;
-      var fecha = new Date(u);
-      return isNaN(fecha.getTime()) ? false : fecha <= hace12m;
-    }).sort(function(a, b) {
-      var ua = (a.ultimaInspeccion && a.ultimaInspeccion !== PENDIENTE) ? a.ultimaInspeccion : "0000";
-      var ub = (b.ultimaInspeccion && b.ultimaInspeccion !== PENDIENTE) ? b.ultimaInspeccion : "0000";
-      return ua < ub ? -1 : ua > ub ? 1 : 0;
-    });
-    var html = '<div class="sec-title">Instalaciones pendientes de revisión<span class="count">' + relevantes.length + '</span></div>';
-    if (!relevantes.length) {
-      html += '<div class="card"><div class="empty-state">Todas las instalaciones están al día.</div></div>';
-    } else {
-      relevantes.slice(0, 50).forEach(function(i) {
-        var sinFecha = !i.ultimaInspeccion || i.ultimaInspeccion === PENDIENTE;
-        html += '<div class="card row">' +
-          '<div class="row-info">' +
-          '<div class="row-title">' + escHtml(i.nombre || i.id) + (i.codigo ? ' · ' + escHtml(i.codigo) : '') + '</div>' +
-          '<div class="row-sub">Última inspección: ' + (sinFecha ? 'sin fecha' : escHtml(i.ultimaInspeccion)) + '</div>' +
-          '</div>' +
-          '<span class="badge badge-pendiente">' + (sinFecha ? 'Sin dato' : '+12m') + '</span>' +
-          '</div>';
+  function setBadge(id, texto, tipo) {
+    var el = document.getElementById('b-' + id);
+    if (!el) return;
+    el.className = 'card-badge badge-' + tipo;
+    el.textContent = texto;
+  }
+
+  function cargarContadores() {
+    db.collection('cambiosPropuestos').where('estado', '==', 'pendiente').get().then(function(snap) {
+      var n = snap.size;
+      setBadge('cambios', n ? n + ' pendiente' + (n > 1 ? 's' : '') : 'Sin pendientes', n ? 'alert' : 'ok');
+    }).catch(function() { setBadge('cambios', 'Error', 'warn'); });
+
+    var limStr = (function(){ var d = new Date(); d.setDate(d.getDate()+60); return d.toISOString().slice(0,10); })();
+    db.collection('equipos').get().then(function(snap) {
+      var n = 0;
+      snap.forEach(function(d) {
+        var f = d.data().calibracion && d.data().calibracion.fechaProxima;
+        if (f && f <= limStr) n++;
       });
-      if (relevantes.length > 50) {
-        html += '<div class="card"><div class="empty-state">Mostrando las 50 más antiguas de ' + relevantes.length + '.</div></div>';
-      }
-    }
-    document.getElementById("secInstalaciones").innerHTML = html;
+      setBadge('equipos', n ? n + ' por caducar' : 'Todo en regla', n ? 'warn' : 'ok');
+    }).catch(function() { setBadge('equipos', 'Error', 'warn'); });
+
+    var hace12mStr = (function(){ var d = new Date(); d.setMonth(d.getMonth()-12); return d.toISOString().slice(0,10); })();
+    db.collection('instalaciones').get().then(function(snap) {
+      var n = 0;
+      snap.forEach(function(d) {
+        var data = d.data();
+        if (data.activo === false) return;
+        var u = data.ultimaInspeccion;
+        if (!u || u === '__PENDIENTE__' || u <= hace12mStr) n++;
+      });
+      setBadge('instalaciones', n ? n + ' pendientes' : 'Todo al día', n ? 'warn' : 'ok');
+    }).catch(function() { setBadge('instalaciones', 'Error', 'warn'); });
   }
 </script>
 </body>

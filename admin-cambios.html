@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Cambios propuestos - ARP</title>
+  <style>
+    :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
+    .app-header{background:var(--dark);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+    .btn-back{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;padding:0;line-height:1}
+    .hdr-mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white}
+    .hdr-title{color:white;font-size:15px;font-weight:600;flex:1}
+    .content{padding:16px;max-width:680px;margin:0 auto;padding-bottom:40px}
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+    .row-title{font-size:13px;font-weight:600;color:var(--dark)}
+    .change-vals{font-size:12px;color:var(--text);margin:6px 0 2px}
+    .change-vals .old{color:var(--red);text-decoration:line-through}
+    .change-vals .new{color:var(--green);font-weight:600}
+    .change-meta{font-size:11px;color:var(--muted)}
+    .change-btns{display:flex;gap:8px;margin-top:10px}
+    .btn-aceptar{flex:1;padding:9px;background:var(--green);color:white;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    .btn-rechazar{flex:1;padding:9px;background:white;color:var(--red);border:1.5px solid var(--red);border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    .empty-state{text-align:center;color:var(--muted);font-size:13px;padding:24px}
+    .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="location.href='admin.html'">&#8592;</button>
+  <div class="hdr-mark">ARP</div>
+  <div class="hdr-title">Cambios propuestos</div>
+</div>
+
+<div class="content" id="content">
+  <div class="spinner"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain:"arp-inspecciones.firebaseapp.com",
+      projectId:"arp-inspecciones",
+      storageBucket:"arp-inspecciones.firebasestorage.app",
+      messagingSenderId:"35880168451",
+      appId:"1:35880168451:web:090e3c250b4416ed0b3236"
+    });
+  }
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+  var miEmail = null;
+
+  function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  auth.onAuthStateChanged(function(user) {
+    if (!user) { location.href = 'index.html'; return; }
+    db.collection('usuarios').doc(user.email).get().then(function(snap) {
+      if (!snap.exists || !snap.data().activo) { location.href = 'index.html'; return; }
+      var rol = snap.data().rol;
+      if (rol !== 'admin' && rol !== 'director') { location.href = 'index.html'; return; }
+      miEmail = user.email;
+      cargar();
+    });
+  });
+
+  function cargar() {
+    db.collection('cambiosPropuestos').where('estado', '==', 'pendiente').orderBy('fecha', 'desc').get().then(function(snap) {
+      var docs = [];
+      snap.forEach(function(d) { docs.push(Object.assign({ id: d.id }, d.data())); });
+      render(docs);
+    }).catch(function(e) {
+      document.getElementById('content').innerHTML = '<div class="empty-state">Error: ' + escHtml(e.message) + '</div>';
+    });
+  }
+
+  function render(docs) {
+    if (!docs.length) {
+      document.getElementById('content').innerHTML = '<div class="card"><div class="empty-state">No hay cambios pendientes de revisar.</div></div>';
+      return;
+    }
+    var html = '';
+    docs.forEach(function(c) {
+      html += '<div class="card">' +
+        '<div class="row-title">' + escHtml(c.instalacionNombre || c.instalacionId) + ' &middot; ' + escHtml(c.campo) + '</div>' +
+        '<div class="change-vals"><span class="old">' + escHtml(c.valorAnterior) + '</span> &#8594; <span class="new">' + escHtml(c.valorNuevo) + '</span></div>' +
+        '<div class="change-meta">Propuesto por ' + escHtml(c.propuestoPor) + '</div>' +
+        '<div class="change-btns">' +
+        '<button class="btn-aceptar" onclick="resolver(\'' + c.id + '\',true)">&#10003; Aceptar</button>' +
+        '<button class="btn-rechazar" onclick="resolver(\'' + c.id + '\',false)">&#215; Rechazar</button>' +
+        '</div></div>';
+    });
+    document.getElementById('content').innerHTML = html;
+  }
+
+  window.resolver = function(id, aceptar) {
+    db.collection('cambiosPropuestos').doc(id).get().then(function(snap) {
+      if (!snap.exists) return;
+      var c = snap.data();
+      var p = Promise.resolve();
+      if (aceptar) {
+        var upd = {}; upd[c.campo] = c.valorNuevo;
+        p = db.collection('instalaciones').doc(c.instalacionId).set(upd, { merge: true });
+      }
+      return p.then(function() {
+        return db.collection('cambiosPropuestos').doc(id).update({
+          estado: aceptar ? 'aceptado' : 'rechazado',
+          revisadoPor: miEmail,
+          fechaRevision: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+    }).then(function() { cargar(); }).catch(function(e) { alert('Error: ' + e.message); });
+  };
+</script>
+</body>
+</html>
