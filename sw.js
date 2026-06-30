@@ -1,6 +1,6 @@
 // ── ARP Inspecciones Service Worker ──
 // VERSIÓN: 2.5 — actualizar este número en cada deploy
-const CACHE_NAME = 'arp-v4.3';
+const CACHE_NAME = 'arp-v4.4';
 
 const PRECACHE = [
   '/arp-inspecciones/',
@@ -55,35 +55,48 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// ── FETCH: cache-first para assets, network-first para Firestore ──
+// ── FETCH ──
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Firestore y Storage: siempre network (tienen su propio offline handling)
+  // Firebase: siempre network (gestión propia de offline)
   if (url.hostname.includes('firestore.googleapis.com') ||
       url.hostname.includes('firebasestorage.googleapis.com') ||
       url.hostname.includes('identitytoolkit.googleapis.com') ||
       url.hostname.includes('securetoken.googleapis.com')) {
-    return; // dejar pasar sin interceptar
+    return;
   }
 
-  // Cache-first para todo lo demás
+  // Páginas HTML propias: network-first → siempre obtiene la versión actual
+  // Si hay fallo de red (offline), cae a caché
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() =>
+        caches.match(event.request).then(cached =>
+          cached || caches.match('/arp-inspecciones/index.html')
+        )
+      )
+    );
+    return;
+  }
+
+  // Scripts y assets externos: cache-first (Firebase, jsPDF nunca cambian)
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
       return fetch(event.request, { mode: 'no-cors' }).then(response => {
-        // Cachear respuestas válidas
         if (response && (response.status === 200 || response.type === 'opaque')) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
         return response;
-      }).catch(() => {
-        // Fallback a index.html para navegación
-        if (event.request.mode === 'navigate') {
-          return caches.match('/arp-inspecciones/index.html');
-        }
-      });
+      }).catch(() => null);
     })
   );
 });
