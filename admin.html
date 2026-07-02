@@ -94,7 +94,8 @@
   function renderMenu(rol) {
     var esAdmin = rol === 'admin' || rol === 'director';
     var html = '<div class="sec-label">Panel de administración</div>' +
-      card('clientes', '&#128101;', 'Clientes', 'Gestión de empresas propietarias y solicitantes', 'admin-clientes.html');
+      card('clientes', '&#128101;', 'Clientes', 'Gestión de empresas propietarias y solicitantes', 'admin-clientes.html') +
+      card('config',   '&#9881;',   'Configuración', 'ENAC por alcance, número de acreditación y parámetros globales', 'admin-config.html');
     if (esAdmin) {
       html +=
         card('cambios',       '&#128203;', 'Cambios propuestos',  'Revisión y aprobación de cambios en datos de instalaciones',    'admin-cambios.html') +

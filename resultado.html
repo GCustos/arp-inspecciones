@@ -129,7 +129,8 @@
       telefono: "93 377 67 95",
       email: "info@arpprevencion.com",
       web: "www.arpprevencion.com",
-      acreditacion: ""
+      acreditacion: "Nº 489 / EI 558",
+      enacAlcances: { PAA: false, FER: false, SAE: false, AJN: false }
     },
     paa: {
       formatoRevision: 9,
@@ -1543,7 +1544,9 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       // Texto certificación
       const dirCert = composeDireccion(D);
       const solicitante = D.solicitante||D.propietario||'';
-      const acreditTxt = c.acreditacion ? ` acreditado ${c.acreditacion}` : '';
+      const alcanceInsp = D.tipoAlcance || 'PAA';
+      const enacActivo = c.enacAlcances && c.enacAlcances[alcanceInsp];
+      const acreditTxt = enacActivo && c.acreditacion ? ` acreditado ${c.acreditacion}` : '';
       const textoCert = `${c.nombre.toUpperCase()}, organismo de inspección${acreditTxt}, certifica haber efectuado en fecha ${fechaInsp} la inspección de los equipamientos de RECORRIDO ACROBATICO EN ALTURA de las instalaciones de ${D.nombreInstalacion||''}, ${totalJ} JUEGOS, situado en ${dirCert}.
 
 La intervención realizada, da como resultado un "Informe de inspección", con la numeración ${ref}, que indica las observaciones relativas a las instalaciones y omisiones. Estas observaciones sólo son válidas en las condiciones presentes en la instalación en el momento de control, y no serán válidas en caso de modificaciones en las mismas.
