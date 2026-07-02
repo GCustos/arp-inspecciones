@@ -1,5 +1,5 @@
 // ── ARP Inspecciones Service Worker ──
-const CACHE_NAME = 'arp-v4.6';
+const CACHE_NAME = 'arp-v4.7';
 
 const PRECACHE = [
   '/arp-inspecciones/',
@@ -71,8 +71,9 @@ self.addEventListener('fetch', event => {
   // Páginas HTML propias: network-first → siempre obtiene la versión actual
   // Si hay fallo de red (offline), cae a caché
   if (event.request.mode === 'navigate') {
+    // cache:'reload' fuerza bypass de la caché HTTP del navegador (CDN GitHub Pages)
     event.respondWith(
-      fetch(event.request).then(response => {
+      fetch(event.request, { cache: 'reload' }).then(response => {
         if (response.ok) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
