@@ -74,6 +74,9 @@
     .rama-inp:focus{outline:none;background:#FFF9F0}
     .del-btn{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:4px 6px}
     .del-btn:hover{color:var(--red)}
+    .mv-btn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:3px 5px;line-height:1}
+    .mv-btn:hover:not(:disabled){color:var(--gold)}
+    .mv-btn:disabled{opacity:.25;cursor:default}
     .foto-juego-btn{background:none;border:none;font-size:14px;cursor:pointer;padding:4px 6px;color:var(--muted);position:relative}
     .foto-juego-btn:hover{color:var(--gold)}
     .foto-count{position:absolute;top:0;right:0;background:var(--gold);color:white;font-size:8px;font-weight:700;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-family:monospace}
@@ -1012,6 +1015,16 @@
 
   function delJuego(ci,ji){ S.circuitos[ci].juegos.splice(ji,1); markDirty(); renderCircuitos(); }
 
+  function moverJuego(ci,ji,dir){
+    const arr=S.circuitos[ci].juegos;
+    const ni=ji+dir;
+    if(ni<0||ni>=arr.length) return;
+    [arr[ji],arr[ni]]=[arr[ni],arr[ji]];
+    if(juegoAbierto[ci]===ji) juegoAbierto[ci]=ni;
+    else if(juegoAbierto[ci]===ni) juegoAbierto[ci]=ji;
+    markDirty(); renderCircuitos();
+  }
+
   function toggleCircuito(ci){
     document.getElementById("cb_"+ci).classList.toggle("open");
     document.getElementById("ct_"+ci).classList.toggle("open");
@@ -1069,7 +1082,7 @@
             ${COLS.map(col=>`<th style="width:8%">${col.label.replace("\n","<br>")}</th>`).join("")}
             <th style="min-width:65px">Obs.</th>
             <th style="width:20px">&#128247;</th>
-            <th style="width:22px"></th>
+            <th style="width:44px"></th>
           </tr></thead>
           <tbody>${circ.juegos.map((j,ji)=>`
             <tr>
@@ -1089,7 +1102,11 @@
               <td><button class="foto-juego-btn" onclick="abrirModalFotos(${ci},${ji})" title="Fotos de este juego">
                 &#128247;${(j.fotos&&j.fotos.length)?`<span class="foto-count">${j.fotos.length}</span>`:''}
               </button></td>
-              <td><button class="del-btn" onclick="delJuego(${ci},${ji})">&#215;</button></td>
+              <td style="white-space:nowrap">
+                <button class="mv-btn" onclick="moverJuego(${ci},${ji},-1)" ${ji===0?"disabled":""} title="Subir">&#8593;</button>
+                <button class="mv-btn" onclick="moverJuego(${ci},${ji},1)" ${ji===circ.juegos.length-1?"disabled":""} title="Bajar">&#8595;</button>
+                <button class="del-btn" onclick="delJuego(${ci},${ji})">&#215;</button>
+              </td>
             </tr>`).join("")}
           </tbody>
         </table></div>
@@ -1150,6 +1167,8 @@
               <div class="juego-dot ${dotCls}"></div>
               <div class="juego-hdr-name">${j.nombre||`Juego ${ji+1}`}</div>
               <span class="juego-hdr-meta">${j.tipo}${j.rama?' · '+j.rama:''}</span>
+              <button class="mv-btn" onclick="event.stopPropagation();moverJuego(${ci},${ji},-1)" ${ji===0?"disabled":""} title="Subir">&#8593;</button>
+              <button class="mv-btn" onclick="event.stopPropagation();moverJuego(${ci},${ji},1)" ${ji===circ.juegos.length-1?"disabled":""} title="Bajar">&#8595;</button>
               <span class="juego-toggle ${isOpen?'open':''}">&#9654;</span>
             </div>
             ${cuerpo}
