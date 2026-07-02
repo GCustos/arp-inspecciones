@@ -1164,8 +1164,9 @@
           </div>`;
       }).join("");
 
-      return `<div class="circ-card">
+      return `<div class="circ-card" data-ci="${ci}">
         <div class="circ-header" onclick="toggleCircuito(${ci})">
+          <span class="drag-handle circ-handle" onclick="event.stopPropagation()" title="Arrastrar circuito">&#8285;</span>
           <span class="circ-toggle open" id="ct_${ci}">&#9654;</span>
           <span class="circ-nombre">${circ.nombre}</span>
           <button onclick="event.stopPropagation();renombrarCircuito(${ci})" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:2px 6px;flex-shrink:0" title="Renombrar circuito">&#9998;</button>
@@ -1185,9 +1186,23 @@
 
   function initSortables(){
     if(typeof Sortable==='undefined') return;
+    // Reordenar circuitos
+    var cc=document.getElementById('circuitosContainer');
+    if(cc) Sortable.create(cc,{
+      handle:'.circ-handle',
+      animation:150,
+      ghostClass:'sortable-ghost',
+      onEnd:function(evt){
+        if(evt.oldIndex===evt.newIndex) return;
+        S.circuitos.splice(evt.newIndex,0,S.circuitos.splice(evt.oldIndex,1)[0]);
+        markDirty();
+        renderCircuitos();
+      }
+    });
+    // Reordenar juegos dentro de cada circuito
     S.circuitos.forEach(function(_,ci){
       var cfg={
-        handle:'.drag-handle',
+        handle:'.drag-handle:not(.circ-handle)',
         animation:150,
         ghostClass:'sortable-ghost',
         onEnd:function(evt){
