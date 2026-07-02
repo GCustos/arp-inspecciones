@@ -30,19 +30,44 @@
     .badge-loading{background:var(--surf);color:var(--muted);opacity:0.6}
     .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
     @keyframes spin{to{transform:rotate(360deg)}}
+    /* Config panel */
+    .cfg-sec{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+    .cfg-sec:first-child{margin-top:4px}
+    .cfg-card{background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px}
+    .cfg-row{display:flex;align-items:center;padding:14px 16px;gap:12px;border-bottom:1px solid var(--border)}
+    .cfg-row:last-child{border-bottom:none}
+    .cfg-info{flex:1}.cfg-label{font-size:14px;font-weight:600;color:var(--dark)}.cfg-sub{font-size:11px;color:var(--muted);margin-top:2px}
+    .alcance-badge{display:inline-block;padding:2px 8px;background:var(--gold);color:white;border-radius:5px;font-size:11px;font-weight:700;margin-right:6px}
+    .tgl-wrap{position:relative;width:44px;height:24px;flex-shrink:0}
+    .tgl-wrap input{opacity:0;width:0;height:0;position:absolute}
+    .tgl-track{display:block;width:44px;height:24px;background:var(--border);border-radius:12px;cursor:pointer;transition:background .2s;position:relative}
+    .tgl-wrap input:checked + .tgl-track{background:var(--green)}
+    .tgl-track::after{content:'';position:absolute;top:4px;left:4px;width:16px;height:16px;background:white;border-radius:50%;transition:left .2s}
+    .tgl-wrap input:checked + .tgl-track::after{left:24px}
+    .cfg-field{padding:14px 16px}
+    .cfg-field label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+    .cfg-field input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text);background:white}
+    .cfg-field input:focus{border-color:var(--gold);outline:none}
+    .cfg-note{font-size:11px;color:var(--muted);margin-top:5px}
+    .btn-save-cfg{width:100%;padding:14px;background:var(--gold);color:white;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px}
+    .btn-save-cfg:disabled{opacity:.5;cursor:not-allowed}
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999}
+    .toast.show{opacity:1}
   </style>
 </head>
 <body>
 
 <div class="app-header">
-  <button class="btn-back" onclick="location.href='index.html'">&#8592;</button>
-  <div class="hdr-mark">ARP</div>
-  <div class="hdr-title">Administración</div>
+  <button class="btn-back" id="btnBack" onclick="handleBack()">&#8592;</button>
+  <div class="hdr-mark" id="hdrMark">ARP</div>
+  <div class="hdr-title" id="hdrTitle">Administración</div>
 </div>
 
 <div class="content" id="content">
   <div class="spinner"></div>
 </div>
+
+<div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -70,13 +95,21 @@
         document.getElementById('content').innerHTML = '<p style="text-align:center;color:var(--muted);padding:40px 20px">Acceso restringido.</p>';
         return;
       }
+      rolActual = rol;
       renderMenu(rol);
       cargarContadores();
     });
   });
 
+  var vistaActual = 'menu';
+
+  function handleBack() {
+    if (vistaActual === 'config') { mostrarMenu(); } else { location.href = 'index.html'; }
+  }
+
   function card(id, icon, titulo, desc, href) {
-    return '<div class="panel-card" onclick="location.href=\'' + href + '\'">' +
+    var onclick = href ? 'location.href=\'' + href + '\'' : 'mostrarConfig()';
+    return '<div class="panel-card" onclick="' + onclick + '">' +
       '<div class="card-icon">' + icon + '</div>' +
       '<div class="card-body"><div class="card-title">' + titulo + '</div><div class="card-desc">' + desc + '</div></div>' +
       '<div class="card-badge badge-loading" id="b-' + id + '">···</div>' +
@@ -95,7 +128,7 @@
     var esAdmin = rol === 'admin' || rol === 'director';
     var html = '<div class="sec-label">Panel de administración</div>' +
       card('clientes', '&#128101;', 'Clientes', 'Gestión de empresas propietarias y solicitantes', 'admin-clientes.html') +
-      card('config',   '&#9881;',   'Configuración', 'ENAC por alcance, número de acreditación y parámetros globales', 'admin-config.html');
+      card('config',   '&#9881;',   'Configuración', 'ENAC por alcance, número de acreditación y parámetros globales', null);
     if (esAdmin) {
       html +=
         card('cambios',       '&#128203;', 'Cambios propuestos',  'Revisión y aprobación de cambios en datos de instalaciones',    'admin-cambios.html') +
@@ -114,7 +147,100 @@
     el.textContent = texto;
   }
 
+  var rolActual = null;
+  var configData = {};
+  var ALCANCES = [
+    { id:'PAA', desc:'Parques acrobáticos en altura' },
+    { id:'FER', desc:'Vías ferratas' },
+    { id:'SAE', desc:'Sistemas de acceso por escalada' },
+    { id:'AJN', desc:'Áreas de juego en naturaleza' }
+  ];
+
+  function mostrarMenu() {
+    vistaActual = 'menu';
+    document.getElementById('hdrTitle').textContent = 'Administración';
+    document.getElementById('hdrMark').textContent = 'ARP';
+    renderMenu(rolActual);
+    cargarContadores();
+  }
+
+  function mostrarConfig() {
+    vistaActual = 'config';
+    document.getElementById('hdrTitle').textContent = 'Configuración';
+    document.getElementById('hdrMark').textContent = '⚙';
+    db.collection('config').doc('empresa').get().then(function(snap) {
+      configData = snap.exists ? snap.data() : {};
+      renderConfig();
+    }).catch(function() { renderConfig(); });
+  }
+
+  function renderConfig() {
+    var enacAlc  = configData.enacAlcances || {};
+    var toggles  = ALCANCES.map(function(a) {
+      var chk = enacAlc[a.id] ? 'checked' : '';
+      return '<div class="cfg-row">' +
+        '<div class="cfg-info"><div class="cfg-label"><span class="alcance-badge">' + a.id + '</span>' + a.desc + '</div>' +
+        '<div class="cfg-sub" id="csub-' + a.id + '">' + (enacAlc[a.id] ? 'Acreditado ENAC' : 'Sin acreditación ENAC') + '</div></div>' +
+        '<label class="tgl-wrap"><input type="checkbox" id="cenac-' + a.id + '" ' + chk + ' onchange="onTgl(\'' + a.id + '\')"><span class="tgl-track"></span></label>' +
+        '</div>';
+    }).join('');
+    document.getElementById('content').innerHTML =
+      '<div class="cfg-sec">Acreditación ENAC por tipo</div>' +
+      '<div class="cfg-card">' + toggles + '</div>' +
+      '<p style="font-size:11px;color:var(--muted);margin-bottom:16px">Al activar un tipo se incluye "acreditado Nº…" en el certificado.</p>' +
+      '<div class="cfg-sec">Número de acreditación ENAC</div>' +
+      '<div class="cfg-card"><div class="cfg-field">' +
+        '<label>Número ENAC</label>' +
+        '<input id="cinput-acred" value="' + esc(configData.acreditacion||'') + '" placeholder="Ej: Nº 489 / EI 558">' +
+        '<p class="cfg-note">Solo aparece en certificados de tipos con ENAC activo.</p>' +
+      '</div></div>' +
+      '<div class="cfg-sec">Revisión del certificado</div>' +
+      '<div class="cfg-card">' +
+        '<div class="cfg-field"><label>Sin ENAC</label>' +
+          '<input id="cinput-rev-sin" value="' + esc(configData.revCertificadoDoc||'19/05/2023 Rev 3.') + '">' +
+          '<p class="cfg-note">Pie del certificado cuando el alcance no tiene ENAC.</p></div>' +
+        '<div class="cfg-field"><label>Con ENAC</label>' +
+          '<input id="cinput-rev-con" value="' + esc(configData.revCertificadoDocEnac||'08/01/2025 Rev 5.') + '">' +
+          '<p class="cfg-note">Pie del certificado cuando el alcance sí tiene ENAC.</p></div>' +
+      '</div>' +
+      '<button class="btn-save-cfg" id="btnSaveCfg" onclick="guardarConfig()">Guardar cambios</button>';
+  }
+
+  function onTgl(id) {
+    var sub = document.getElementById('csub-' + id);
+    var chk = document.getElementById('cenac-' + id);
+    if (sub) sub.textContent = chk.checked ? 'Acreditado ENAC' : 'Sin acreditación ENAC';
+  }
+
+  function guardarConfig() {
+    var btn = document.getElementById('btnSaveCfg');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+    var enacAlcances = {};
+    ALCANCES.forEach(function(a) { enacAlcances[a.id] = !!document.getElementById('cenac-' + a.id).checked; });
+    db.collection('config').doc('empresa').set({
+      enacAlcances: enacAlcances,
+      acreditacion:          document.getElementById('cinput-acred').value.trim(),
+      revCertificadoDoc:     document.getElementById('cinput-rev-sin').value.trim(),
+      revCertificadoDocEnac: document.getElementById('cinput-rev-con').value.trim()
+    }, { merge: true }).then(function() {
+      btn.disabled = false; btn.textContent = 'Guardar cambios';
+      showToast('Configuración guardada');
+    }).catch(function(e) {
+      btn.disabled = false; btn.textContent = 'Guardar cambios';
+      alert('Error: ' + e.message);
+    });
+  }
+
+  function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2500);
+  }
+
   function cargarContadores() {
+    setBadge('config', '&#9881;', 'off');
     db.collection('clientes').where('activo', '==', true).get().then(function(snap) {
       setBadge('clientes', snap.size + ' activo' + (snap.size !== 1 ? 's' : ''), 'ok');
     }).catch(function() { setBadge('clientes', '···', 'loading'); });
