@@ -132,7 +132,8 @@
   function renderMenu(rol) {
     var esAdmin = rol === 'admin' || rol === 'director';
     var html = '<div class="sec-label">Panel de administración</div>' +
-      card('clientes', '&#128101;', 'Clientes', 'Gestión de empresas propietarias y solicitantes', 'admin-clientes.html') +
+      card('clientes', '&#128101;', 'Clientes',      'Gestión de empresas propietarias y solicitantes',               'admin-clientes.html') +
+      card('ofertas',  '&#128203;', 'Ofertas',       'Presupuestos y propuestas económicas para clientes',            'ofertas.html') +
       card('config',   '&#9881;',   'Configuración', 'ENAC por alcance, número de acreditación y parámetros globales', null);
     if (esAdmin) {
       html +=
@@ -246,6 +247,10 @@
 
   function cargarContadores() {
     setBadge('config', '&#9881;', 'off');
+    db.collection('ofertas').where('estado', 'in', ['borrador','enviada']).get().then(function(snap) {
+      var n = snap.size;
+      setBadge('ofertas', n ? n + ' activa' + (n !== 1 ? 's' : '') : 'Sin activas', n ? 'warn' : 'ok');
+    }).catch(function() { setBadge('ofertas', '···', 'loading'); });
     db.collection('clientes').where('activo', '==', true).get().then(function(snap) {
       setBadge('clientes', snap.size + ' activo' + (snap.size !== 1 ? 's' : ''), 'ok');
     }).catch(function() { setBadge('clientes', '···', 'loading'); });

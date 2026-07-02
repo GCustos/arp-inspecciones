@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Ofertas - ARP</title>
+  <style>
+    :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;--orange:#E67E22;--blue:#1565C0;}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
+    .app-header{background:var(--dark);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+    .btn-back{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;padding:0;line-height:1}
+    .hdr-mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0}
+    .hdr-title{color:white;font-size:15px;font-weight:600;flex:1}
+    .btn-nueva{background:var(--gold);color:white;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+    .content{padding:16px;max-width:680px;margin:0 auto;padding-bottom:40px}
+    .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    /* lista */
+    .oferta-card{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all .2s}
+    .oferta-card:hover{border-color:var(--gold);box-shadow:0 4px 12px rgba(0,0,0,.08);transform:translateY(-1px)}
+    .oferta-num{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.04em;font-family:monospace}
+    .oferta-cliente{font-size:14px;font-weight:600;color:var(--dark);margin:4px 0 2px}
+    .oferta-proyecto{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .oferta-foot{display:flex;align-items:center;gap:8px;margin-top:10px}
+    .badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;white-space:nowrap}
+    .badge-borrador{background:var(--surf);color:var(--muted)}
+    .badge-enviada{background:#E3F2FD;color:var(--blue)}
+    .badge-aceptada{background:#E8F5E9;color:var(--green)}
+    .badge-rechazada{background:#FFEBEE;color:var(--red)}
+    .oferta-fecha{font-size:10px;color:var(--muted);margin-left:auto}
+    /* form */
+    .sec-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+    .sec-label:first-of-type{margin-top:4px}
+    .form-card{background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px}
+    .form-field{padding:12px 14px;border-bottom:1px solid var(--border)}
+    .form-field:last-child{border-bottom:none}
+    .form-field label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+    .form-field input,.form-field select,.form-field textarea{width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text);background:white}
+    .form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--gold);outline:none}
+    .form-field textarea{resize:vertical;min-height:60px}
+    /* normas */
+    .norma-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer}
+    .norma-row:last-child{border-bottom:none}
+    .norma-row input[type=checkbox]{margin-top:2px;accent-color:var(--gold);width:16px;height:16px;flex-shrink:0;cursor:pointer}
+    .norma-ref{font-size:12px;font-weight:700;color:var(--dark)}
+    .norma-titulo{font-size:11px;color:var(--muted);margin-top:1px}
+    /* partidas */
+    .partidas-wrap{overflow-x:auto;padding:10px}
+    .partidas-table{width:100%;border-collapse:collapse;min-width:400px}
+    .partidas-table th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;padding:7px 8px;text-align:left;background:var(--surf);white-space:nowrap}
+    .partidas-table td{padding:6px 8px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+    .partidas-table tr:last-child td{border-bottom:none}
+    .td-r{text-align:right}
+    .inp-num{width:80px;padding:5px 7px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;text-align:right;font-family:inherit}
+    .inp-num:focus{border-color:var(--gold);outline:none}
+    /* totales */
+    .tot-row{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;font-size:13px}
+    .tot-row.bold{font-weight:700;font-size:14px;border-top:1.5px solid var(--border);padding-top:10px}
+    .tot-row.tot-iva{background:#F9F7F3;font-weight:700;color:var(--dark);border-radius:0 0 12px 12px}
+    /* botones */
+    .btn-primary{width:100%;padding:14px;background:var(--gold);color:white;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+    .btn-row{display:flex;gap:10px;margin-top:10px}
+    .btn-sec{flex:1;padding:11px;background:white;color:var(--dark);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    .btn-ok{flex:1;padding:11px;background:var(--green);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    .btn-del{flex:1;padding:11px;background:white;color:var(--red);border:1.5px solid var(--red);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    .btn-pdf{flex:1;padding:11px;background:var(--dark);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    /* detalle */
+    .det-block{padding:14px}
+    .det-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+    .det-val{font-size:14px;color:var(--dark);margin-bottom:12px}
+    /* misc */
+    .empty-state{text-align:center;color:var(--muted);padding:60px 20px;font-size:14px;line-height:1.7}
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999}
+    .toast.show{opacity:1}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="handleBack()">&#8592;</button>
+  <div class="hdr-mark" id="hdrMark">OFT</div>
+  <div class="hdr-title" id="hdrTitle">Ofertas</div>
+  <button class="btn-nueva" id="btnNueva" onclick="mostrarForm(null, null)">+ Nueva</button>
+</div>
+
+<div class="content" id="content">
+  <div class="spinner"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script>
+if (!firebase.apps.length) {
+  firebase.initializeApp({
+    apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+    authDomain:"arp-inspecciones.firebaseapp.com",
+    projectId:"arp-inspecciones",
+    storageBucket:"arp-inspecciones.firebasestorage.app",
+    messagingSenderId:"35880168451",
+    appId:"1:35880168451:web:090e3c250b4416ed0b3236"
+  });
+}
+var auth = firebase.auth();
+var db   = firebase.firestore();
+
+var vistaActual  = 'lista';
+var usuarioActual = null;
+var clientes      = [];
+var ofertaCache   = null; // datos de la oferta en vista detalle
+
+var NORMAS = [
+  { ref:'UNE-EN 1176',          partes:'(Partes aplicables)', titulo:'Equipamiento de áreas de juego',                            fecha:'2017' },
+  { ref:'UNE-EN 15567',         partes:'(Partes aplicables)', titulo:'Parques de aventura. Recorridos Acrobáticos en Altura.',    fecha:'2021' },
+  { ref:'UNE-EN 16869',         partes:'',                    titulo:'Diseño y construcción de vías ferrata',                    fecha:'2018' },
+  { ref:'UNE-EN 12572',         partes:'(Partes aplicables)', titulo:'Estructuras artificiales de escalada',                     fecha:'2017' },
+  { ref:'UNE-EN 14960',         partes:'',                    titulo:'Equipos de juego hinchables',                              fecha:'2019' },
+  { ref:'UNE-EN Deportivo',     partes:'(según aplicación)',  titulo:'Equipos deportivos',                                       fecha:'Según Norma' },
+  { ref:'UNE-EN ISO 23659:2023',partes:'',                    titulo:'Trampoline Park',                                          fecha:'2023' },
+  { ref:'Otras',                partes:'',                    titulo:'Otras normativas aplicables',                              fecha:'' }
+];
+
+var PARTIDAS = [
+  'Inspección técnica conforme a normas de referencia',
+  'Ensayos técnicos conforme a normativa aplicable',
+  'Ensayos de extracción de anclajes (cuando proceda)',
+  'Evaluación documental',
+  'Dietas y Alojamiento',
+  'Transporte y Kilometraje'
+];
+
+// ─── AUTH ───────────────────────────────────────────────────────────────────
+
+auth.onAuthStateChanged(function(user) {
+  if (!user) { location.href = 'index.html'; return; }
+  db.collection('usuarios').doc(user.email).get().then(function(snap) {
+    if (!snap.exists || !snap.data().activo) { location.href = 'index.html'; return; }
+    var d = snap.data();
+    if (d.rol !== 'admin' && d.rol !== 'director' && d.rol !== 'oficina') { location.href = 'index.html'; return; }
+    usuarioActual = {
+      email:     user.email,
+      nombre:    d.nombre || '',
+      iniciales: d.iniciales || computeIniciales(d.nombre),
+      rol:       d.rol
+    };
+    cargarClientes();
+    cargarOfertas();
+  });
+});
+
+function computeIniciales(nombre) {
+  var words = (nombre || '').trim().split(/\s+/).filter(Boolean);
+  return words.slice(0, 2).map(function(w) { return w[0].toUpperCase(); }).join('') || 'XX';
+}
+
+// ─── NAVEGACIÓN ─────────────────────────────────────────────────────────────
+
+function handleBack() {
+  if (vistaActual === 'form' || vistaActual === 'detalle') {
+    mostrarLista();
+  } else {
+    location.href = 'admin.html';
+  }
+}
+
+function mostrarLista() {
+  vistaActual = 'lista';
+  document.getElementById('hdrTitle').textContent = 'Ofertas';
+  document.getElementById('hdrMark').textContent  = 'OFT';
+  document.getElementById('btnNueva').style.display = '';
+  cargarOfertas();
+}
+
+// ─── LISTA ──────────────────────────────────────────────────────────────────
+
+function cargarClientes() {
+  db.collection('clientes').orderBy('nombre').get().then(function(snap) {
+    clientes = [];
+    snap.forEach(function(d) { clientes.push({ id: d.id, nombre: d.data().nombre || d.id }); });
+  }).catch(function() {});
+}
+
+function cargarOfertas() {
+  document.getElementById('content').innerHTML = '<div class="spinner"></div>';
+  db.collection('ofertas').orderBy('fechaCreacion', 'desc').get().then(function(snap) {
+    if (snap.empty) {
+      document.getElementById('content').innerHTML =
+        '<div class="empty-state">No hay ofertas todavía.<br>Pulsa <strong>+ Nueva</strong> para crear la primera.</div>';
+      return;
+    }
+    var html = '';
+    snap.forEach(function(d) { html += renderOfertaCard(d.id, d.data()); });
+    document.getElementById('content').innerHTML = html;
+  }).catch(function() {
+    document.getElementById('content').innerHTML = '<div class="empty-state">Error al cargar ofertas.</div>';
+  });
+}
+
+function renderOfertaCard(id, o) {
+  var BADGES = { borrador:'badge-borrador', enviada:'badge-enviada', aceptada:'badge-aceptada', rechazada:'badge-rechazada' };
+  var LABELS = { borrador:'Borrador', enviada:'Enviada', aceptada:'Aceptada', rechazada:'Rechazada' };
+  var fecha  = o.fechaCreacion ? new Date(o.fechaCreacion.seconds * 1000).toLocaleDateString('es-ES') : '';
+  return '<div class="oferta-card" onclick="mostrarDetalle(\'' + id + '\')">' +
+    '<div class="oferta-num">' + esc(o.nOferta || '') + '</div>' +
+    '<div class="oferta-cliente">' + esc(o.clienteNombre || '') + '</div>' +
+    '<div class="oferta-proyecto">' + esc(o.proyecto || '') + '</div>' +
+    '<div class="oferta-foot">' +
+    '<span class="badge ' + (BADGES[o.estado] || 'badge-borrador') + '">' + (LABELS[o.estado] || o.estado) + '</span>' +
+    '<span class="oferta-fecha">' + fecha + '</span>' +
+    '</div></div>';
+}
+
+// ─── FORMULARIO ─────────────────────────────────────────────────────────────
+
+var editId = null;
+
+function mostrarForm(ofertaId, datos) {
+  vistaActual = 'form';
+  editId = ofertaId || null;
+  document.getElementById('hdrTitle').textContent = ofertaId ? 'Editar oferta' : 'Nueva oferta';
+  document.getElementById('hdrMark').textContent  = ofertaId ? 'EDT' : 'NEW';
+  document.getElementById('btnNueva').style.display = 'none';
+
+  var normasChk  = (datos && datos.normas)    ? datos.normas    : [];
+  var partidas   = (datos && datos.partidas)  ? datos.partidas  : PARTIDAS.map(function(c) { return { concepto:c, costeUnitario:0, unidades:0 }; });
+  var descuento  = (datos && datos.descuento) ? datos.descuento : 0;
+
+  var optsCliente = clientes.map(function(c) {
+    var sel = datos && datos.clienteId === c.id ? ' selected' : '';
+    return '<option value="' + esc(c.id) + '"' + sel + '>' + esc(c.nombre) + '</option>';
+  }).join('');
+
+  var normasHtml = NORMAS.map(function(n, i) {
+    var chk    = normasChk.indexOf(n.ref) >= 0 ? 'checked' : '';
+    var refTxt = n.ref + (n.partes ? ' ' + n.partes : '');
+    return '<label class="norma-row">' +
+      '<input type="checkbox" id="norma-' + i + '" value="' + esc(n.ref) + '" ' + chk + '>' +
+      '<div><div class="norma-ref">' + esc(refTxt) + '</div>' +
+      '<div class="norma-titulo">' + esc(n.titulo) + (n.fecha ? ' · ' + n.fecha : '') + '</div></div>' +
+      '</label>';
+  }).join('');
+
+  var filas = partidas.map(function(p, i) {
+    var sub = (parseFloat(p.costeUnitario) || 0) * (parseFloat(p.unidades) || 0);
+    return '<tr><td style="font-size:11px">' + esc(p.concepto) + '</td>' +
+      '<td class="td-r"><input class="inp-num" type="number" min="0" step="0.01" id="cu-' + i + '" value="' + (p.costeUnitario || 0) + '" oninput="recalc()"></td>' +
+      '<td class="td-r"><input class="inp-num" type="number" min="0" step="1"    id="ud-' + i + '" value="' + (p.unidades || 0)      + '" oninput="recalc()"></td>' +
+      '<td class="td-r" id="sub-' + i + '">' + fmtEur(sub) + '</td></tr>';
+  }).join('');
+
+  document.getElementById('content').innerHTML =
+    '<div class="sec-label">Datos del cliente</div>' +
+    '<div class="form-card">' +
+      '<div class="form-field"><label>Cliente</label>' +
+        '<select id="fCliente"><option value="">— Selecciona cliente —</option>' + optsCliente + '</select></div>' +
+      '<div class="form-field"><label>Proyecto / instalación</label>' +
+        '<textarea id="fProyecto" rows="2" placeholder="Inspección Técnica de la Instalación, ...">' + esc((datos && datos.proyecto) || '') + '</textarea></div>' +
+    '</div>' +
+    '<div class="sec-label">Normas aplicables</div>' +
+    '<div class="form-card">' + normasHtml + '</div>' +
+    '<div class="sec-label">Memoria económica</div>' +
+    '<div class="form-card"><div class="partidas-wrap"><table class="partidas-table">' +
+      '<thead><tr><th>Concepto</th><th style="text-align:right">€/ud.</th><th style="text-align:right">Uds.</th><th style="text-align:right">Subtotal</th></tr></thead>' +
+      '<tbody>' + filas + '</tbody></table></div></div>' +
+    '<div class="form-card">' +
+      '<div class="form-field"><label>Descuento (€)</label>' +
+        '<input type="number" id="fDescuento" min="0" step="0.01" value="' + (descuento || 0) + '" oninput="recalc()"></div>' +
+      '<div id="totBlock"></div>' +
+    '</div>' +
+    '<button class="btn-primary" onclick="guardarOferta()">Guardar oferta</button>';
+
+  recalc();
+}
+
+function recalc() {
+  var total = 0;
+  for (var i = 0; i < PARTIDAS.length; i++) {
+    var cu  = parseFloat((document.getElementById('cu-' + i) || {}).value) || 0;
+    var ud  = parseFloat((document.getElementById('ud-' + i) || {}).value) || 0;
+    var sub = cu * ud;
+    total  += sub;
+    var el  = document.getElementById('sub-' + i);
+    if (el) el.textContent = fmtEur(sub);
+  }
+  var desc    = parseFloat((document.getElementById('fDescuento') || {}).value) || 0;
+  var trasDes = Math.max(0, total - desc);
+  var iva     = trasDes * 0.21;
+  var conIva  = trasDes + iva;
+  var tb = document.getElementById('totBlock');
+  if (!tb) return;
+  tb.innerHTML =
+    '<div class="tot-row"><span>Total (sin IVA)</span><span>' + fmtEur(total) + '</span></div>' +
+    (desc > 0
+      ? '<div class="tot-row"><span>Descuento</span><span>– ' + fmtEur(desc) + '</span></div>' +
+        '<div class="tot-row bold"><span>Total tras descuento</span><span>' + fmtEur(trasDes) + '</span></div>'
+      : '') +
+    '<div class="tot-row"><span>IVA (21%)</span><span>' + fmtEur(iva) + '</span></div>' +
+    '<div class="tot-row tot-iva"><span>TOTAL (con IVA)</span><span>' + fmtEur(conIva) + '</span></div>';
+}
+
+function guardarOferta() {
+  var sel        = document.getElementById('fCliente');
+  var clienteId  = sel ? sel.value : '';
+  var clienteNom = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
+  var proyecto   = (document.getElementById('fProyecto') || {}).value || '';
+
+  if (!clienteId)         { showToast('Selecciona un cliente'); return; }
+  if (!proyecto.trim())   { showToast('Indica el proyecto o instalación'); return; }
+
+  var normas = [];
+  NORMAS.forEach(function(n, i) {
+    var el = document.getElementById('norma-' + i);
+    if (el && el.checked) normas.push(n.ref);
+  });
+
+  var partidas = PARTIDAS.map(function(c, i) {
+    var cu = parseFloat((document.getElementById('cu-' + i) || {}).value) || 0;
+    var ud = parseFloat((document.getElementById('ud-' + i) || {}).value) || 0;
+    return { concepto: c, costeUnitario: cu, unidades: ud };
+  });
+
+  var desc    = parseFloat((document.getElementById('fDescuento') || {}).value) || 0;
+  var total   = partidas.reduce(function(s, p) { return s + p.costeUnitario * p.unidades; }, 0);
+  var trasDes = Math.max(0, total - desc);
+  var iva     = trasDes * 0.21;
+
+  var btn = document.querySelector('.btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+
+  if (editId) {
+    db.collection('ofertas').doc(editId).update({
+      clienteId: clienteId, clienteNombre: clienteNom, proyecto: proyecto.trim(),
+      normas: normas, partidas: partidas, descuento: desc,
+      totalSinIVA: total, totalTrasDescuento: trasDes, ivaImporte: iva, totalConIVA: trasDes + iva,
+      ultimaModificacion: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+      showToast('Oferta actualizada');
+      mostrarDetalle(editId);
+    }).catch(function(e) {
+      showToast('Error: ' + e.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Guardar oferta'; }
+    });
+  } else {
+    var hoy       = new Date();
+    var yy        = String(hoy.getFullYear()).slice(-2);
+    var mm        = String(hoy.getMonth() + 1).padStart(2, '0');
+    var dd        = String(hoy.getDate()).padStart(2, '0');
+    var fechaDoc  = yy + mm + dd;
+    var iniciales = usuarioActual ? usuarioActual.iniciales : 'XX';
+
+    // Contar ofertas de hoy de este mismo usuario para obtener el correlativo del día
+    db.collection('ofertas')
+      .where('fechaDoc', '==', fechaDoc)
+      .where('creadoPorIniciales', '==', iniciales)
+      .get()
+      .then(function(snap) {
+        var n       = snap.size; // 0, 1, 2…
+        var nOferta = fechaDoc + '/' + iniciales + '/' + n + '/Rev.0';
+        return db.collection('ofertas').add({
+          nOferta: nOferta, fechaDoc: fechaDoc, secuenciaDia: n, iniciales: iniciales, revision: 0,
+          clienteId: clienteId, clienteNombre: clienteNom, proyecto: proyecto.trim(),
+          normas: normas, partidas: partidas, descuento: desc,
+          totalSinIVA: total, totalTrasDescuento: trasDes, ivaImporte: iva, totalConIVA: trasDes + iva,
+          estado: 'borrador',
+          fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
+          fechaEnvio: null,
+          creadoPor: usuarioActual ? usuarioActual.email : '',
+          creadoPorNombre: usuarioActual ? usuarioActual.nombre : '',
+          creadoPorIniciales: iniciales
+        });
+      }).then(function(ref) {
+        showToast('Oferta creada');
+        mostrarDetalle(ref.id);
+      }).catch(function(e) {
+        showToast('Error: ' + e.message);
+        if (btn) { btn.disabled = false; btn.textContent = 'Guardar oferta'; }
+      });
+  }
+}
+
+// ─── DETALLE ────────────────────────────────────────────────────────────────
+
+function mostrarDetalle(id) {
+  vistaActual = 'detalle';
+  document.getElementById('hdrTitle').textContent = 'Detalle oferta';
+  document.getElementById('hdrMark').textContent  = 'OFT';
+  document.getElementById('btnNueva').style.display = 'none';
+  document.getElementById('content').innerHTML = '<div class="spinner"></div>';
+  db.collection('ofertas').doc(id).get().then(function(snap) {
+    if (!snap.exists) { mostrarLista(); return; }
+    ofertaCache = snap.data();
+    renderDetalle(id, ofertaCache);
+  });
+}
+
+function renderDetalle(id, o) {
+  var BADGES = { borrador:'badge-borrador', enviada:'badge-enviada', aceptada:'badge-aceptada', rechazada:'badge-rechazada' };
+  var LABELS = { borrador:'Borrador', enviada:'Enviada', aceptada:'Aceptada', rechazada:'Rechazada' };
+  var fecha  = o.fechaCreacion ? new Date(o.fechaCreacion.seconds * 1000).toLocaleDateString('es-ES') : '—';
+
+  var normasTxt = (o.normas && o.normas.length)
+    ? o.normas.map(function(r) {
+        var n = NORMAS.filter(function(x) { return x.ref === r; })[0];
+        return n ? n.ref + (n.partes ? ' ' + n.partes : '') : r;
+      }).join(', ')
+    : '—';
+
+  var filas = (o.partidas || []).map(function(p) {
+    var sub = (p.costeUnitario || 0) * (p.unidades || 0);
+    return '<tr><td style="font-size:11px">' + esc(p.concepto) + '</td>' +
+      '<td class="td-r">' + fmtEur(p.costeUnitario) + '</td>' +
+      '<td class="td-r">' + (p.unidades || 0) + '</td>' +
+      '<td class="td-r">' + fmtEur(sub) + '</td></tr>';
+  }).join('');
+
+  var total   = o.totalSinIVA         || 0;
+  var desc    = o.descuento           || 0;
+  var trasDes = o.totalTrasDescuento  || 0;
+  var ivaImp  = o.ivaImporte          || 0;
+  var conIva  = o.totalConIVA         || 0;
+
+  var acciones = '';
+  if (o.estado === 'borrador') {
+    acciones =
+      '<div class="btn-row">' +
+        '<button class="btn-sec"  onclick="mostrarForm(\'' + id + '\', ofertaCache)">Editar</button>' +
+        '<button class="btn-ok"   onclick="cambiarEstado(\'' + id + '\', \'enviada\')">Marcar enviada</button>' +
+      '</div>' +
+      '<div class="btn-row" style="margin-top:6px">' +
+        '<button class="btn-pdf" onclick="generarPDF(\'' + id + '\')">Generar PDF</button>' +
+        '<button class="btn-del" onclick="eliminarOferta(\'' + id + '\')">Eliminar</button>' +
+      '</div>';
+  } else if (o.estado === 'enviada') {
+    acciones =
+      '<div class="btn-row">' +
+        '<button class="btn-ok"  onclick="cambiarEstado(\'' + id + '\', \'aceptada\')">Aceptada</button>' +
+        '<button class="btn-del" onclick="cambiarEstado(\'' + id + '\', \'rechazada\')">Rechazada</button>' +
+      '</div>' +
+      '<div class="btn-row" style="margin-top:6px">' +
+        '<button class="btn-pdf" onclick="generarPDF(\'' + id + '\')">Generar PDF</button>' +
+        '<button class="btn-sec" onclick="nuevaRevision(\'' + id + '\')">Nueva revisión</button>' +
+      '</div>';
+  } else {
+    acciones =
+      '<div class="btn-row">' +
+        '<button class="btn-pdf" onclick="generarPDF(\'' + id + '\')">Generar PDF</button>' +
+        '<button class="btn-sec" onclick="nuevaRevision(\'' + id + '\')">Nueva revisión</button>' +
+      '</div>';
+  }
+
+  document.getElementById('content').innerHTML =
+    '<div class="form-card det-block">' +
+      '<span class="badge ' + (BADGES[o.estado] || 'badge-borrador') + '">' + (LABELS[o.estado] || o.estado) + '</span>' +
+      '<div style="margin-top:12px"><div class="det-label">Oferta nº</div>' +
+        '<div class="det-val" style="font-size:16px;font-weight:700;color:var(--gold);font-family:monospace">' + esc(o.nOferta) + '</div></div>' +
+      '<div><div class="det-label">Cliente</div><div class="det-val">' + esc(o.clienteNombre) + '</div></div>' +
+      '<div><div class="det-label">Proyecto</div><div class="det-val">' + esc(o.proyecto) + '</div></div>' +
+      '<div><div class="det-label">Normas aplicables</div><div class="det-val" style="font-size:12px">' + esc(normasTxt) + '</div></div>' +
+      '<div><div class="det-label">Fecha creación</div><div class="det-val">' + fecha + ' · ' + esc(o.creadoPorNombre || o.creadoPor || '') + '</div></div>' +
+    '</div>' +
+    '<div class="sec-label">Presupuesto</div>' +
+    '<div class="form-card"><div class="partidas-wrap"><table class="partidas-table">' +
+      '<thead><tr><th>Concepto</th><th style="text-align:right">€/ud.</th><th style="text-align:right">Uds.</th><th style="text-align:right">Subtotal</th></tr></thead>' +
+      '<tbody>' + filas + '</tbody></table></div>' +
+      '<div class="tot-row"><span>Total (sin IVA)</span><span>' + fmtEur(total) + '</span></div>' +
+      (desc > 0
+        ? '<div class="tot-row"><span>Descuento</span><span>– ' + fmtEur(desc) + '</span></div>' +
+          '<div class="tot-row bold"><span>Total tras descuento</span><span>' + fmtEur(trasDes) + '</span></div>'
+        : '') +
+      '<div class="tot-row"><span>IVA (21%)</span><span>' + fmtEur(ivaImp) + '</span></div>' +
+      '<div class="tot-row tot-iva"><span>TOTAL (con IVA)</span><span>' + fmtEur(conIva) + '</span></div>' +
+    '</div>' +
+    acciones;
+}
+
+function cambiarEstado(id, estado) {
+  var upd = { estado: estado };
+  if (estado === 'enviada') upd.fechaEnvio = firebase.firestore.FieldValue.serverTimestamp();
+  db.collection('ofertas').doc(id).update(upd).then(function() {
+    showToast('Estado actualizado');
+    mostrarDetalle(id);
+  }).catch(function(e) { showToast('Error: ' + e.message); });
+}
+
+function eliminarOferta(id) {
+  if (!confirm('¿Eliminar esta oferta? No se puede deshacer.')) return;
+  db.collection('ofertas').doc(id).delete().then(function() {
+    showToast('Oferta eliminada');
+    mostrarLista();
+  });
+}
+
+function nuevaRevision(id) {
+  if (!ofertaCache) return;
+  var rev     = (ofertaCache.revision || 0) + 1;
+  var nOferta = ofertaCache.nOferta.replace(/Rev\.\d+$/, 'Rev.' + rev);
+  db.collection('ofertas').doc(id).update({
+    revision: rev, nOferta: nOferta, estado: 'borrador',
+    ultimaModificacion: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function() {
+    showToast('Rev.' + rev + ' creada');
+    mostrarDetalle(id);
+  }).catch(function(e) { showToast('Error: ' + e.message); });
+}
+
+// ─── PDF ────────────────────────────────────────────────────────────────────
+
+function generarPDF(id) {
+  db.collection('ofertas').doc(id).get().then(function(snap) {
+    if (!snap.exists) return;
+    buildPDF(snap.data());
+  });
+}
+
+function buildPDF(o) {
+  var jsPDF   = window.jspdf.jsPDF;
+  var doc     = new jsPDF({ unit:'mm', format:'a4' });
+  var W = 210, H = 297, ML = 20, MR = 20, CW = W - ML - MR;
+  var GOLD    = [200, 153, 58];
+  var DARK    = [26, 26, 26];
+  var MUTED   = [138, 130, 120];
+  var NPAGS   = 8;
+
+  var fechaHoy   = new Date();
+  var fechaStr   = fechaHoy.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' });
+  var mesStr     = fechaHoy.toLocaleString('es-ES', { month:'long' });
+  var lugarFecha = 'Dos Hermanas, a ' + fechaHoy.getDate() + ' de ' + mesStr + ' de ' + fechaHoy.getFullYear();
+  var nOferta    = o.nOferta || '';
+  var clienteNom = o.clienteNombre || '';
+  var proyecto   = o.proyecto || '';
+  var rev        = 'Rev. ' + (o.revision || 0);
+
+  function sf(style, size, color) {
+    doc.setFont('helvetica', style || 'normal');
+    doc.setFontSize(size || 10);
+    doc.setTextColor.apply(doc, color || DARK);
+  }
+  function hline(y, x1, x2, color, lw) {
+    doc.setLineWidth(lw || 0.4);
+    doc.setDrawColor.apply(doc, color || GOLD);
+    doc.line(x1 !== undefined ? x1 : ML, y, x2 !== undefined ? x2 : W - MR, y);
+  }
+  function footer(pag) {
+    hline(H - 18, ML, W - MR, GOLD, 0.5);
+    sf('bold', 10, GOLD);
+    doc.text('ARP', ML + 8, H - 8, { align:'center' });
+    sf('normal', 7, MUTED);
+    doc.text('Domicilio fiscal C/Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4', W / 2, H - 13, { align:'center' });
+    doc.text('41704 Dos Hermanas, Sevilla', W / 2, H - 9, { align:'center' });
+    doc.text('Info@arpprevencion.com   www.arpprevencion.com', W / 2, H - 5, { align:'center' });
+    doc.text('Página ' + pag + ' de ' + NPAGS, W - MR, H - 5, { align:'right' });
+  }
+  function pageHeader(pag) {
+    doc.setDrawColor.apply(doc, GOLD);
+    doc.setLineWidth(0.5);
+    doc.rect(ML, 15, CW, 22);
+    doc.line(ML + 28, 15, ML + 28, 37);
+    doc.line(W - MR - 32, 15, W - MR - 32, 37);
+    sf('bold', 12, GOLD); doc.text('ARP', ML + 14, 29, { align:'center' });
+    sf('bold', 10, DARK); doc.text('OFERTA ECONÓMICA', ML + 28 + (CW - 60) / 2, 23, { align:'center' });
+    sf('bold',  8, DARK); doc.text('CERTIFICACIÓN RESPECTO A NORMA', ML + 28 + (CW - 60) / 2, 31, { align:'center' });
+    sf('normal', 7, DARK);
+    doc.text(rev,               W - MR - 16, 21, { align:'center' });
+    doc.text('Fecha: ' + fechaStr, W - MR - 16, 27, { align:'center' });
+    doc.text('Pág. ' + pag + ' / ' + NPAGS, W - MR - 16, 33, { align:'center' });
+    return 44;
+  }
+  function justifiedText(text, x, y, maxW, lh) {
+    var paras = text.split('\n\n').map(function(p) { return p.replace(/\s+/g, ' ').trim(); }).filter(Boolean);
+    paras.forEach(function(para, pi) {
+      var lines = doc.splitTextToSize(para, maxW);
+      lines.forEach(function(line, li) {
+        var words = line.trim().split(' ').filter(Boolean);
+        if (li === lines.length - 1 || words.length <= 1) {
+          doc.text(line.trim(), x, y);
+        } else {
+          var ww   = words.reduce(function(s, w) { return s + doc.getTextWidth(w); }, 0);
+          var gap  = (maxW - ww) / (words.length - 1);
+          var cx   = x;
+          words.forEach(function(w) { doc.text(w, cx, y); cx += doc.getTextWidth(w) + gap; });
+        }
+        y += lh;
+      });
+      if (pi < paras.length - 1) y += lh;
+    });
+    return y;
+  }
+  function bullet(items, x, y, maxW, lh) {
+    items.forEach(function(item) {
+      doc.setFillColor.apply(doc, GOLD);
+      doc.circle(x + 2.5, y - 1.8, 0.9, 'F');
+      var lines = doc.splitTextToSize(item, maxW - 7);
+      doc.text(lines, x + 6, y);
+      y += lines.length * lh + 1;
+    });
+    return y;
+  }
+
+  // ── PAG 1: PORTADA ──────────────────────────────────────────────────────
+  doc.setFillColor.apply(doc, GOLD);
+  doc.rect(ML, 15, CW, 1, 'F');
+
+  sf('bold', 9, MUTED);
+  doc.text('Domicilio fiscal C/Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4', W - MR, 20, { align:'right' });
+  doc.text('41704 Dos Hermanas, Sevilla', W - MR, 24, { align:'right' });
+  doc.text('Info@arpprevencion.com   www.arpprevencion.com', W - MR, 28, { align:'right' });
+
+  sf('bold', 30, GOLD); doc.text('ARP', ML + 15, 40);
+  sf('normal', 9, MUTED); doc.text('prevención', ML + 15, 46);
+
+  var tlines = doc.splitTextToSize('OFERTA ECONÓMICA PARA LA CERTIFICACIÓN RESPECTO A NORMATIVA EUROPEA.', CW - 30);
+  sf('bold', 17, DARK);
+  var ty = H * 0.33;
+  tlines.forEach(function(line) {
+    doc.text(line, W / 2, ty, { align:'center' });
+    var lw = doc.getTextWidth(line);
+    doc.setLineWidth(0.6); doc.setDrawColor.apply(doc, DARK);
+    doc.line(W / 2 - lw / 2, ty + 1.5, W / 2 + lw / 2, ty + 1.5);
+    ty += 10;
+  });
+
+  sf('bold', 15, DARK);
+  var cnUpper = '(' + clienteNom.toUpperCase() + ')';
+  doc.text(cnUpper, W / 2, H * 0.54, { align:'center' });
+  var clw = doc.getTextWidth(cnUpper);
+  doc.setLineWidth(0.5); doc.setDrawColor.apply(doc, DARK);
+  doc.line(W / 2 - clw / 2, H * 0.54 + 1.5, W / 2 + clw / 2, H * 0.54 + 1.5);
+
+  sf('bold', 10, DARK); doc.text('Oferta nº ' + nOferta, W - MR, H * 0.72, { align:'right' });
+
+  footer(1);
+
+  // ── PAG 2: PROPUESTA TÉCNICA ────────────────────────────────────────────
+  doc.addPage();
+  var y = pageHeader(2);
+
+  sf('bold', 12, GOLD); doc.text('PROPUESTA TÉCNICA', W / 2, y, { align:'center' }); y += 2;
+  hline(y, ML, W - MR, GOLD, 0.3); y += 7;
+
+  sf('bold', 9, DARK); doc.text('Antecedentes', ML, y); y += 5;
+  sf('normal', 8, DARK);
+  y = justifiedText(
+    clienteNom + ' dispone de una serie de instalaciones destinadas a uso recreativo, deportivo o de ocio, compuestas por equipamientos cuya seguridad debe verificarse conforme a la normativa vigente aplicable.\n\n' +
+    'La dirección, buscando garantizar la calidad y seguridad de sus instalaciones, solicita la realización de una inspección técnica por entidad especializada, con el fin de evaluar el grado de cumplimiento respecto a las normas de referencia indicadas en la presente oferta.\n\n' +
+    'Es por este motivo por el que se pone en contacto con ARP Prevención S.L., para poder poner en conformidad a la normativa en vigencia una zona de la instalación que gestiona.\n\n' +
+    'Por este motivo, y dado que ARP Prevención S.L. dispone de los medios técnicos, humanos y materiales necesarios para la realización de este tipo de actuaciones, se elabora la presente oferta para la ejecución de los ensayos y verificaciones conforme a la normativa aplicable de las instalaciones.',
+    ML, y, CW, 5) + 5;
+
+  sf('bold', 9, DARK); doc.text('Descripción de la prestación', ML, y); y += 6;
+  sf('bold', 8, DARK);
+  doc.text('Control inicial/anual de instalaciones', ML, y);
+  doc.setLineWidth(0.3); doc.setDrawColor.apply(doc, DARK);
+  doc.line(ML, y + 1.5, ML + doc.getTextWidth('Control inicial/anual de instalaciones'), y + 1.5);
+  y += 6;
+
+  sf('normal', 8, DARK);
+  y = justifiedText('Se denomina control inicial a la certificación previa a la puesta en servicio de las instalaciones.', ML, y, CW, 5) + 4;
+  y = justifiedText('Este control analiza los puntos de verificación especificados en las normas y guías de referencia aplicables, permitiendo detectar posibles desviaciones antes de la apertura al público.', ML, y, CW, 5) + 4;
+  y = justifiedText('Las inspecciones periódicas o principales anuales tienen como objeto evaluar el estado de conservación, mantenimiento y adecuación normativa de las instalaciones en servicio.', ML, y, CW, 5) + 6;
+
+  sf('bold', 8, DARK);
+  doc.text('Documentación previa requerida', ML, y);
+  doc.setLineWidth(0.3); doc.setDrawColor.apply(doc, DARK);
+  doc.line(ML, y + 1.5, ML + doc.getTextWidth('Documentación previa requerida'), y + 1.5);
+  y += 6;
+  sf('normal', 8, DARK);
+  y = justifiedText('Para la correcta ejecución de la inspección podrán requerirse, cuando proceda:', ML, y, CW, 5) + 3;
+  y = bullet([
+    'Certificados CE o de calidad de los materiales estructurales utilizados.',
+    'Certificados de equipos de protección individual y colectivos empleados.',
+    'Responsabilidad de cálculo estructural.',
+    'Certificados de fabricación y/o montaje.',
+    'Planos técnicos y documentación de diseño.',
+    'Documentos externos aplicables a la instalación.'
+  ], ML, y, CW, 5);
+
+  footer(2);
+
+  // ── PAG 3: EVALUACIONES + EMISIÓN ───────────────────────────────────────
+  doc.addPage();
+  y = pageHeader(3);
+
+  sf('bold', 8, DARK);
+  doc.text('Evaluaciones realizadas in situ', ML, y);
+  doc.setLineWidth(0.3); doc.setDrawColor.apply(doc, DARK);
+  doc.line(ML, y + 1.5, ML + doc.getTextWidth('Evaluaciones realizadas in situ'), y + 1.5);
+  y += 6;
+  sf('normal', 8, DARK);
+  y = justifiedText('En función del tipo de instalación y normativa aplicable, la inspección podrá incluir:', ML, y, CW, 5) + 3;
+  y = bullet([
+    'Verificación de puntos de anclaje y fijaciones.',
+    'Ensayos de carga estadísticos cuando la norma lo exija.',
+    'Evaluación de sistemas de seguridad y líneas de vida.',
+    'Comprobación dimensional y funcional.',
+    'Verificación de recorridos, señalización y accesos.',
+    'Evaluación de zonas de impacto o recepción.',
+    'Revisión del montaje de sistemas de seguridad.',
+    'Observación de la ergonomía del uso previsto.',
+    'Registro documental y fotográfico de evidencias.'
+  ], ML, y, CW, 5) + 6;
+
+  sf('bold', 8, DARK);
+  doc.text('Emisión de resultados', ML, y);
+  doc.setLineWidth(0.3); doc.setDrawColor.apply(doc, DARK);
+  doc.line(ML, y + 1.5, ML + doc.getTextWidth('Emisión de resultados'), y + 1.5);
+  y += 6;
+  sf('normal', 8, DARK);
+  y = justifiedText('Si los resultados fueran satisfactorios y se dispusiera de la documentación técnica exigida por la normativa aplicable, se procederá a la emisión del informe técnico y, en su caso, del certificado de conformidad correspondiente.', ML, y, CW, 5) + 5;
+  justifiedText('En caso de detectarse no conformidades, se emitirá informe detallado con indicación de las deficiencias detectadas, debiendo procederse a su subsanación para posterior verificación y emisión del certificado final.', ML, y, CW, 5);
+
+  footer(3);
+
+  // ── PAG 4: NORMAS ───────────────────────────────────────────────────────
+  doc.addPage();
+  y = pageHeader(4);
+
+  sf('bold', 12, GOLD); doc.text('NORMAS Y STANDARDS EUROPEOS', W / 2, y, { align:'center' }); y += 8;
+
+  var normasSelec = o.normas || [];
+  var normasFilt  = NORMAS.filter(function(n) { return normasSelec.indexOf(n.ref) >= 0; });
+  var normasBody  = normasFilt.map(function(n) {
+    return [n.ref + (n.partes ? '\n' + n.partes : ''), n.titulo, n.fecha, ''];
+  });
+
+  doc.autoTable({
+    startY: y,
+    head: [['Referencia', 'Título', 'Fecha', 'Aplicable']],
+    body: normasBody,
+    margin: { left: ML, right: MR },
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: GOLD, textColor: 255, fontStyle: 'bold' },
+    columnStyles: {
+      0: { cellWidth: 45, fontStyle: 'bold', halign: 'center' },
+      1: { cellWidth: 80 },
+      2: { cellWidth: 22, halign: 'center' },
+      3: { cellWidth: 20, halign: 'center' }
+    },
+    alternateRowStyles: { fillColor: [249, 247, 243] }
+  });
+  y = doc.lastAutoTable.finalY + 6;
+
+  sf('italic', 8, MUTED);
+  justifiedText('Los trabajos se realizarán conforme a los procedimientos internos del Sistema de Gestión de ARP Prevención S.L.', ML, y, CW, 5);
+
+  footer(4);
+
+  // ── PAG 5: MEMORIA ECONÓMICA ────────────────────────────────────────────
+  doc.addPage();
+  y = pageHeader(5);
+
+  sf('bold', 12, GOLD); doc.text('MEMORIA ECONÓMICA', W / 2, y, { align:'center' }); y += 3;
+  hline(y, ML, W - MR, GOLD, 0.4); y += 8;
+
+  sf('bold', 9, DARK); doc.text('Cliente:', ML, y); y += 5;
+  sf('normal', 9, DARK); doc.text(clienteNom, ML, y); y += 10;
+  sf('bold', 9, DARK); doc.text('Proyecto:', ML, y); y += 5;
+  sf('normal', 9, DARK);
+  var plines = doc.splitTextToSize('Inspección Técnica de la Instalación, ' + proyecto, CW);
+  doc.text(plines, ML, y); y += plines.length * 5 + 8;
+
+  var total   = o.totalSinIVA        || 0;
+  var desc    = o.descuento          || 0;
+  var trasDes = o.totalTrasDescuento || 0;
+  var ivaImp  = o.ivaImporte         || 0;
+  var conIva  = o.totalConIVA        || 0;
+
+  var presBody = (o.partidas || []).map(function(p) {
+    return [p.concepto, fmtEur(p.costeUnitario), String(p.unidades || 0), fmtEur((p.costeUnitario || 0) * (p.unidades || 0))];
+  });
+  var presFooter = [
+    [{ content:'TOTAL (sin IVA)', colSpan:3, styles:{ halign:'right', fontStyle:'bold' } }, { content:fmtEur(total), styles:{ halign:'right', fontStyle:'bold' } }]
+  ];
+  if (desc > 0) {
+    presFooter.push([{ content:'Descuento (Si aplica)', colSpan:3, styles:{ halign:'right' } }, { content:fmtEur(desc), styles:{ halign:'right' } }]);
+    presFooter.push([{ content:'TOTAL TRAS DESCUENTO', colSpan:3, styles:{ halign:'right', fontStyle:'bold' } }, { content:fmtEur(trasDes), styles:{ halign:'right', fontStyle:'bold' } }]);
+  }
+  presFooter.push([{ content:'IVA (21%)', colSpan:3, styles:{ halign:'right' } }, { content:fmtEur(ivaImp), styles:{ halign:'right' } }]);
+  presFooter.push([{ content:'TOTAL (con IVA)', colSpan:3, styles:{ halign:'right', fontStyle:'bold', fillColor:[210,210,210] } }, { content:fmtEur(conIva), styles:{ halign:'right', fontStyle:'bold', fillColor:[210,210,210] } }]);
+
+  doc.autoTable({
+    startY: y,
+    head: [['Concepto', 'Coste Unitario', 'Unidades', 'Sub-Total']],
+    body: presBody,
+    foot: presFooter,
+    showFoot: 'lastPage',
+    margin: { left: ML, right: MR },
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: GOLD, textColor: 255, fontStyle: 'bold' },
+    columnStyles: {
+      0: { cellWidth: 90 },
+      1: { cellWidth: 30, halign: 'right' },
+      2: { cellWidth: 25, halign: 'center' },
+      3: { cellWidth: 25, halign: 'right' }
+    }
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  sf('italic', 8, MUTED);
+  doc.text('Nota: propuesta sin tasas ni impuestos incluidos que no sean el IVA.', ML, y); y += 5;
+  doc.text('Validez de la oferta: 1 mes', ML, y); y += 12;
+  sf('normal', 9, DARK); doc.text(lugarFecha, W - MR, y, { align:'right' }); y += 14;
+  sf('bold', 9, DARK); doc.text('Jose Manuel Moreno Vélez', W - MR, y, { align:'right' }); y += 5;
+  sf('normal', 9, DARK); doc.text('Director Técnico', W - MR, y, { align:'right' });
+
+  footer(5);
+
+  // ── PAG 6: CONDICIONES LIMITATIVAS ──────────────────────────────────────
+  doc.addPage();
+  y = pageHeader(6);
+
+  sf('bold', 9, DARK);
+  doc.text('ANEXO: CONDICIONES LIMITATIVAS DE RESPONSABILIDAD CONTRACTUAL.', ML, y);
+  hline(y + 2, ML, W - MR, GOLD, 0.4); y += 9;
+
+  var CONDS = [
+    'ARP PREVENCIÓN no se hace responsable de los gastos o costes que se pudieran derivar de la paralización de los trabajos por razones ajenas a su proceder, siendo el cliente quien asumiría tal responsabilidad.',
+    'El IVA, tasas, tributos y otros impuestos indirectos no están incluidos en este presupuesto.',
+    'La aceptación de la oferta implica que el cliente conoce este presupuesto y acepta el importe y las condiciones del mismo.',
+    'Validez del presupuesto: Un mes a partir de la fecha del mismo.',
+    'Jornada laboral. Nuestro horario de trabajo es de lunes a viernes no festivos, de 8 a 14 horas y de 15:30 a 19:00 horas.',
+    'Horas extraordinarias. El importe del presente presupuesto se enmarca dentro de nuestro horario laboral ya indicado anteriormente, por lo que la tarifa de ejecución del servicio contratado fuera de jornada laboral, supondrá costes adicionales a razón de 75 €/hora.',
+    'No están incluidos en el importe de este presupuesto aquellos conceptos no detallados en el mismo. Dichas partidas se facturarán aparte en caso de ser copistería, mensajería, horas, dietas y desplazamientos; o serán objeto de un nuevo presupuesto personalizado.',
+    'No se incluyen, si no están especificados, proyectos específicos tales como proyectos de instalaciones, de obra civil, de depuración, delineación de planos, estudios edafológicos, evaluación de impacto ambiental, de prevención contra incendios, análisis de aguas residuales o de residuos. Asimismo no se incluyen las direcciones facultativas, honorarios de terceros profesionales, verificaciones ni certificaciones de terceros, así como todas las modificaciones, anomalías o cambios sustanciales no imputables a esta empresa. Dichos trabajos serían objeto de un presupuesto personalizado.',
+    'El incumplimiento de los plazos de pago descritos en este presupuesto conllevará la paralización de los trabajos de forma inmediata.',
+    'Las partes convienen, expresamente, que cualquier daño causado a la parte contratante, derivado de la ejecución del presente presupuesto, tendrá un límite máximo de indemnización de hasta el importe del presupuesto.',
+    'Las conclusiones que se presenten en la documentación sólo serán válidas para el propósito descrito en los mismos. La utilización de la misma para propósitos distintos de aquél para el que ha sido concebida, será responsabilidad exclusiva del cliente.',
+    'ARP PREVENCIÓN considerará confidencial todo tipo de informaciones o cuestiones de naturaleza técnica, de investigación, desarrollo y cualesquiera otras relacionadas con el cliente a las que tenga acceso para la elaboración de la documentación, y se obliga específicamente a no divulgarlas, ni revelarlas, a excepción de mandamiento judicial o petición del cliente.',
+    'A los efectos de la documentación, el cliente no tendrá la consideración de consumidor o usuario, de acuerdo con lo previsto en la Ley 26/1984, de 19 de julio, General para la Defensa de los Consumidores y Usuarios, cuya aplicación queda expresamente excluida.',
+    'Las partes para cualquier cuestión que surja entre ellas en relación al presente contrato, su ejecución, interpretación y/o cumplimiento, renunciando en lo menester a fuero propio, se someten expresamente a los Juzgados y Tribunales de la ciudad de Sevilla.'
+  ];
+
+  sf('normal', 7.5, DARK);
+  CONDS.forEach(function(c, i) {
+    var nw    = doc.getTextWidth((i + 1) + '.  ');
+    var lines = doc.splitTextToSize(c, CW - nw - 2);
+    doc.text((i + 1) + '.', ML, y);
+    doc.text(lines, ML + nw, y);
+    y += lines.length * 4.2 + 2.5;
+  });
+
+  footer(6);
+
+  // ── PAG 7: PROTECCIÓN DE DATOS ──────────────────────────────────────────
+  doc.addPage();
+  y = pageHeader(7);
+
+  sf('bold', 10, DARK); doc.text('PROTECCIÓN DE DATOS DE CARÁCTER PERSONAL', W / 2, y, { align:'center' }); y += 3;
+  hline(y, ML, W - MR, GOLD, 0.4); y += 8;
+
+  sf('normal', 8, DARK);
+  y = justifiedText('De conformidad con lo dispuesto en el Reglamento (UE) 2016/679, General de Protección de Datos (RGPD), y en la normativa vigente en materia de protección de datos personales, le informamos que los datos facilitados serán incorporados al sistema de tratamiento titularidad de ADELL RIESGOS Y PREVENCIÓN S.L., con CIF B64399793 y domicilio fiscal en Gabriel Miró 3, Edificio Vértice, Planta 1ª Puerta 4, 41704 Dos Hermanas (Sevilla).', ML, y, CW, 5) + 6;
+
+  sf('bold', 9, DARK); doc.text('Finalidades del tratamiento, base jurídica y conservación', ML, y); y += 7;
+
+  var RGPD = [
+    { titulo:'1. Gestión administrativa, facturación y obligaciones legales', items:[
+      'Finalidad: Gestión administrativa, contable, fiscal y cumplimiento de obligaciones legales derivadas de la relación contractual.',
+      'Base jurídica: Cumplimiento de una obligación legal y ejecución del contrato.',
+      'Plazo de conservación: 5 años, en cumplimiento de la normativa tributaria aplicable.',
+      'Cesiones: Agencia Tributaria, entidades financieras y organismos públicos competentes, cuando sea necesario para el cumplimiento de obligaciones legales.'
+    ]},
+    { titulo:'2. Gestión contractual y prestación del servicio', items:[
+      'Finalidad: Gestión y ejecución de los servicios contratados.',
+      'Base jurídica: Ejecución del contrato.',
+      'Plazo de conservación: Durante la vigencia de la relación contractual y posteriormente durante los plazos legales de responsabilidad.'
+    ]},
+    { titulo:'3. Comunicaciones comerciales (cuando proceda)', items:[
+      'Finalidad: Envío de comunicaciones comerciales relacionadas con los servicios ofrecidos por la entidad.',
+      'Base jurídica: Consentimiento del interesado o interés legítimo.',
+      'Plazo de conservación: Mientras se mantenga el consentimiento o no se ejerza el derecho de oposición.'
+    ]}
+  ];
+
+  RGPD.forEach(function(sec) {
+    sf('bold', 8, DARK); doc.text(sec.titulo, ML, y); y += 5;
+    sf('normal', 8, DARK);
+    y = bullet(sec.items, ML, y, CW, 4.5); y += 3;
+  });
+
+  sf('bold', 9, DARK); doc.text('Derechos del interesado', ML, y); y += 6;
+  sf('normal', 8, DARK);
+  y = justifiedText('Podrá ejercer los derechos de acceso, rectificación, supresión, limitación del tratamiento, portabilidad y oposición, así como la revocación del consentimiento prestado, dirigiendo su solicitud a la dirección indicada anteriormente o al correo electrónico: info@arpprevencion.com', ML, y, CW, 5) + 5;
+  justifiedText('Asimismo, podrá presentar reclamación ante la Agencia Española de Protección de Datos si considera que el tratamiento no se ajusta a la normativa vigente.', ML, y, CW, 5);
+
+  footer(7);
+
+  // ── PAG 8: ACEPTACIÓN Y FORMA DE PAGO ──────────────────────────────────
+  doc.addPage();
+  y = pageHeader(8);
+
+  sf('bold', 12, GOLD); doc.text('ACEPTACIÓN Y FORMA DE PAGO', W / 2, y, { align:'center' }); y += 3;
+  hline(y, ML, W - MR, GOLD, 0.4); y += 10;
+
+  sf('bold', 9, DARK); doc.text('Forma de pago:', ML, y); y += 7;
+  sf('normal', 9, DARK);
+  doc.text('50% a la aceptación del presupuesto.', ML, y); y += 6;
+  doc.text('50% al recibir el informe de la compañía.', ML, y); y += 6;
+  doc.text('Pago por transferencia bancaria a la cuenta de la Caja de Ingenieros:', ML, y); y += 7;
+  sf('bold', 9, DARK); doc.text('3025-0011-78-1400009338', ML, y); y += 6;
+  sf('normal', 9, DARK); doc.text('o por talón nominativo a nombre de Adell Riesgos y Prevención, S.L.', ML, y); y += 10;
+  sf('italic', 8, MUTED);
+  doc.text('Nota: no se entregará ningún certificado sin que la factura haya sido abonada en su totalidad.', ML, y); y += 12;
+
+  sf('normal', 9, DARK);
+  y = justifiedText('He leído los términos del Contrato, establecido en la presente oferta nº ' + nOferta + ' y los acepto por cuenta de ' + clienteNom + ' y manifiesto tener poderes suficientes para aceptarlos en su nombre.', ML, y, CW, 5) + 14;
+
+  doc.text('Fecha:', ML, y); y += 10;
+  doc.text('Firma:', ML, y); y += 20;
+
+  sf('bold', 9, DARK);
+  doc.text('Nombre:', ML, y); y += 8;
+  doc.text('CIF:', ML, y); y += 8;
+  doc.text('Dirección fiscal:', ML, y); y += 8;
+  doc.text('En nombre de:', ML, y);
+
+  sf('bold', 22, GOLD); doc.text('ARP', W - MR, y - 10, { align:'right' });
+  sf('normal', 8, MUTED); doc.text('B 64399793', W - MR, y - 2, { align:'right' });
+  sf('bold', 9, DARK); doc.text('ARP PREVENCIÓN S.L.', W - MR, y + 4, { align:'right' });
+
+  footer(8);
+
+  // ── GUARDAR ─────────────────────────────────────────────────────────────
+  var filename = 'Oferta_' + nOferta.replace(/\//g, '_') + '.pdf';
+  doc.save(filename);
+}
+
+// ─── UTILIDADES ─────────────────────────────────────────────────────────────
+
+function fmtEur(n) {
+  return (parseFloat(n) || 0).toFixed(2).replace('.', ',') + ' €';
+}
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+</script>
+</body>
+</html>

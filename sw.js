@@ -1,5 +1,5 @@
 // ── ARP Inspecciones Service Worker ──
-const CACHE_NAME = 'arp-v4.7';
+const CACHE_NAME = 'arp-v4.8';
 
 const PRECACHE = [
   '/arp-inspecciones/',
@@ -14,6 +14,7 @@ const PRECACHE = [
   '/arp-inspecciones/admin-instalaciones.html',
   '/arp-inspecciones/admin-clientes.html',
   '/arp-inspecciones/admin-config.html',
+  '/arp-inspecciones/ofertas.html',
   '/arp-inspecciones/manifest.json',
 ];
 
@@ -24,7 +25,8 @@ const FIREBASE_SCRIPTS = [
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js',
 ];
 
-const JSPDF_SCRIPT = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+const JSPDF_SCRIPT  = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+const AUTOTABLE     = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js';
 
 // ── INSTALL: cachear assets propios + Firebase scripts ──
 self.addEventListener('install', event => {
@@ -33,7 +35,7 @@ self.addEventListener('install', event => {
       // Cachear páginas propias
       await cache.addAll(PRECACHE).catch(e => console.log('Precache error:', e));
       // Cachear Firebase scripts con no-cors
-      for (const url of [...FIREBASE_SCRIPTS, JSPDF_SCRIPT]) {
+      for (const url of [...FIREBASE_SCRIPTS, JSPDF_SCRIPT, AUTOTABLE]) {
         try {
           const response = await fetch(url, { mode: 'no-cors' });
           await cache.put(url, response);
