@@ -109,6 +109,8 @@
   function renderUI() {
     var enacAlc = configData.enacAlcances || {};
     var acreditacion = configData.acreditacion || '';
+    var revSinEnac  = configData.revCertificadoDoc     || '19/05/2023 Rev 3.';
+    var revConEnac  = configData.revCertificadoDocEnac || '08/01/2025 Rev 5.';
 
     var togglesHtml = ALCANCES.map(function(a) {
       var checked = enacAlc[a.id] ? 'checked' : '';
@@ -127,14 +129,28 @@
     document.getElementById('content').innerHTML =
       '<p class="sec-title">Acreditación ENAC por tipo de inspección</p>' +
       '<div class="card">' + togglesHtml + '</div>' +
-      '<p style="font-size:11px;color:var(--muted);margin-bottom:4px">Activar un tipo incluye el texto "acreditado Nº…" en los certificados PDF para ese alcance.</p>' +
+      '<p style="font-size:11px;color:var(--muted);margin-bottom:4px">Activar un tipo incluye "acreditado Nº…" en el certificado y usa el modelo con ENAC.</p>' +
 
       '<p class="sec-title">Número de acreditación ENAC</p>' +
       '<div class="card">' +
         '<div class="field-wrap">' +
           '<label>Número ENAC</label>' +
           '<input type="text" id="campo-acreditacion" value="' + escHtml(acreditacion) + '" placeholder="Ej: Nº 489 / EI 558">' +
-          '<p class="field-note">Se usa en los certificados de los tipos marcados como acreditados.</p>' +
+          '<p class="field-note">Aparece en los certificados de los tipos marcados como acreditados.</p>' +
+        '</div>' +
+      '</div>' +
+
+      '<p class="sec-title">Revisión del documento certificado</p>' +
+      '<div class="card">' +
+        '<div class="field-wrap">' +
+          '<label>Revisión sin ENAC</label>' +
+          '<input type="text" id="campo-rev-sin-enac" value="' + escHtml(revSinEnac) + '" placeholder="Ej: 19/05/2023 Rev 3.">' +
+          '<p class="field-note">Pie del certificado cuando el alcance NO tiene ENAC activo.</p>' +
+        '</div>' +
+        '<div class="field-wrap">' +
+          '<label>Revisión con ENAC</label>' +
+          '<input type="text" id="campo-rev-con-enac" value="' + escHtml(revConEnac) + '" placeholder="Ej: 08/01/2025 Rev 5.">' +
+          '<p class="field-note">Pie del certificado cuando el alcance SÍ tiene ENAC activo.</p>' +
         '</div>' +
       '</div>' +
 
@@ -156,14 +172,20 @@
     ALCANCES.forEach(function(a) {
       enacAlcances[a.id] = !!document.getElementById('enac-' + a.id).checked;
     });
-    var acreditacion = document.getElementById('campo-acreditacion').value.trim();
+    var acreditacion     = document.getElementById('campo-acreditacion').value.trim();
+    var revSinEnac       = document.getElementById('campo-rev-sin-enac').value.trim();
+    var revConEnac       = document.getElementById('campo-rev-con-enac').value.trim();
 
     db.collection('config').doc('empresa').set({
       enacAlcances: enacAlcances,
-      acreditacion: acreditacion
+      acreditacion: acreditacion,
+      revCertificadoDoc:     revSinEnac,
+      revCertificadoDocEnac: revConEnac
     }, { merge: true }).then(function() {
       configData.enacAlcances = enacAlcances;
       configData.acreditacion = acreditacion;
+      configData.revCertificadoDoc     = revSinEnac;
+      configData.revCertificadoDocEnac = revConEnac;
       btn.disabled = false;
       btn.textContent = 'Guardar cambios';
       showToast('Configuración guardada');
