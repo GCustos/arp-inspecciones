@@ -1619,6 +1619,34 @@
       ?"La inspección tiene resultado FAVORABLE.\n¿Deseas completarla?"
       :`${ncsBloqueantes.length} NC(s) bloqueantes (GRAVE/MEDIA/LEVE/DOCUMENTAL). Resultado DESFAVORABLE.\n¿Deseas completarla de todas formas?`;
     if(!confirm(msg)) return;
+    // Subir fotos pendientes antes de guardar para que aparezcan en PDFs generados desde otros dispositivos
+    const btnComp = document.querySelector('.btn-completar');
+    if (navigator.onLine) {
+      const hayPendientes = S.circuitos.some(c=>(c.juegos||[]).some(j=>(j.fotos||[]).some(f=>f.pendiente)))
+        || S.ncs.some(n=>[...(n.fotosDefecto||[]),...(n.fotosCorreccion||[])].some(f=>f.pendiente));
+      if (hayPendientes) {
+        if (btnComp) { btnComp.disabled = true; btnComp.textContent = 'Subiendo fotos...'; }
+        await sincronizarFotosPendientes();
+        if (btnComp) { btnComp.disabled = false; btnComp.textContent = 'Completar inspección →'; }
+      }
+    }
+    const fotosPendientesList = [
+      ...S.circuitos.flatMap(c=>(c.juegos||[]).flatMap(j=>(j.fotos||[]).filter(f=>f.pendiente))),
+      ...S.ncs.flatMap(n=>[...(n.fotosDefecto||[]),...(n.fotosCorreccion||[])].filter(f=>f.pendiente))
+    ];
+    if (fotosPendientesList.length > 0) {
+      const checks = await Promise.all(
+        fotosPendientesList.map(f => f.localKey
+          ? leerFotoLocal(f.localKey).then(d => !d).catch(() => true)
+          : Promise.resolve(false)
+        )
+      );
+      const nOtroDisp = checks.filter(Boolean).length;
+      const msg = nOtroDisp > 0
+        ? `⚠️ ${nOtroDisp} foto(s) fueron tomadas en otro dispositivo y no se pueden subir desde aquí.\n\nPara no perderlas, completa la inspección desde ese dispositivo.\n\nSi continúas ahora esas fotos se perderán del informe PDF. ¿Continuar de todas formas?`
+        : `Aviso: ${fotosPendientesList.length} foto(s) no se han podido subir (sin conexión o error).\nNo aparecerán en PDFs generados desde otro dispositivo.\n¿Completar igualmente?`;
+      if (!confirm(msg)) return;
+    }
     try {
       await db.collection("inspecciones").doc(inspeccionId).update({
         ...buildPayload("completada"),
@@ -1629,16 +1657,16 @@
       if(docDataFull.instalacionId){
         db.collection("instalaciones").doc(docDataFull.instalacionId).update({ultimaInspeccionId:inspeccionId}).catch(function(){});
       }
+      // Esperar confirmación del servidor (evita pérdida si se limpian datos del sitio antes de sincronizar)
+      try { await db.waitForPendingWrites(); } catch(we) { console.warn('waitForPendingWrites:', we.message); }
       isDirty=false;
-      // Guardar snapshot en localStorage antes de redirigir (triple backup)
-      // FIX: parte de docDataFull (todos los campos de identidad) y sobreescribe con el estado actual
       try {
         localStorage.setItem('insp_'+inspeccionId, JSON.stringify({
           ...docDataFull,
           id:inspeccionId, resultado, estado:'completada',
           checklist:S.gen, checklistObs:S.genObs,
           obsGral:document.getElementById('obsGral').value||'',
-          circuitos:S.circuitos, ncs:S.ncs,           ensayos:document.getElementById('ensayos').value||'',
+          circuitos:S.circuitos, ncs:S.ncs, ensayos:document.getElementById('ensayos').value||'',
           equiposMedicion:S.equiposMedicion,
           revision:S.revision, historialRevisiones:S.historialRevisiones, nRegistro:S.nRegistro,
           fechaCompletadaLocal:new Date().toISOString()

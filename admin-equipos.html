@@ -13,25 +13,54 @@
     .btn-back{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;padding:0;line-height:1}
     .hdr-mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white}
     .hdr-title{color:white;font-size:15px;font-weight:600;flex:1}
+    .btn-nuevo{background:var(--gold);border:none;color:white;font-size:20px;width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
     .tabs{display:flex;background:var(--dark);padding:0 16px}
-    .tab{flex:1;padding:10px 0;font-size:13px;font-weight:600;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s}
+    .tab{flex:1;padding:10px 0;font-size:12px;font-weight:600;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent}
     .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
-    .content{padding:16px;max-width:680px;margin:0 auto;padding-bottom:40px}
-    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
-    .row-info{flex:1;min-width:0}
-    .row-title{font-size:13px;font-weight:600;color:var(--dark)}
-    .row-sub{font-size:11px;color:var(--muted);margin-top:2px}
+    .content{padding:12px 16px;max-width:680px;margin:0 auto;padding-bottom:80px}
+    .filtros{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+    .filtro-btn{padding:5px 12px;border:1.5px solid var(--border);border-radius:20px;background:white;font-family:inherit;font-size:11px;font-weight:600;color:var(--text);cursor:pointer}
+    .filtro-btn.active{background:var(--gold);color:white;border-color:var(--gold)}
+    .eq-card{background:white;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s}
+    .eq-card:hover{border-color:var(--gold)}
+    .eq-row1{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+    .eq-cod{font-size:12px;font-weight:700;color:var(--dark);font-family:monospace}
+    .eq-tipo{font-size:11px;color:var(--muted);flex:1}
     .badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;text-transform:uppercase;flex-shrink:0}
-    .badge-vencido{background:#FFEBEE;color:var(--red)}
-    .badge-pronto{background:#FFF8E1;color:var(--orange)}
     .badge-ok{background:#E8F5E9;color:var(--green)}
-    .empty-state{text-align:center;color:var(--muted);font-size:13px;padding:24px}
+    .badge-pronto{background:#FFF8E1;color:var(--orange)}
+    .badge-vencido{background:#FFEBEE;color:var(--red)}
+    .badge-sd{background:#F5F5F5;color:var(--muted)}
+    .eq-row2{font-size:11px;color:var(--muted)}
+    .empty-state{text-align:center;color:var(--muted);font-size:13px;padding:32px 16px}
+    .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    /* MODAL */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none}
+    .overlay.open{display:block}
+    .modal{position:fixed;bottom:0;left:0;right:0;background:white;border-radius:16px 16px 0 0;max-height:92vh;overflow-y:auto;z-index:201;padding:20px 16px 40px}
+    .modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+    .modal-title{font-size:16px;font-weight:700;color:var(--dark);margin-bottom:16px}
+    .form-sec{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+    .form-row{margin-bottom:12px}
+    .form-row label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:3px}
+    .form-row input,.form-row select,.form-row textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text);background:white}
+    .form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--gold);outline:none}
+    .form-row textarea{resize:vertical;min-height:60px}
+    .form-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .toggle-row{display:flex;align-items:center;gap:10px;padding:10px 0}
+    .toggle-row label{font-size:13px;color:var(--text);flex:1}
+    .toggle{width:40px;height:22px;background:var(--border);border-radius:11px;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;border:none}
+    .toggle.on{background:var(--green)}
+    .toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;background:white;border-radius:50%;transition:left 0.2s}
+    .toggle.on::after{left:21px}
+    .modal-btns{display:flex;gap:10px;margin-top:20px}
+    .btn-guardar{flex:1;padding:13px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+    .btn-cancelar{padding:13px 18px;background:white;color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
     .coming-soon{text-align:center;padding:48px 20px;color:var(--muted)}
     .coming-soon .cs-icon{font-size:40px;margin-bottom:12px}
     .coming-soon .cs-title{font-size:15px;font-weight:600;color:var(--dark);margin-bottom:6px}
     .coming-soon .cs-desc{font-size:12px;line-height:1.5}
-    .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
-    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
@@ -40,14 +69,25 @@
   <button class="btn-back" onclick="location.href='admin.html'">&#8592;</button>
   <div class="hdr-mark">ARP</div>
   <div class="hdr-title">Equipos</div>
+  <button class="btn-nuevo" id="btnNuevo" onclick="abrirNuevo()" style="display:none" title="Nuevo equipo">+</button>
 </div>
 <div class="tabs">
   <button class="tab active" onclick="mostrarTab('calibracion',this)">Calibración</button>
   <button class="tab" onclick="mostrarTab('epi',this)">EPI</button>
 </div>
 
-<div class="content" id="content">
-  <div class="spinner"></div>
+<div class="content" id="content"><div class="spinner"></div></div>
+
+<!-- OVERLAY + MODAL -->
+<div class="overlay" id="overlay" onclick="cerrarModal()"></div>
+<div class="modal" id="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title" id="modalTitulo">Equipo</div>
+  <div id="modalBody"></div>
+  <div class="modal-btns">
+    <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
+    <button class="btn-guardar" onclick="guardar()">Guardar</button>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -66,28 +106,70 @@
   }
   var auth = firebase.auth();
   var db = firebase.firestore();
-  var tabActivo = 'calibracion';
+
   var equiposData = [];
+  var usuariosData = [];
+  var filtroActivo = 'todos';
+  var tabActivo = 'calibracion';
+  var editandoId = null; // null = nuevo
 
   function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+  // Convierte DD/MM/YYYY → Date
+  function parseFecha(s) {
+    if (!s || s === '__PENDIENTE__') return null;
+    var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+    return new Date(s);
+  }
+  // DD/MM/YYYY → YYYY-MM-DD para input[type=date]
+  function toISO(s) {
+    if (!s || s === '__PENDIENTE__') return '';
+    var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    return m ? m[3]+'-'+pad(m[2])+'-'+pad(m[1]) : s;
+  }
+  // YYYY-MM-DD → DD/MM/YYYY para guardar en BD
+  function toDMY(s) {
+    if (!s) return '';
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? m[3]+'/'+m[2]+'/'+m[1] : s;
+  }
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  function estadoCal(e) {
+    var f = e.calibracion && parseFecha(e.calibracion.fechaProxima);
+    if (!f || isNaN(f)) return { cls:'badge-sd', txt:'Sin datos' };
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var limite = new Date(); limite.setDate(limite.getDate()+60);
+    if (f < hoy)    return { cls:'badge-vencido', txt:'Vencido' };
+    if (f <= limite) return { cls:'badge-pronto',  txt:'Próximo' };
+    return { cls:'badge-ok', txt:'OK' };
+  }
+
   auth.onAuthStateChanged(function(user) {
-    if (!user) { location.href = 'index.html'; return; }
+    if (!user) { location.href='index.html'; return; }
     db.collection('usuarios').doc(user.email).get().then(function(snap) {
-      if (!snap.exists || !snap.data().activo) { location.href = 'index.html'; return; }
+      if (!snap.exists || !snap.data().activo) { location.href='index.html'; return; }
       var rol = snap.data().rol;
-      if (rol !== 'admin' && rol !== 'director') { location.href = 'index.html'; return; }
+      if (rol !== 'admin' && rol !== 'director') { location.href='index.html'; return; }
+      document.getElementById('btnNuevo').style.display = 'flex';
       cargar();
     });
   });
 
   function cargar() {
-    db.collection('equipos').get().then(function(snap) {
+    Promise.all([
+      db.collection('equipos').get(),
+      db.collection('usuarios').where('activo','==',true).get()
+    ]).then(function(res) {
       equiposData = [];
-      snap.forEach(function(d) { equiposData.push(Object.assign({ id: d.id }, d.data())); });
-      renderCalibacion();
-    }).catch(function(e) {
-      document.getElementById('content').innerHTML = '<div class="empty-state">Error: ' + escHtml(e.message) + '</div>';
+      res[0].forEach(function(d){ equiposData.push(Object.assign({id:d.id},d.data())); });
+      equiposData.sort(function(a,b){ return a.id < b.id ? -1 : 1; });
+      usuariosData = [];
+      res[1].forEach(function(d){ usuariosData.push(Object.assign({email:d.id},d.data())); });
+      renderCalib();
+    }).catch(function(e){
+      document.getElementById('content').innerHTML='<div class="empty-state">Error: '+escHtml(e.message)+'</div>';
     });
   }
 
@@ -95,50 +177,177 @@
     tabActivo = tab;
     document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
     btn.classList.add('active');
-    if (tab === 'calibracion') renderCalibacion();
-    else renderEPI();
+    if (tab==='calibracion') renderCalib(); else renderEPI();
   };
 
-  function renderCalibacion() {
-    var hoy = new Date();
-    var limite = new Date(); limite.setDate(limite.getDate() + 60);
-    var limStr = limite.toISOString().slice(0,10);
-    var hoyStr = hoy.toISOString().slice(0,10);
-
-    var relevantes = equiposData.filter(function(e) {
-      var f = e.calibracion && e.calibracion.fechaProxima;
-      return f && f <= limStr;
-    }).sort(function(a,b) {
-      return (a.calibracion.fechaProxima < b.calibracion.fechaProxima) ? -1 : 1;
+  function renderCalib() {
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var lista = equiposData.filter(function(e){
+      if (filtroActivo==='todos') return true;
+      var st = estadoCal(e);
+      if (filtroActivo==='pronto') return st.txt==='Próximo' || st.txt==='Vencido';
+      if (filtroActivo==='vencido') return st.txt==='Vencido';
+      return true;
     });
-
-    if (!relevantes.length) {
-      document.getElementById('content').innerHTML = '<div class="card"><div class="empty-state">Ningún equipo caduca en los próximos 60 días.</div></div>';
-      return;
+    var html = '<div class="filtros">' +
+      btn_f('todos','Todos') + btn_f('pronto','Por caducar') + btn_f('vencido','Vencidos') +
+      '</div>';
+    if (!lista.length) {
+      html += '<div class="empty-state">No hay equipos con ese filtro.</div>';
+    } else {
+      lista.forEach(function(e) {
+        var st = estadoCal(e);
+        var fp = (e.calibracion&&e.calibracion.fechaProxima) ? e.calibracion.fechaProxima : '—';
+        var lab = (e.calibracion&&e.calibracion.laboratorio) ? e.calibracion.laboratorio : '—';
+        html += '<div class="eq-card" onclick="abrirEditar(\''+escHtml(e.id)+'\')">' +
+          '<div class="eq-row1"><span class="eq-cod">'+escHtml(e.id)+'</span><span class="eq-tipo">'+escHtml(e.tipo||'')+'</span><span class="badge '+st.cls+'">'+st.txt+'</span></div>' +
+          '<div class="eq-row2">'+escHtml(e.marca||'')+(e.modelo?' &middot; '+escHtml(e.modelo):'')+(e.sede?' &middot; '+escHtml(e.sede):'')+'</div>' +
+          '<div class="eq-row2">'+lab+' &middot; hasta '+escHtml(fp)+'</div>' +
+          '</div>';
+      });
     }
-    var html = '';
-    relevantes.forEach(function(e) {
-      var f = e.calibracion.fechaProxima;
-      var vencido = f < hoyStr;
-      html += '<div class="card">' +
-        '<div class="row-info">' +
-        '<div class="row-title">' + escHtml(e.id) + (e.medicion ? ' &middot; ' + escHtml(e.medicion) : '') + '</div>' +
-        '<div class="row-sub">Próxima calibración: ' + escHtml(f) + ' &middot; Inspector: ' + escHtml(e.asignadoA || '—') + '</div>' +
-        '</div>' +
-        '<span class="badge ' + (vencido ? 'badge-vencido' : 'badge-pronto') + '">' + (vencido ? 'Vencido' : 'Próximo') + '</span>' +
-        '</div>';
-    });
     document.getElementById('content').innerHTML = html;
   }
 
+  function btn_f(id, txt) {
+    return '<button class="filtro-btn'+(filtroActivo===id?' active':'')+'" onclick="setFiltro(\''+id+'\',this)">'+txt+'</button>';
+  }
+
+  window.setFiltro = function(f, btn) {
+    filtroActivo = f;
+    document.querySelectorAll('.filtro-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    renderCalib();
+  };
+
   function renderEPI() {
     document.getElementById('content').innerHTML =
-      '<div class="coming-soon">' +
-      '<div class="cs-icon">&#128736;</div>' +
+      '<div class="coming-soon"><div class="cs-icon">&#128736;</div>' +
       '<div class="cs-title">EPI — Próximamente</div>' +
-      '<div class="cs-desc">Registro de equipos de protección individual:<br>arnés, disipador, casco, mosquetones...<br><br>Incluirá fecha de fabricación, primera puesta en servicio<br>y control de vida útil por normativa.</div>' +
+      '<div class="cs-desc">Arnés, disipador, casco, mosquetones...<br>Fecha de fabricación, primera puesta en servicio<br>y control de vida útil.</div></div>';
+  }
+
+  // ── MODAL ──
+  function usuariosOpts(seleccionado) {
+    var html = '<option value="__PENDIENTE__"'+(seleccionado==='__PENDIENTE__'?' selected':'')+'>— Sin asignar —</option>';
+    usuariosData.forEach(function(u) {
+      var n = escHtml(u.nombre||u.email);
+      html += '<option value="'+escHtml(u.email)+'"'+(seleccionado===u.email?' selected':'')+'>'+n+'</option>';
+    });
+    return html;
+  }
+
+  function formHtml(e) {
+    e = e || {};
+    var cal = e.calibracion || {};
+    return '<div class="form-sec">Datos del equipo</div>' +
+      '<div class="form-2col">' +
+        field('Código','f_id',escHtml(e.codigo||e.id||''), editandoId?'readonly':'') +
+        field('Tipo','f_tipo',escHtml(e.tipo||'')) +
+      '</div>' +
+      field('Magnitud medida','f_medicion',escHtml(e.medicion||'')) +
+      '<div class="form-2col">' +
+        field('Marca','f_marca',escHtml(e.marca||'')) +
+        field('Modelo','f_modelo',escHtml(e.modelo||'')) +
+      '</div>' +
+      '<div class="form-2col">' +
+        field('Nº de serie','f_nSerie',escHtml(e.nSerie||e.serie||'')) +
+        field('Sede','f_sede',escHtml(e.sede||'')) +
+      '</div>' +
+      '<div class="form-row"><label>Inspector asignado</label>' +
+        '<select id="f_asignadoA">'+usuariosOpts(e.asignadoA||'__PENDIENTE__')+'</select></div>' +
+      field('Observaciones','f_obs',escHtml(e.obs||''),'','textarea') +
+      '<div class="toggle-row"><label>Activo</label>' +
+        '<button class="toggle'+(e.activo===false?'':' on')+'" id="f_activo" onclick="toggleActivo()"></button></div>' +
+      '<div class="form-sec">Calibración vigente</div>' +
+      '<div class="form-2col">' +
+        fieldDate('Fecha última','f_cal_ultima',cal.fechaUltima) +
+        fieldDate('Próxima calibración','f_cal_proxima',cal.fechaProxima) +
+      '</div>' +
+      '<div class="form-2col">' +
+        field('Laboratorio','f_cal_lab',escHtml(cal.laboratorio||'')) +
+        field('Nº certificado','f_cal_cert',escHtml(cal.certificado||'')) +
+      '</div>' +
+      '<div class="form-2col">' +
+        field('Frecuencia','f_cal_frec',escHtml(cal.frecuencia||'')) +
+        fieldNum('Periodo (meses)','f_cal_meses',cal.periodoMeses||'') +
       '</div>';
   }
+
+  function field(label, id, val, extra, tag) {
+    tag = tag||'input';
+    var inp = tag==='textarea'
+      ? '<textarea id="'+id+'" '+extra+'>'+val+'</textarea>'
+      : '<input id="'+id+'" type="text" value="'+val+'" '+extra+'>';
+    return '<div class="form-row"><label>'+label+'</label>'+inp+'</div>';
+  }
+  function fieldDate(label, id, val) {
+    return '<div class="form-row"><label>'+label+'</label><input id="'+id+'" type="date" value="'+toISO(val)+'"></div>';
+  }
+  function fieldNum(label, id, val) {
+    return '<div class="form-row"><label>'+label+'</label><input id="'+id+'" type="number" value="'+val+'"></div>';
+  }
+
+  window.toggleActivo = function() {
+    var btn = document.getElementById('f_activo');
+    btn.classList.toggle('on');
+  };
+
+  window.abrirNuevo = function() {
+    editandoId = null;
+    document.getElementById('modalTitulo').textContent = 'Nuevo equipo';
+    document.getElementById('modalBody').innerHTML = formHtml(null);
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('modal').scrollTop = 0;
+  };
+
+  window.abrirEditar = function(id) {
+    var e = equiposData.find(function(x){ return x.id===id; });
+    if (!e) return;
+    editandoId = id;
+    document.getElementById('modalTitulo').textContent = id + ' · ' + (e.tipo||'');
+    document.getElementById('modalBody').innerHTML = formHtml(e);
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('modal').scrollTop = 0;
+  };
+
+  window.cerrarModal = function() {
+    document.getElementById('overlay').classList.remove('open');
+  };
+
+  window.guardar = function() {
+    var id = editandoId || (document.getElementById('f_id').value.trim().toUpperCase());
+    if (!id) { alert('El código del equipo es obligatorio.'); return; }
+    var activo = document.getElementById('f_activo').classList.contains('on');
+    var meses = parseInt(document.getElementById('f_cal_meses').value)||0;
+    var data = {
+      codigo:    document.getElementById('f_id').value.trim().toUpperCase(),
+      tipo:      document.getElementById('f_tipo').value.trim().toUpperCase(),
+      medicion:  document.getElementById('f_medicion').value.trim().toUpperCase(),
+      marca:     document.getElementById('f_marca').value.trim(),
+      modelo:    document.getElementById('f_modelo').value.trim(),
+      nSerie:    document.getElementById('f_nSerie').value.trim(),
+      sede:      document.getElementById('f_sede').value.trim().toUpperCase(),
+      asignadoA: document.getElementById('f_asignadoA').value,
+      obs:       document.getElementById('f_obs').value.trim(),
+      activo:    activo,
+      calibracion: {
+        fechaUltima:  toDMY(document.getElementById('f_cal_ultima').value),
+        fechaProxima: toDMY(document.getElementById('f_cal_proxima').value),
+        laboratorio:  document.getElementById('f_cal_lab').value.trim(),
+        certificado:  document.getElementById('f_cal_cert').value.trim(),
+        frecuencia:   document.getElementById('f_cal_frec').value.trim().toUpperCase(),
+        periodoMeses: meses || firebase.firestore.FieldValue.delete()
+      }
+    };
+    var btn = document.querySelector('.btn-guardar');
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    db.collection('equipos').doc(id).set(data, {merge:true}).then(function() {
+      cerrarModal();
+      cargar();
+    }).catch(function(e){ alert('Error: '+e.message); })
+    .finally(function(){ btn.disabled=false; btn.textContent='Guardar'; });
+  };
 </script>
 </body>
 </html>

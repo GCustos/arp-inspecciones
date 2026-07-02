@@ -162,7 +162,7 @@
     <div class="card-title">Propietario / Cliente</div>
     <div class="f">
       <label>Empresa propietaria</label>
-      <input type="text" id="propietario" placeholder="Raz&#243;n social S.L.">
+      <input type="text" id="propietario" placeholder="Raz&#243;n social S.L." list="clientesList" onchange="onPropietarioChange()">
     </div>
     <div class="r2">
       <div class="f">
@@ -176,7 +176,7 @@
     </div>
     <div class="f">
       <label>Solicitante (si difiere del propietario)</label>
-      <input type="text" id="solicitante" placeholder="Empresa o persona solicitante">
+      <input type="text" id="solicitante" placeholder="Empresa o persona solicitante" list="clientesList">
     </div>
   </div>
 
@@ -240,6 +240,7 @@
 </div>
 
 <div class="offline-badge" id="offlineBadge">Sin conexi&#243;n &#8212; modo offline</div>
+<datalist id="clientesList"></datalist>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -289,8 +290,33 @@
       userData = snap.data();
       renderInspector();
       cargarInstalaciones();
+      cargarClientes();
     }).catch(function(e) { console.error("Error auth:", e); });
   });
+
+  // ── CLIENTES ──
+
+  var clientesData = [];
+
+  function cargarClientes() {
+    db.collection("clientes").where("activo", "==", true).get().then(function(snap) {
+      clientesData = [];
+      snap.forEach(function(d) { clientesData.push(Object.assign({ id: d.id }, d.data())); });
+      clientesData.sort(function(a, b) { return (a.nombre||'').localeCompare(b.nombre||''); });
+      var dl = document.getElementById("clientesList");
+      if (dl) dl.innerHTML = clientesData.map(function(c) {
+        return '<option value="' + escHtml(c.nombre) + '">';
+      }).join("");
+    }).catch(function() {});
+  }
+
+  window.onPropietarioChange = function() {
+    var val = document.getElementById("propietario").value.trim();
+    var cliente = clientesData.find(function(c) { return c.nombre === val; });
+    if (cliente && cliente.cif) {
+      document.getElementById("cif").value = cliente.cif;
+    }
+  };
 
   // ── INSTALACIONES ──
 

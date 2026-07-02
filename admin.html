@@ -66,11 +66,11 @@
     db.collection('usuarios').doc(user.email).get().then(function(snap) {
       if (!snap.exists || !snap.data().activo) { location.href = 'index.html'; return; }
       var rol = snap.data().rol;
-      if (rol !== 'admin' && rol !== 'director') {
-        document.getElementById('content').innerHTML = '<p style="text-align:center;color:var(--muted);padding:40px 20px">Acceso restringido a admin/director.</p>';
+      if (rol !== 'admin' && rol !== 'director' && rol !== 'oficina') {
+        document.getElementById('content').innerHTML = '<p style="text-align:center;color:var(--muted);padding:40px 20px">Acceso restringido.</p>';
         return;
       }
-      renderMenu();
+      renderMenu(rol);
       cargarContadores();
     });
   });
@@ -91,14 +91,19 @@
       '</div>';
   }
 
-  function renderMenu() {
-    document.getElementById('content').innerHTML =
-      '<div class="sec-label">Panel de administración</div>' +
-      card('cambios',       '&#128203;', 'Cambios propuestos',  'Revisión y aprobación de cambios en datos de instalaciones',    'admin-cambios.html') +
-      card('equipos',       '&#128295;', 'Equipos',             'Calibraciones próximas e inventario de material por inspector', 'admin-equipos.html') +
-      card('instalaciones', '&#127959;', 'Instalaciones',       'Instalaciones sin inspección en los últimos 12 meses',          'admin-instalaciones.html') +
-      cardOff('&#128203;', 'Checklist PAA',  'Editor de preguntas y criterios de inspección') +
-      cardOff('&#128119;', 'Inspectores',    'Gestión de usuarios, autorizaciones y formaciones');
+  function renderMenu(rol) {
+    var esAdmin = rol === 'admin' || rol === 'director';
+    var html = '<div class="sec-label">Panel de administración</div>' +
+      card('clientes', '&#128101;', 'Clientes', 'Gestión de empresas propietarias y solicitantes', 'admin-clientes.html');
+    if (esAdmin) {
+      html +=
+        card('cambios',       '&#128203;', 'Cambios propuestos',  'Revisión y aprobación de cambios en datos de instalaciones',    'admin-cambios.html') +
+        card('equipos',       '&#128295;', 'Equipos',             'Calibraciones próximas e inventario de material por inspector', 'admin-equipos.html') +
+        card('instalaciones', '&#127959;', 'Instalaciones',       'Instalaciones sin inspección en los últimos 12 meses',          'admin-instalaciones.html') +
+        cardOff('&#128203;', 'Checklist PAA',  'Editor de preguntas y criterios de inspección') +
+        cardOff('&#128119;', 'Inspectores',    'Gestión de usuarios, autorizaciones y formaciones');
+    }
+    document.getElementById('content').innerHTML = html;
   }
 
   function setBadge(id, texto, tipo) {
@@ -109,6 +114,10 @@
   }
 
   function cargarContadores() {
+    db.collection('clientes').where('activo', '==', true).get().then(function(snap) {
+      setBadge('clientes', snap.size + ' activo' + (snap.size !== 1 ? 's' : ''), 'ok');
+    }).catch(function() { setBadge('clientes', '···', 'loading'); });
+
     db.collection('cambiosPropuestos').where('estado', '==', 'pendiente').get().then(function(snap) {
       var n = snap.size;
       setBadge('cambios', n ? n + ' pendiente' + (n > 1 ? 's' : '') : 'Sin pendientes', n ? 'alert' : 'ok');

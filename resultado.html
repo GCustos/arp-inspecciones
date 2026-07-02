@@ -129,7 +129,7 @@
       telefono: "93 377 67 95",
       email: "info@arpprevencion.com",
       web: "www.arpprevencion.com",
-      acreditacion: "Nº 489 / EI 558"
+      acreditacion: ""
     },
     paa: {
       formatoRevision: 9,
@@ -291,7 +291,7 @@
           &#127941; ${favorable?'Generar Certificado PDF':'Certificado (solo FAVORABLE)'}
         </button>
         <button class="btn-pdf btn-registro" onclick="generarRegistro()">
-          &#128203; Generar Registro ENAC
+          &#128203; Generar Registro
         </button>
       </div>
 
@@ -626,14 +626,8 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
   }
 
   function loadImageAsBase64(url, localKey) {
-    return new Promise((resolve) => {
-      if (localKey) {
-        leerFotoLocal_res(localKey).then(function(data) {
-          resolve(data && data.dataUrl ? data.dataUrl : null);
-        }).catch(function() { resolve(null); });
-        return;
-      }
-      if (!url || url.startsWith('data:')) { resolve(url); return; }
+    function fromUrl(resolve) {
+      if (!url || url.startsWith('data:')) { resolve(url || null); return; }
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
@@ -644,6 +638,16 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       };
       img.onerror = () => resolve(null);
       img.src = url;
+    }
+    return new Promise((resolve) => {
+      if (localKey) {
+        leerFotoLocal_res(localKey).then(function(data) {
+          if (data && data.dataUrl) { resolve(data.dataUrl); return; }
+          fromUrl(resolve);
+        }).catch(function() { fromUrl(resolve); });
+        return;
+      }
+      fromUrl(resolve);
     });
   }
 
@@ -723,7 +727,9 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
 
       // Dirección
       doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      doc.text(composeDireccion(D), PW/2, y, {align:'center'}); y += 2;
+      const dirLines = doc.splitTextToSize(composeDireccion(D), CW);
+      dirLines.forEach((line, i) => { doc.text(line, PW-MR, y + i * 5, {align:'right'}); });
+      y += (dirLines.length - 1) * 5 + 2;
       doc.line(ML, y, PW-MR, y); y += 10;
 
       // Referencia
@@ -812,7 +818,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.text(D.propietario||D.nombreInstalacion||'', PW-MR-3, y+14, {align:'right'});
       doc.setFont('helvetica','normal'); doc.setFontSize(9);
       doc.text(D.nombreInstalacion||'', PW-MR-3, y+20, {align:'right'});
-      if (D.cif) doc.text(D.cif, PW-MR-3, y+26, {align:'right'});
+      if (D.cif) doc.text(D.cif.replace(/[​-‏﻿]/g,'').trim(), PW-MR-3, y+26, {align:'right'});
       doc.setFont('helvetica','bold');
       doc.text('GESTOR DE LAS INSTALACIONES:', ML+3, y+cajaH-4);
       doc.setFont('helvetica','normal');
@@ -988,6 +994,10 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
                 doc.setFontSize(7); doc.setTextColor(...MUTED);
                 doc.text('sin foto', imgX+imgW/2, rowY+(imgH-8)/2, {align:'center'});
               }
+            } else {
+              doc.setFillColor(...SURF); doc.setDrawColor(...BORDER); doc.rect(imgX, rowY, imgW, imgH-8, 'FD');
+              doc.setFontSize(7); doc.setTextColor(...MUTED);
+              doc.text('sin foto', imgX+imgW/2, rowY+(imgH-8)/2, {align:'center'});
             }
           } else {
             doc.setFillColor(...SURF); doc.setDrawColor(...BORDER); doc.rect(imgX, rowY, imgW, imgH-8, 'FD');
@@ -996,7 +1006,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           }
           // Nombre juego
           doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-          const jNombre = (j.tipo==='NR'?'*.':'') + j.nombre;
+          const jNombre = (j.tipo==='NR'?'*. ':j.tipo==='AUX'?'* ':'') + j.nombre;
           doc.text(jNombre, imgX+imgW/2, rowY+imgH-4, {align:'center', maxWidth:imgW});
           col++;
         }
@@ -1466,6 +1476,30 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
   }
 
   // ═══════════════════════════════════════════════════
+  // Renderiza texto justificado párrafo a párrafo (párrafos separados por \n\n)
+  function renderJustified(doc, text, x, y, maxW, lineH) {
+    const spaceW = doc.getTextWidth(' ');
+    const paras = text.split('\n\n').map(function(p){ return p.replace(/\s+/g,' ').trim(); }).filter(Boolean);
+    paras.forEach(function(para, pi) {
+      const lines = doc.splitTextToSize(para, maxW);
+      lines.forEach(function(line, li) {
+        const isLast = li === lines.length - 1;
+        const words = line.trim().split(' ').filter(Boolean);
+        if (isLast || words.length <= 1) {
+          doc.text(line.trim(), x, y);
+        } else {
+          const wordsW = words.reduce(function(s,w){ return s + doc.getTextWidth(w); }, 0);
+          const gap = (maxW - wordsW) / (words.length - 1);
+          let cx = x;
+          words.forEach(function(w) { doc.text(w, cx, y); cx += doc.getTextWidth(w) + gap; });
+        }
+        y += lineH;
+      });
+      if (pi < paras.length - 1) y += lineH;
+    });
+    return y;
+  }
+
   //   GENERACIÓN PDF — CERTIFICADO
   // ═══════════════════════════════════════════════════
   async function generarCertificado() {
@@ -1509,7 +1543,8 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       // Texto certificación
       const dirCert = composeDireccion(D);
       const solicitante = D.solicitante||D.propietario||'';
-      const textoCert = `${c.nombre.toUpperCase()}, organismo de inspección acreditado ${c.acreditacion||''}, certifica haber efectuado en fecha ${fechaInsp} la inspección de los equipamientos de RECORRIDO ACROBATICO EN ALTURA de las instalaciones de ${D.nombreInstalacion||''}, ${totalJ} JUEGOS, situado en ${dirCert}.
+      const acreditTxt = c.acreditacion ? ` acreditado ${c.acreditacion}` : '';
+      const textoCert = `${c.nombre.toUpperCase()}, organismo de inspección${acreditTxt}, certifica haber efectuado en fecha ${fechaInsp} la inspección de los equipamientos de RECORRIDO ACROBATICO EN ALTURA de las instalaciones de ${D.nombreInstalacion||''}, ${totalJ} JUEGOS, situado en ${dirCert}.
 
 La intervención realizada, da como resultado un "Informe de inspección", con la numeración ${ref}, que indica las observaciones relativas a las instalaciones y omisiones. Estas observaciones sólo son válidas en las condiciones presentes en la instalación en el momento de control, y no serán válidas en caso de modificaciones en las mismas.
 
@@ -1518,8 +1553,7 @@ ${c.nombre}, certifica que los equipamientos cumplen con las exigencias marcadas
 Visto que el informe presenta un resultado FAVORABLE, se considera que los equipamientos cumplen con las especificaciones de seguridad de las normas de aplicación en vigencia y que son aptos para su uso bajo las indicaciones y directrices del manual de uso y mantenimiento del constructor/instalador.`;
 
       doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      const certLines = doc.splitTextToSize(textoCert, CW);
-      certLines.forEach(line => { doc.text(line, ML, y); y += 6; });
+      y = renderJustified(doc, textoCert, ML, y, CW, 6);
       y += 10;
 
       // Datos firmante
@@ -1535,20 +1569,23 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       // Logo ARP esquina inferior derecha
       try { doc.addImage('data:image/jpeg;base64,'+LOGO_B64,'JPEG', PW-MR-40, PH-55, 38, 27); } catch(e){}
 
-      // Fechas vigor
+      // Fechas vigor — alineadas al mismo X calculando el label más ancho
       doc.setFontSize(9); doc.setFont('helvetica','italic'); doc.setTextColor(...DARK);
+      const fechaLabelW = Math.max(doc.getTextWidth('Fecha entrada en vigor:'), doc.getTextWidth('Fecha próxima inspección:')) + 2;
       doc.text('Fecha entrada en vigor:', ML, PH-30);
-      doc.setFont('helvetica','normal'); doc.text(fechaInsp, ML+45, PH-30);
+      doc.setFont('helvetica','normal'); doc.text(fechaInsp, ML+fechaLabelW, PH-30);
       doc.setFont('helvetica','italic');
       doc.text('Fecha próxima inspección:', ML, PH-24);
-      doc.setFont('helvetica','normal'); doc.text(fechaProxima, ML+50, PH-24);
+      doc.setFont('helvetica','normal'); doc.text(fechaProxima, ML+fechaLabelW, PH-24);
 
       // Pie
       doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
-      doc.line(ML, PH-14, PW-MR, PH-14);
-      doc.text(`${c.sedeSocial}`, PW/2, PH-10, {align:'center'});
-      doc.text(`${c.sedeFiscal}`, PW/2, PH-6, {align:'center'});
+      doc.line(ML, PH-16, PW-MR, PH-16);
+      doc.text(`${c.sedeSocial}`, PW/2, PH-12, {align:'center'});
+      doc.text(`${c.sedeFiscal}`, PW/2, PH-8, {align:'center'});
       doc.setFont('helvetica','normal');
+      const revDoc = c.revCertificadoDoc || '19/05/2023 Rev 3.';
+      doc.text(revDoc, PW/2, PH-4, {align:'center'});
 
       // Guarda
       const certFile = (ref.replace(/\//g,'_')||'certificado') + '_CERT_Rev' + (D.revision||0) + '.pdf';
@@ -1567,7 +1604,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
   async function generarRegistro() {
     if (!D) return;
     const { jsPDF } = window.jspdf;
-    showGenerating('Generando Registro ENAC...', '');
+    showGenerating('Generando Registro...', '');
     await new Promise(r => setTimeout(r, 100));
     try {
       const circuitos = D.circuitos || [];
@@ -1864,7 +1901,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
           }
           doc.rect(ML+cw0, y, cw1, 7, 'D');
           doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-          doc.text((j.tipo==='NR'?'*.':'') + (j.nombre||''), ML+cw0+1, y+4.5, {maxWidth:cw1-2});
+          doc.text((j.tipo==='NR'?'*. ':j.tipo==='AUX'?'* ':'') + (j.nombre||''), ML+cw0+1, y+4.5, {maxWidth:cw1-2});
           KEYS.forEach((k,ki) => {
             doc.setFillColor(...WHITE);
             doc.rect(ML+cw0+cw1+ki*cw2, y, cw2, 7, 'D');

@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Clientes - ARP</title>
+  <style>
+    :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;--orange:#E67E22;}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
+    .app-header{background:var(--dark);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+    .btn-back{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;padding:0;line-height:1}
+    .hdr-mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white}
+    .hdr-title{color:white;font-size:15px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .content{padding:16px;max-width:680px;margin:0 auto;padding-bottom:40px}
+    .toolbar{display:flex;gap:8px;margin-bottom:14px;align-items:center}
+    .search-wrap{flex:1;position:relative}
+    .search-wrap input{width:100%;padding:9px 12px 9px 34px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;background:white;color:var(--text);outline:none;transition:border-color .15s}
+    .search-wrap input:focus{border-color:var(--gold)}
+    .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+    .btn-primary{padding:9px 16px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0}
+    .btn-primary:hover{opacity:.9}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+    .filtros{display:flex;gap:6px;margin-bottom:12px}
+    .filtro-btn{padding:5px 12px;border:1.5px solid var(--border);border-radius:20px;background:white;font-family:inherit;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s}
+    .filtro-btn.active{background:var(--gold);color:white;border-color:var(--gold)}
+    .contador{font-size:12px;color:var(--muted);margin-bottom:10px}
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s}
+    .card:hover{border-color:var(--gold)}
+    .row-info{flex:1;min-width:0}
+    .row-title{font-size:13px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .row-sub{font-size:11px;color:var(--muted);margin-top:2px}
+    .badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;text-transform:uppercase;flex-shrink:0}
+    .badge-ok{background:#E8F5E9;color:var(--green)}
+    .badge-off{background:#F5F5F5;color:var(--muted)}
+    .btn-sm{background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 11px;font-family:inherit;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;flex-shrink:0;transition:border-color .15s;white-space:nowrap}
+    .btn-sm:hover{border-color:var(--gold);color:var(--gold)}
+    .empty-state{text-align:center;color:var(--muted);font-size:13px;padding:32px 20px}
+    .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* DETALLE */
+    .detail-box{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
+    .detail-nombre{font-size:16px;font-weight:700;color:var(--dark);margin-bottom:2px}
+    .detail-meta{font-size:12px;color:var(--muted);margin-bottom:10px}
+    .sec-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+
+    /* CONTACTO CARD */
+    .ct-card{background:white;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start}
+    .ct-avatar{width:38px;height:38px;border-radius:50%;background:var(--gold);color:white;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;text-transform:uppercase}
+    .ct-avatar.inactivo{background:var(--border);color:var(--muted)}
+    .ct-body{flex:1;min-width:0}
+    .ct-nombre{font-size:13px;font-weight:600;color:var(--dark)}
+    .ct-rol{font-size:11px;color:var(--gold);font-weight:600;margin-top:1px}
+    .ct-datos{margin-top:5px;display:flex;flex-direction:column;gap:3px}
+    .ct-dato{font-size:11px;color:var(--muted)}
+    .ct-dato a{color:inherit;text-decoration:none}
+    .ct-dato a:hover{color:var(--gold)}
+
+    /* BUSCADOR DE CONTACTOS EN MODAL */
+    .contact-results{max-height:200px;overflow-y:auto;border:1.5px solid var(--border);border-radius:10px;margin-top:6px}
+    .contact-result-item{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s}
+    .contact-result-item:last-child{border-bottom:none}
+    .contact-result-item:hover{background:var(--surf)}
+    .contact-result-item.selected{background:#FFF8E8;border-color:var(--gold)}
+    .cri-nombre{font-size:13px;font-weight:600;color:var(--dark)}
+    .cri-sub{font-size:11px;color:var(--muted);margin-top:1px}
+    .divider{text-align:center;font-size:11px;color:var(--muted);margin:12px 0;position:relative}
+    .divider:before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border)}
+    .divider span{background:white;padding:0 8px;position:relative}
+
+    /* MODAL */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center}
+    .modal-overlay.open{display:flex}
+    @media(min-width:520px){.modal-overlay{align-items:center;padding:20px}}
+    .modal{background:white;border-radius:16px 16px 0 0;padding:24px;width:100%;max-width:460px;max-height:92vh;overflow-y:auto;box-shadow:0 -4px 24px rgba(0,0,0,.15)}
+    @media(min-width:520px){.modal{border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.18)}}
+    .modal-title{font-size:15px;font-weight:700;color:var(--dark);margin-bottom:20px}
+    .field{margin-bottom:14px}
+    .field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+    .field input,.field select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;color:var(--text);outline:none;transition:border-color .15s;background:white}
+    .field input:focus,.field select:focus{border-color:var(--gold)}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+    .toggle-label{font-size:13px;color:var(--text)}
+    .toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+    .toggle input{opacity:0;width:0;height:0;position:absolute}
+    .toggle-track{position:absolute;inset:0;background:var(--border);border-radius:12px;cursor:pointer;transition:background .2s}
+    .toggle input:checked+.toggle-track{background:var(--green)}
+    .toggle-track:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:white;border-radius:50%;transition:transform .2s}
+    .toggle input:checked+.toggle-track:before{transform:translateX(20px)}
+    .modal-actions{display:flex;gap:8px;margin-top:20px}
+    .btn-cancel{flex:1;padding:11px;border:1.5px solid var(--border);border-radius:10px;background:white;font-family:inherit;font-size:13px;font-weight:600;color:var(--text);cursor:pointer}
+    .btn-save{flex:2;padding:11px;border:none;border-radius:10px;background:var(--gold);color:white;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    .btn-save:hover{opacity:.9}
+    .btn-save:disabled{opacity:.5;cursor:not-allowed}
+    .btn-danger{margin-top:8px;width:100%;padding:10px;border:1.5px solid #FFCDD2;border-radius:10px;background:white;font-family:inherit;font-size:12px;font-weight:600;color:var(--red);cursor:pointer}
+    .btn-danger:hover{background:#FFEBEE}
+    .err{font-size:11px;color:var(--red);margin-top:5px;display:none}
+    .info-box{background:#FFF8E8;border:1px solid rgba(200,153,58,.3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:14px;display:none}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" id="btnBack" onclick="handleBack()">&#8592;</button>
+  <div class="hdr-mark">ARP</div>
+  <div class="hdr-title" id="hdrTitle">Clientes</div>
+</div>
+
+<div class="content" id="content"><div class="spinner"></div></div>
+
+<!-- MODAL: DATOS CLIENTE -->
+<div class="modal-overlay" id="modalCliente">
+  <div class="modal">
+    <div class="modal-title" id="mcTitulo">Nuevo cliente</div>
+    <div class="field">
+      <label>Razón social *</label>
+      <input type="text" id="mcNombre" placeholder="Empresa S.L.">
+      <div class="err" id="mcErr">El nombre es obligatorio</div>
+    </div>
+    <div class="field">
+      <label>CIF</label>
+      <input type="text" id="mcCif" placeholder="B12345678" style="text-transform:uppercase">
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Cliente activo</span>
+      <label class="toggle"><input type="checkbox" id="mcActivo" checked><div class="toggle-track"></div></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modalCliente')">Cancelar</button>
+      <button class="btn-save" id="mcBtnSave" onclick="guardarCliente()">Guardar</button>
+    </div>
+    <button class="btn-danger" id="mcBtnToggle" onclick="toggleActivoCliente()" style="display:none"></button>
+  </div>
+</div>
+
+<!-- MODAL: VINCULAR CONTACTO (buscar existente o crear nuevo) -->
+<div class="modal-overlay" id="modalVincular">
+  <div class="modal">
+    <div class="modal-title">Añadir contacto</div>
+
+    <!-- Sección buscar existente -->
+    <div id="secBuscar">
+      <div class="field">
+        <label>Buscar persona existente</label>
+        <div class="search-wrap" style="margin-bottom:0">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" id="vBuscar" placeholder="Nombre…" oninput="filtrarContactos()" autocomplete="off">
+        </div>
+        <div id="vResultados" class="contact-results" style="display:none"></div>
+      </div>
+      <div class="info-box" id="vSelBox"></div>
+      <div class="field">
+        <label>Rol en este cliente</label>
+        <input type="text" id="vRol" placeholder="Director técnico, Propietario…" list="rolesList">
+      </div>
+      <div class="modal-actions" style="margin-top:0">
+        <button class="btn-cancel" onclick="cerrarModal('modalVincular')">Cancelar</button>
+        <button class="btn-save" id="vBtnVincular" onclick="vincularContacto()" disabled>Vincular</button>
+      </div>
+    </div>
+
+    <div class="divider"><span>o crear nueva persona</span></div>
+
+    <!-- Sección crear nuevo -->
+    <div id="secCrear">
+      <div class="field">
+        <label>Nombre *</label>
+        <input type="text" id="vNombre" placeholder="Nombre completo">
+        <div class="err" id="vErr">El nombre es obligatorio</div>
+      </div>
+      <div class="field">
+        <label>Teléfono</label>
+        <input type="tel" id="vTel" placeholder="666 123 456">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="vEmail" placeholder="nombre@empresa.com">
+      </div>
+      <div class="field">
+        <label>Rol en este cliente</label>
+        <input type="text" id="vRolNuevo" placeholder="Director técnico, Propietario…" list="rolesList">
+      </div>
+      <div class="modal-actions" style="margin-top:0">
+        <button class="btn-cancel" onclick="cerrarModal('modalVincular')">Cancelar</button>
+        <button class="btn-save" id="vBtnCrear" onclick="crearYVincular()">Crear y vincular</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: EDITAR CONTACTO VINCULADO -->
+<div class="modal-overlay" id="modalContacto">
+  <div class="modal">
+    <div class="modal-title">Editar contacto</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Los cambios de datos personales (teléfono, email) se aplican a todas las instalaciones y clientes donde aparece esta persona.</div>
+    <div class="field">
+      <label>Nombre *</label>
+      <input type="text" id="ctNombre" placeholder="Nombre completo">
+      <div class="err" id="ctErr">El nombre es obligatorio</div>
+    </div>
+    <div class="field">
+      <label>Teléfono</label>
+      <input type="tel" id="ctTel" placeholder="666 123 456">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="ctEmail" placeholder="nombre@empresa.com">
+    </div>
+    <div class="field">
+      <label>Rol en este cliente</label>
+      <input type="text" id="ctRol" placeholder="Director técnico, Propietario…" list="rolesList">
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Contacto activo</span>
+      <label class="toggle"><input type="checkbox" id="ctActivo" checked><div class="toggle-track"></div></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modalContacto')">Cancelar</button>
+      <button class="btn-save" id="ctBtnSave" onclick="guardarContacto()">Guardar</button>
+    </div>
+    <button class="btn-danger" onclick="desvincularContacto()">Desvincular de este cliente</button>
+  </div>
+</div>
+
+<datalist id="rolesList">
+  <option value="Propietario">
+  <option value="Director técnico">
+  <option value="Responsable de instalaciones">
+  <option value="Contacto administrativo">
+  <option value="Contacto general">
+</datalist>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain:"arp-inspecciones.firebaseapp.com",
+      projectId:"arp-inspecciones",
+      storageBucket:"arp-inspecciones.firebasestorage.app",
+      messagingSenderId:"35880168451",
+      appId:"1:35880168451:web:090e3c250b4416ed0b3236"
+    });
+  }
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+
+  // ── ESTADO ──
+  var todosClientes = [];
+  var todosContactos = [];   // cache global de la colección contactos
+  var filtroActivo = 'activos';
+  var vistaActual = 'lista';
+  var clienteActual = null;
+  var contactosDelCliente = []; // [{contactoId, rol, ...datosContacto}] para la vista detalle
+  var editandoClienteId = null;
+  var editandoVinculo = null;  // {contactoId, idx} del contacto que se está editando
+
+  var contactoSeleccionadoId = null; // en modalVincular
+
+  function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function iniciales(n){ return (n||'?').trim().split(/\s+/).map(function(p){return p[0]||'';}).join('').slice(0,2).toUpperCase(); }
+
+  // ── AUTH ──
+  auth.onAuthStateChanged(function(user) {
+    if (!user) { location.href='index.html'; return; }
+    db.collection('usuarios').doc(user.email).get().then(function(snap) {
+      if (!snap.exists || !snap.data().activo) { location.href='index.html'; return; }
+      var rol = snap.data().rol;
+      if (rol!=='admin' && rol!=='director' && rol!=='oficina') {
+        document.getElementById('content').innerHTML='<div class="empty-state">Acceso restringido.</div>'; return;
+      }
+      cargar();
+    });
+  });
+
+  // ── CARGA INICIAL ──
+  function cargar() {
+    Promise.all([
+      db.collection('clientes').orderBy('nombre').get(),
+      db.collection('contactos').orderBy('nombre').get()
+    ]).then(function(results) {
+      todosClientes = [];
+      results[0].forEach(function(d){ todosClientes.push(Object.assign({id:d.id}, d.data())); });
+      todosContactos = [];
+      results[1].forEach(function(d){ todosContactos.push(Object.assign({id:d.id}, d.data())); });
+
+      if (clienteActual) {
+        var act = todosClientes.find(function(c){ return c.id===clienteActual.id; });
+        if (act) { clienteActual=act; cargarContactosCliente(); return; }
+      }
+      renderLista();
+    }).catch(function(e){
+      document.getElementById('content').innerHTML='<div class="empty-state">Error: '+escHtml(e.message)+'</div>';
+    });
+  }
+
+  // ── VISTA LISTA ──
+  function renderLista() {
+    vistaActual='lista'; clienteActual=null;
+    document.getElementById('hdrTitle').textContent='Clientes';
+    document.getElementById('content').innerHTML=
+      '<div class="toolbar">'+
+        '<div class="search-wrap"><span class="search-icon">&#128269;</span>'+
+        '<input type="text" id="searchInput" placeholder="Buscar…" oninput="renderRows()" autocomplete="off"></div>'+
+        '<button class="btn-primary" onclick="abrirModalCliente(null)">+ Nuevo</button>'+
+      '</div>'+
+      '<div class="filtros">'+
+        '<button class="filtro-btn'+(filtroActivo==='activos'?' active':'')+'" onclick="setFiltro(\'activos\',this)">Activos</button>'+
+        '<button class="filtro-btn'+(filtroActivo==='todos'?' active':'')+'" onclick="setFiltro(\'todos\',this)">Todos</button>'+
+      '</div>'+
+      '<div id="contadorDiv"></div><div id="listaDiv"></div>';
+    renderRows();
+  }
+
+  function renderRows() {
+    var q=((document.getElementById('searchInput')||{}).value||'').toLowerCase().trim();
+    var lista=todosClientes.filter(function(c){
+      if (filtroActivo==='activos' && c.activo===false) return false;
+      if (!q) return true;
+      return (c.nombre||'').toLowerCase().includes(q)||(c.cif||'').toLowerCase().includes(q);
+    });
+    document.getElementById('contadorDiv').innerHTML='<div class="contador">'+lista.length+' cliente'+(lista.length!==1?'s':'')+'</div>';
+    if (!lista.length) {
+      document.getElementById('listaDiv').innerHTML='<div class="empty-state">'+(q?'Sin resultados.':'Sin clientes. Pulsa "+ Nuevo".')+'</div>'; return;
+    }
+    document.getElementById('listaDiv').innerHTML=lista.map(function(c){
+      var nv=(c.contactos||[]).length;
+      return '<div class="card" onclick="abrirDetalle(\''+c.id+'\')">'+
+        '<div class="row-info">'+
+          '<div class="row-title">'+escHtml(c.nombre)+'</div>'+
+          '<div class="row-sub">'+(c.cif?escHtml(c.cif)+' &middot; ':'')+nv+' contacto'+(nv!==1?'s':'')+'</div>'+
+        '</div>'+
+        '<span class="badge '+(c.activo===false?'badge-off':'badge-ok')+'">'+(c.activo===false?'Inactivo':'Activo')+'</span>'+
+        '<button class="btn-sm" onclick="event.stopPropagation();abrirModalCliente(\''+c.id+'\')">Editar</button>'+
+      '</div>';
+    }).join('');
+  }
+
+  window.setFiltro=function(f,btn){
+    filtroActivo=f;
+    document.querySelectorAll('.filtro-btn').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active'); renderRows();
+  };
+
+  // ── VISTA DETALLE ──
+  window.abrirDetalle=function(id){
+    clienteActual=todosClientes.find(function(c){return c.id===id;});
+    if (!clienteActual) return;
+    cargarContactosCliente();
+  };
+
+  function cargarContactosCliente() {
+    vistaActual='detalle';
+    document.getElementById('hdrTitle').textContent=clienteActual.nombre||'Cliente';
+    document.getElementById('content').innerHTML='<div class="spinner"></div>';
+
+    var vinculos=clienteActual.contactos||[];
+    if (!vinculos.length) { contactosDelCliente=[]; renderDetalle(); return; }
+
+    // Resolver contactoIds desde el cache local
+    contactosDelCliente=vinculos.map(function(v){
+      var persona=todosContactos.find(function(c){return c.id===v.contactoId;});
+      return Object.assign({}, v, persona ? {nombre:persona.nombre,telefono:persona.telefono,email:persona.email,activo:persona.activo} : {nombre:'[Contacto eliminado]',activo:false});
+    });
+    renderDetalle();
+  }
+
+  function renderDetalle() {
+    var activos=contactosDelCliente.filter(function(c){return c.activo!==false;});
+    var inactivos=contactosDelCliente.filter(function(c){return c.activo===false;});
+
+    var html='<div class="detail-box">'+
+      '<div class="detail-nombre">'+escHtml(clienteActual.nombre)+'</div>'+
+      '<div class="detail-meta">'+(clienteActual.cif?escHtml(clienteActual.cif)+' &middot; ':'')+
+        '<span class="badge '+(clienteActual.activo===false?'badge-off':'badge-ok')+'" style="font-size:9px">'+(clienteActual.activo===false?'Inactivo':'Activo')+'</span>'+
+      '</div>'+
+      '<button class="btn-sm" onclick="abrirModalCliente(\''+clienteActual.id+'\')">Editar datos</button>'+
+    '</div>'+
+    '<div class="sec-label">'+
+      '<span>Contactos ('+activos.length+')</span>'+
+      '<button class="btn-primary" style="font-size:12px;padding:6px 12px" onclick="abrirModalVincular()">+ Añadir</button>'+
+    '</div>';
+
+    if (!activos.length && !inactivos.length) {
+      html+='<div class="empty-state" style="padding:20px 0">Sin contactos. Pulsa "+ Añadir".</div>';
+    } else {
+      html+=activos.map(function(c,i){ return renderCtCard(c,contactosDelCliente.indexOf(c)); }).join('');
+      if (inactivos.length) {
+        html+='<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px">Inactivos</div>';
+        html+=inactivos.map(function(c){ return renderCtCard(c,contactosDelCliente.indexOf(c)); }).join('');
+      }
+    }
+    document.getElementById('content').innerHTML=html;
+  }
+
+  function renderCtCard(c,idx){
+    return '<div class="ct-card">'+
+      '<div class="ct-avatar'+(c.activo===false?' inactivo':'')+'">'+escHtml(iniciales(c.nombre))+'</div>'+
+      '<div class="ct-body">'+
+        '<div class="ct-nombre">'+escHtml(c.nombre)+(c.activo===false?' <span class="badge badge-off">Inactivo</span>':'')+'</div>'+
+        (c.rol?'<div class="ct-rol">'+escHtml(c.rol)+'</div>':'')+
+        '<div class="ct-datos">'+
+          (c.telefono?'<div class="ct-dato">&#128222;&nbsp;<a href="tel:'+escHtml(c.telefono)+'">'+escHtml(c.telefono)+'</a></div>':'')+
+          (c.email?'<div class="ct-dato">&#9993;&nbsp;<a href="mailto:'+escHtml(c.email)+'">'+escHtml(c.email)+'</a></div>':'')+
+        '</div>'+
+      '</div>'+
+      '<button class="btn-sm" onclick="abrirModalContacto('+idx+')">Editar</button>'+
+    '</div>';
+  }
+
+  // ── MODAL CLIENTE ──
+  window.abrirModalCliente=function(id){
+    editandoClienteId=id||null;
+    var c=id?todosClientes.find(function(x){return x.id===id;}):null;
+    document.getElementById('mcTitulo').textContent=c?'Editar cliente':'Nuevo cliente';
+    document.getElementById('mcNombre').value=c?(c.nombre||''):'';
+    document.getElementById('mcCif').value=c?(c.cif||''):'';
+    document.getElementById('mcActivo').checked=c?c.activo!==false:true;
+    document.getElementById('mcErr').style.display='none';
+    var btn=document.getElementById('mcBtnSave'); btn.disabled=false; btn.textContent='Guardar';
+    var btnT=document.getElementById('mcBtnToggle');
+    if (c){ btnT.style.display='block'; btnT.textContent=c.activo===false?'Marcar como activo':'Desactivar cliente'; }
+    else { btnT.style.display='none'; }
+    document.getElementById('modalCliente').classList.add('open');
+    setTimeout(function(){document.getElementById('mcNombre').focus();},100);
+  };
+
+  window.guardarCliente=function(){
+    var nombre=document.getElementById('mcNombre').value.trim();
+    if (!nombre){ document.getElementById('mcErr').style.display='block'; return; }
+    document.getElementById('mcErr').style.display='none';
+    var btn=document.getElementById('mcBtnSave'); btn.disabled=true; btn.textContent='Guardando…';
+    var datos={nombre:nombre,cif:document.getElementById('mcCif').value.trim().toUpperCase(),activo:document.getElementById('mcActivo').checked};
+    var op=editandoClienteId
+      ?db.collection('clientes').doc(editandoClienteId).update(datos)
+      :db.collection('clientes').add(Object.assign(datos,{contactos:[],creadoEn:firebase.firestore.FieldValue.serverTimestamp()}));
+    op.then(function(){ cerrarModal('modalCliente'); cargar(); })
+      .catch(function(e){ btn.disabled=false; btn.textContent='Guardar'; alert('Error: '+e.message); });
+  };
+
+  window.toggleActivoCliente=function(){
+    if (!editandoClienteId) return;
+    var c=todosClientes.find(function(x){return x.id===editandoClienteId;});
+    if (!c||!confirm(c.activo===false?'¿Marcar como activo?':'¿Desactivar este cliente?')) return;
+    db.collection('clientes').doc(editandoClienteId).update({activo:c.activo===false})
+      .then(function(){ cerrarModal('modalCliente'); cargar(); })
+      .catch(function(e){ alert('Error: '+e.message); });
+  };
+
+  // ── MODAL VINCULAR ──
+  window.abrirModalVincular=function(){
+    contactoSeleccionadoId=null;
+    document.getElementById('vBuscar').value='';
+    document.getElementById('vRol').value='';
+    document.getElementById('vNombre').value='';
+    document.getElementById('vTel').value='';
+    document.getElementById('vEmail').value='';
+    document.getElementById('vRolNuevo').value='';
+    document.getElementById('vErr').style.display='none';
+    document.getElementById('vResultados').style.display='none';
+    document.getElementById('vResultados').innerHTML='';
+    document.getElementById('vSelBox').style.display='none';
+    document.getElementById('vBtnVincular').disabled=true;
+    document.getElementById('vBtnCrear').disabled=false;
+    document.getElementById('vBtnCrear').textContent='Crear y vincular';
+    document.getElementById('modalVincular').classList.add('open');
+    setTimeout(function(){document.getElementById('vBuscar').focus();},100);
+  };
+
+  window.filtrarContactos=function(){
+    var q=document.getElementById('vBuscar').value.toLowerCase().trim();
+    contactoSeleccionadoId=null;
+    document.getElementById('vBtnVincular').disabled=true;
+    document.getElementById('vSelBox').style.display='none';
+    if (!q){ document.getElementById('vResultados').style.display='none'; return; }
+    // Excluir los ya vinculados
+    var yaIds=(clienteActual.contactos||[]).map(function(v){return v.contactoId;});
+    var resultados=todosContactos.filter(function(c){
+      return c.activo!==false && !yaIds.includes(c.id) && (c.nombre||'').toLowerCase().includes(q);
+    }).slice(0,8);
+    var div=document.getElementById('vResultados');
+    if (!resultados.length){
+      div.innerHTML='<div class="contact-result-item" style="color:var(--muted);cursor:default">Sin resultados</div>';
+    } else {
+      div.innerHTML=resultados.map(function(c){
+        var sub=[c.telefono,c.email].filter(Boolean).join(' · ');
+        return '<div class="contact-result-item" data-id="'+c.id+'" onclick="seleccionarContacto(\''+c.id+'\')">'+
+          '<div class="cri-nombre">'+escHtml(c.nombre)+'</div>'+
+          (sub?'<div class="cri-sub">'+escHtml(sub)+'</div>':'')+
+        '</div>';
+      }).join('');
+    }
+    div.style.display='block';
+  };
+
+  window.seleccionarContacto=function(id){
+    contactoSeleccionadoId=id;
+    var c=todosContactos.find(function(x){return x.id===id;});
+    document.querySelectorAll('.contact-result-item').forEach(function(el){
+      el.classList.toggle('selected', el.dataset.id===id);
+    });
+    var box=document.getElementById('vSelBox');
+    box.textContent='Seleccionado: '+(c?c.nombre:id);
+    box.style.display='block';
+    document.getElementById('vBtnVincular').disabled=false;
+  };
+
+  window.vincularContacto=function(){
+    if (!contactoSeleccionadoId||!clienteActual) return;
+    var rol=document.getElementById('vRol').value.trim();
+    var btn=document.getElementById('vBtnVincular'); btn.disabled=true;
+    var vinculos=JSON.parse(JSON.stringify(clienteActual.contactos||[]));
+    vinculos.push({contactoId:contactoSeleccionadoId,rol:rol});
+    db.collection('clientes').doc(clienteActual.id).update({contactos:vinculos})
+      .then(function(){ cerrarModal('modalVincular'); cargar(); })
+      .catch(function(e){ btn.disabled=false; alert('Error: '+e.message); });
+  };
+
+  window.crearYVincular=function(){
+    if (!clienteActual) return;
+    var nombre=document.getElementById('vNombre').value.trim();
+    if (!nombre){ document.getElementById('vErr').style.display='block'; return; }
+    document.getElementById('vErr').style.display='none';
+    var btn=document.getElementById('vBtnCrear'); btn.disabled=true; btn.textContent='Guardando…';
+    var rolNuevo=document.getElementById('vRolNuevo').value.trim();
+    var nuevoContacto={
+      nombre:nombre,
+      telefono:document.getElementById('vTel').value.trim(),
+      email:document.getElementById('vEmail').value.trim().toLowerCase(),
+      activo:true,
+      creadoEn:firebase.firestore.FieldValue.serverTimestamp()
+    };
+    db.collection('contactos').add(nuevoContacto).then(function(ref){
+      var vinculos=JSON.parse(JSON.stringify(clienteActual.contactos||[]));
+      vinculos.push({contactoId:ref.id,rol:rolNuevo});
+      return db.collection('clientes').doc(clienteActual.id).update({contactos:vinculos});
+    }).then(function(){ cerrarModal('modalVincular'); cargar(); })
+      .catch(function(e){ btn.disabled=false; btn.textContent='Crear y vincular'; alert('Error: '+e.message); });
+  };
+
+  // ── MODAL EDITAR CONTACTO ──
+  window.abrirModalContacto=function(idx){
+    var v=contactosDelCliente[idx];
+    if (!v) return;
+    editandoVinculo={idx:idx, contactoId:v.contactoId};
+    document.getElementById('ctNombre').value=v.nombre||'';
+    document.getElementById('ctTel').value=v.telefono||'';
+    document.getElementById('ctEmail').value=v.email||'';
+    document.getElementById('ctRol').value=v.rol||'';
+    document.getElementById('ctActivo').checked=v.activo!==false;
+    document.getElementById('ctErr').style.display='none';
+    var btn=document.getElementById('ctBtnSave'); btn.disabled=false; btn.textContent='Guardar';
+    document.getElementById('modalContacto').classList.add('open');
+    setTimeout(function(){document.getElementById('ctNombre').focus();},100);
+  };
+
+  window.guardarContacto=function(){
+    var nombre=document.getElementById('ctNombre').value.trim();
+    if (!nombre){ document.getElementById('ctErr').style.display='block'; return; }
+    document.getElementById('ctErr').style.display='none';
+    if (!editandoVinculo||!clienteActual) return;
+    var btn=document.getElementById('ctBtnSave'); btn.disabled=true; btn.textContent='Guardando…';
+    var nuevoRol=document.getElementById('ctRol').value.trim();
+    // Actualizar datos globales del contacto
+    var updateContacto=db.collection('contactos').doc(editandoVinculo.contactoId).update({
+      nombre:nombre,
+      telefono:document.getElementById('ctTel').value.trim(),
+      email:document.getElementById('ctEmail').value.trim().toLowerCase(),
+      activo:document.getElementById('ctActivo').checked
+    });
+    // Actualizar rol en el vínculo del cliente
+    var vinculos=JSON.parse(JSON.stringify(clienteActual.contactos||[]));
+    vinculos[editandoVinculo.idx]=Object.assign({},vinculos[editandoVinculo.idx],{rol:nuevoRol});
+    var updateCliente=db.collection('clientes').doc(clienteActual.id).update({contactos:vinculos});
+
+    Promise.all([updateContacto,updateCliente])
+      .then(function(){ cerrarModal('modalContacto'); cargar(); })
+      .catch(function(e){ btn.disabled=false; btn.textContent='Guardar'; alert('Error: '+e.message); });
+  };
+
+  window.desvincularContacto=function(){
+    if (!editandoVinculo||!clienteActual) return;
+    var v=contactosDelCliente[editandoVinculo.idx];
+    if (!confirm('¿Desvincular a '+(v?v.nombre:'este contacto')+' de '+clienteActual.nombre+'?\nLa persona seguirá existiendo en el sistema.')) return;
+    var vinculos=JSON.parse(JSON.stringify(clienteActual.contactos||[]));
+    vinculos.splice(editandoVinculo.idx,1);
+    db.collection('clientes').doc(clienteActual.id).update({contactos:vinculos})
+      .then(function(){ cerrarModal('modalContacto'); cargar(); })
+      .catch(function(e){ alert('Error: '+e.message); });
+  };
+
+  // ── HELPERS ──
+  window.cerrarModal=function(id){ document.getElementById(id).classList.remove('open'); };
+  window.handleBack=function(){
+    if (vistaActual==='detalle'){ renderLista(); } else { location.href='admin.html'; }
+  };
+
+  ['modalCliente','modalVincular','modalContacto'].forEach(function(id){
+    document.getElementById(id).addEventListener('click',function(e){ if(e.target===this) cerrarModal(id); });
+  });
+</script>
+</body>
+</html>
