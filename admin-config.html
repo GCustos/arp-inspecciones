@@ -63,15 +63,16 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script>
-  var firebaseConfig = {
-    apiKey: "AIzaSyBKTsNhUPaA6fVFuJxMHFg3FVe3FMR2_oA",
-    authDomain: "arp-inspecciones.firebaseapp.com",
-    projectId: "arp-inspecciones",
-    storageBucket: "arp-inspecciones.appspot.com",
-    messagingSenderId: "276051482860",
-    appId: "1:276051482860:web:0a0e6d3e4f5a6b7c8d9e0f"
-  };
-  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain:"arp-inspecciones.firebaseapp.com",
+      projectId:"arp-inspecciones",
+      storageBucket:"arp-inspecciones.firebasestorage.app",
+      messagingSenderId:"35880168451",
+      appId:"1:35880168451:web:090e3c250b4416ed0b3236"
+    });
+  }
   var db = firebase.firestore();
   var auth = firebase.auth();
 
