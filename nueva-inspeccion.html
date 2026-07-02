@@ -291,8 +291,17 @@
       renderInspector();
       cargarInstalaciones();
       cargarClientes();
+      cargarConfigEnac();
     }).catch(function(e) { console.error("Error auth:", e); });
   });
+
+  // ── CONFIG ENAC ──
+  var enacAlcances = {};
+  function cargarConfigEnac() {
+    db.collection('config').doc('empresa').get().then(function(snap) {
+      if (snap.exists && snap.data().enacAlcances) enacAlcances = snap.data().enacAlcances;
+    }).catch(function(){});
+  }
 
   // ── CLIENTES ──
 
@@ -705,6 +714,7 @@
 
       var inspeccion = {
         tipoAlcance: selectedAlcance,
+        enacActivo: !!(enacAlcances[selectedAlcance]),
         tipoInspeccion: selectedTipo,
         nombreInstalacion: nombre,
         instalacionId: instalacionId,

@@ -1546,8 +1546,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       // Texto certificación
       const dirCert = composeDireccion(D);
       const solicitante = D.solicitante||D.propietario||'';
-      const alcanceInsp = D.tipoAlcance || 'PAA';
-      const enacActivo = c.enacAlcances && c.enacAlcances[alcanceInsp];
+      const enacActivo = !!D.enacActivo;
       const acreditTxt = enacActivo && c.acreditacion ? ` acreditado ${c.acreditacion}` : '';
       const textoCert = `${c.nombre.toUpperCase()}, organismo de inspección${acreditTxt}, certifica haber efectuado en fecha ${fechaInsp} la inspección de los equipamientos de RECORRIDO ACROBATICO EN ALTURA de las instalaciones de ${D.nombreInstalacion||''}, ${totalJ} JUEGOS, situado en ${dirCert}.
 
