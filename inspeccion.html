@@ -1077,15 +1077,20 @@
       const tablaPC=`
         <div class="jt-wrap"><table class="jt">
           <thead><tr>
+            <th style="width:28px"></th>
             <th class="tl" style="width:26%">Juego</th>
             <th style="width:7%">Tipo</th><th style="width:6%">Rama</th>
             ${COLS.map(col=>`<th style="width:8%">${col.label.replace("\n","<br>")}</th>`).join("")}
             <th style="min-width:65px">Obs.</th>
             <th style="width:20px">&#128247;</th>
-            <th style="width:44px"></th>
+            <th style="width:22px"></th>
           </tr></thead>
           <tbody>${circ.juegos.map((j,ji)=>`
             <tr>
+              <td style="white-space:nowrap;padding:2px 4px">
+                <button class="mv-btn" onclick="moverJuego(${ci},${ji},-1)" ${ji===0?"disabled":""} title="Subir">&#8593;</button>
+                <button class="mv-btn" onclick="moverJuego(${ci},${ji},1)" ${ji===circ.juegos.length-1?"disabled":""} title="Bajar">&#8595;</button>
+              </td>
               <td><input class="jt-inp" type="text" value="${(j.nombre||'').replace(/"/g,'&quot;')}" placeholder="Nombre juego" onchange="setJuego(${ci},${ji},'nombre',this.value)"></td>
               <td><select class="tipo-sel" onchange="setJuego(${ci},${ji},'tipo',this.value)">
                 <option value="R" ${j.tipo==="R"?"selected":""}>R</option>
@@ -1102,11 +1107,7 @@
               <td><button class="foto-juego-btn" onclick="abrirModalFotos(${ci},${ji})" title="Fotos de este juego">
                 &#128247;${(j.fotos&&j.fotos.length)?`<span class="foto-count">${j.fotos.length}</span>`:''}
               </button></td>
-              <td style="white-space:nowrap">
-                <button class="mv-btn" onclick="moverJuego(${ci},${ji},-1)" ${ji===0?"disabled":""} title="Subir">&#8593;</button>
-                <button class="mv-btn" onclick="moverJuego(${ci},${ji},1)" ${ji===circ.juegos.length-1?"disabled":""} title="Bajar">&#8595;</button>
-                <button class="del-btn" onclick="delJuego(${ci},${ji})">&#215;</button>
-              </td>
+              <td><button class="del-btn" onclick="delJuego(${ci},${ji})">&#215;</button></td>
             </tr>`).join("")}
           </tbody>
         </table></div>
@@ -1164,11 +1165,13 @@
         return `
           <div class="juego-card">
             <div class="juego-header" onclick="toggleJuegoMovil(${ci},${ji})">
+              <div style="display:flex;flex-direction:column;gap:0;flex-shrink:0;margin-right:2px">
+                <button class="mv-btn" onclick="event.stopPropagation();moverJuego(${ci},${ji},-1)" ${ji===0?"disabled":""} title="Subir">&#8593;</button>
+                <button class="mv-btn" onclick="event.stopPropagation();moverJuego(${ci},${ji},1)" ${ji===circ.juegos.length-1?"disabled":""} title="Bajar">&#8595;</button>
+              </div>
               <div class="juego-dot ${dotCls}"></div>
               <div class="juego-hdr-name">${j.nombre||`Juego ${ji+1}`}</div>
               <span class="juego-hdr-meta">${j.tipo}${j.rama?' · '+j.rama:''}</span>
-              <button class="mv-btn" onclick="event.stopPropagation();moverJuego(${ci},${ji},-1)" ${ji===0?"disabled":""} title="Subir">&#8593;</button>
-              <button class="mv-btn" onclick="event.stopPropagation();moverJuego(${ci},${ji},1)" ${ji===circ.juegos.length-1?"disabled":""} title="Bajar">&#8595;</button>
               <span class="juego-toggle ${isOpen?'open':''}">&#9654;</span>
             </div>
             ${cuerpo}
