@@ -81,7 +81,7 @@
 
 <div class="app-header">
   <button class="btn-back" onclick="handleBack()">&#8592;</button>
-  <div class="hdr-mark" id="hdrMark">OFT</div>
+  <div class="hdr-mark" id="hdrMark">ARP</div>
   <div class="hdr-title" id="hdrTitle">Ofertas</div>
   <button class="btn-nueva" id="btnNueva" onclick="mostrarForm(null, null)">+ Nueva</button>
 </div>
@@ -173,7 +173,6 @@ function handleBack() {
 function mostrarLista() {
   vistaActual = 'lista';
   document.getElementById('hdrTitle').textContent = 'Ofertas';
-  document.getElementById('hdrMark').textContent  = 'OFT';
   document.getElementById('btnNueva').style.display = '';
   cargarOfertas();
 }
@@ -225,7 +224,6 @@ function mostrarForm(ofertaId, datos) {
   vistaActual = 'form';
   editId = ofertaId || null;
   document.getElementById('hdrTitle').textContent = ofertaId ? 'Editar oferta' : 'Nueva oferta';
-  document.getElementById('hdrMark').textContent  = ofertaId ? 'EDT' : 'NEW';
   document.getElementById('btnNueva').style.display = 'none';
 
   var normasChk  = (datos && datos.normas)    ? datos.normas    : [];
@@ -390,7 +388,6 @@ function guardarOferta() {
 function mostrarDetalle(id) {
   vistaActual = 'detalle';
   document.getElementById('hdrTitle').textContent = 'Detalle oferta';
-  document.getElementById('hdrMark').textContent  = 'OFT';
   document.getElementById('btnNueva').style.display = 'none';
   document.getElementById('content').innerHTML = '<div class="spinner"></div>';
   db.collection('ofertas').doc(id).get().then(function(snap) {

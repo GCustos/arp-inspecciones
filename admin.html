@@ -165,7 +165,6 @@
   function mostrarMenu() {
     vistaActual = 'menu';
     document.getElementById('hdrTitle').textContent = 'Administración';
-    document.getElementById('hdrMark').textContent = 'ARP';
     renderMenu(rolActual);
     cargarContadores();
   }
@@ -173,7 +172,6 @@
   function mostrarConfig() {
     vistaActual = 'config';
     document.getElementById('hdrTitle').textContent = 'Configuración';
-    document.getElementById('hdrMark').textContent = '⚙';
     db.collection('config').doc('empresa').get().then(function(snap) {
       configData = snap.exists ? snap.data() : {};
       renderConfig();
