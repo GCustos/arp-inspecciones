@@ -96,8 +96,13 @@
         return;
       }
       rolActual = rol;
-      renderMenu(rol);
-      cargarContadores();
+      if (location.hash === '#config') {
+        history.replaceState(null, '', 'admin.html');
+        mostrarConfig();
+      } else {
+        renderMenu(rol);
+        cargarContadores();
+      }
     });
   });
 
