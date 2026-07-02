@@ -1,5 +1,5 @@
 // ── ARP Inspecciones Service Worker ──
-const CACHE_NAME = 'arp-v4.8';
+const CACHE_NAME = 'arp-v4.9';
 
 const PRECACHE = [
   '/arp-inspecciones/',
@@ -27,6 +27,7 @@ const FIREBASE_SCRIPTS = [
 
 const JSPDF_SCRIPT  = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 const AUTOTABLE     = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js';
+const SORTABLEJS    = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js';
 
 // ── INSTALL: cachear assets propios + Firebase scripts ──
 self.addEventListener('install', event => {
@@ -35,7 +36,7 @@ self.addEventListener('install', event => {
       // Cachear páginas propias
       await cache.addAll(PRECACHE).catch(e => console.log('Precache error:', e));
       // Cachear Firebase scripts con no-cors
-      for (const url of [...FIREBASE_SCRIPTS, JSPDF_SCRIPT, AUTOTABLE]) {
+      for (const url of [...FIREBASE_SCRIPTS, JSPDF_SCRIPT, AUTOTABLE, SORTABLEJS]) {
         try {
           const response = await fetch(url, { mode: 'no-cors' });
           await cache.put(url, response);

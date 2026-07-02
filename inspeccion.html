@@ -74,9 +74,9 @@
     .rama-inp:focus{outline:none;background:#FFF9F0}
     .del-btn{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:4px 6px}
     .del-btn:hover{color:var(--red)}
-    .mv-btn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:3px 5px;line-height:1}
-    .mv-btn:hover:not(:disabled){color:var(--gold)}
-    .mv-btn:disabled{opacity:.25;cursor:default}
+    .drag-handle{color:var(--border);font-size:15px;cursor:grab;padding:0 5px;user-select:none;touch-action:none;line-height:1}
+    .drag-handle:active{cursor:grabbing;color:var(--muted)}
+    .sortable-ghost{opacity:.4;background:var(--surf)}
     .foto-juego-btn{background:none;border:none;font-size:14px;cursor:pointer;padding:4px 6px;color:var(--muted);position:relative}
     .foto-juego-btn:hover{color:var(--gold)}
     .foto-count{position:absolute;top:0;right:0;background:var(--gold);color:white;font-size:8px;font-weight:700;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-family:monospace}
@@ -426,6 +426,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -1015,15 +1016,6 @@
 
   function delJuego(ci,ji){ S.circuitos[ci].juegos.splice(ji,1); markDirty(); renderCircuitos(); }
 
-  function moverJuego(ci,ji,dir){
-    const arr=S.circuitos[ci].juegos;
-    const ni=ji+dir;
-    if(ni<0||ni>=arr.length) return;
-    [arr[ji],arr[ni]]=[arr[ni],arr[ji]];
-    if(juegoAbierto[ci]===ji) juegoAbierto[ci]=ni;
-    else if(juegoAbierto[ci]===ni) juegoAbierto[ci]=ji;
-    markDirty(); renderCircuitos();
-  }
 
   function toggleCircuito(ci){
     document.getElementById("cb_"+ci).classList.toggle("open");
@@ -1077,7 +1069,7 @@
       const tablaPC=`
         <div class="jt-wrap"><table class="jt">
           <thead><tr>
-            <th style="width:28px"></th>
+            <th style="width:20px"></th>
             <th class="tl" style="width:26%">Juego</th>
             <th style="width:7%">Tipo</th><th style="width:6%">Rama</th>
             ${COLS.map(col=>`<th style="width:8%">${col.label.replace("\n","<br>")}</th>`).join("")}
@@ -1085,12 +1077,9 @@
             <th style="width:20px">&#128247;</th>
             <th style="width:22px"></th>
           </tr></thead>
-          <tbody>${circ.juegos.map((j,ji)=>`
-            <tr>
-              <td style="white-space:nowrap;padding:2px 4px">
-                <button class="mv-btn" onclick="moverJuego(${ci},${ji},-1)" ${ji===0?"disabled":""} title="Subir">&#8593;</button>
-                <button class="mv-btn" onclick="moverJuego(${ci},${ji},1)" ${ji===circ.juegos.length-1?"disabled":""} title="Bajar">&#8595;</button>
-              </td>
+          <tbody id="tbody-${ci}">${circ.juegos.map((j,ji)=>`
+            <tr data-ji="${ji}">
+              <td><span class="drag-handle" title="Arrastrar para reordenar">&#8285;</span></td>
               <td><input class="jt-inp" type="text" value="${(j.nombre||'').replace(/"/g,'&quot;')}" placeholder="Nombre juego" onchange="setJuego(${ci},${ji},'nombre',this.value)"></td>
               <td><select class="tipo-sel" onchange="setJuego(${ci},${ji},'tipo',this.value)">
                 <option value="R" ${j.tipo==="R"?"selected":""}>R</option>
@@ -1165,10 +1154,7 @@
         return `
           <div class="juego-card">
             <div class="juego-header" onclick="toggleJuegoMovil(${ci},${ji})">
-              <div style="display:flex;flex-direction:column;gap:0;flex-shrink:0;margin-right:2px">
-                <button class="mv-btn" onclick="event.stopPropagation();moverJuego(${ci},${ji},-1)" ${ji===0?"disabled":""} title="Subir">&#8593;</button>
-                <button class="mv-btn" onclick="event.stopPropagation();moverJuego(${ci},${ji},1)" ${ji===circ.juegos.length-1?"disabled":""} title="Bajar">&#8595;</button>
-              </div>
+              <span class="drag-handle" onclick="event.stopPropagation()" title="Arrastrar para reordenar">&#8285;</span>
               <div class="juego-dot ${dotCls}"></div>
               <div class="juego-hdr-name">${j.nombre||`Juego ${ji+1}`}</div>
               <span class="juego-hdr-meta">${j.tipo}${j.rama?' · '+j.rama:''}</span>
@@ -1188,12 +1174,36 @@
         </div>
         <div class="circ-body open" id="cb_${ci}">
           ${tablaPC}
-          <div class="juegos-movil">${juegosMovil}
+          <div class="juegos-movil"><div id="mlist-${ci}">${juegosMovil}</div>
             <button class="btn-add-juego" onclick="addJuegoToCircuito(${ci})">&#43; Añadir juego</button>
           </div>
         </div>
       </div>`;
     }).join("");
+    initSortables();
+  }
+
+  function initSortables(){
+    if(typeof Sortable==='undefined') return;
+    S.circuitos.forEach(function(_,ci){
+      var cfg={
+        handle:'.drag-handle',
+        animation:150,
+        ghostClass:'sortable-ghost',
+        onEnd:function(evt){
+          if(evt.oldIndex===evt.newIndex) return;
+          var arr=S.circuitos[ci].juegos;
+          arr.splice(evt.newIndex,0,arr.splice(evt.oldIndex,1)[0]);
+          if(juegoAbierto[ci]===evt.oldIndex) juegoAbierto[ci]=evt.newIndex;
+          markDirty();
+          renderCircuitos();
+        }
+      };
+      var tbody=document.getElementById('tbody-'+ci);
+      if(tbody) Sortable.create(tbody,cfg);
+      var mlist=document.getElementById('mlist-'+ci);
+      if(mlist) Sortable.create(mlist,cfg);
+    });
   }
 
   // MODAL FOTOS POR JUEGO
