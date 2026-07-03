@@ -109,9 +109,10 @@
 
   var equiposData = [];
   var usuariosData = [];
+  var asignacionPorEquipo = {}; // equipoId → email del usuario propietario
   var filtroActivo = 'todos';
   var tabActivo = 'calibracion';
-  var editandoId = null; // null = nuevo
+  var editandoId = null;
 
   function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -167,6 +168,13 @@
       equiposData.sort(function(a,b){ return a.id < b.id ? -1 : 1; });
       usuariosData = [];
       res[1].forEach(function(d){ usuariosData.push(Object.assign({email:d.id},d.data())); });
+      // Mapa inverso: equipoId → email del propietario (desde equiposAsignados en cada usuario)
+      asignacionPorEquipo = {};
+      usuariosData.forEach(function(u) {
+        (u.equiposAsignados || []).forEach(function(cod) {
+          asignacionPorEquipo[cod] = u.email;
+        });
+      });
       renderCalib();
     }).catch(function(e){
       document.getElementById('content').innerHTML='<div class="empty-state">Error: '+escHtml(e.message)+'</div>';
@@ -199,9 +207,9 @@
         var st = estadoCal(e);
         var fp = (e.calibracion&&e.calibracion.fechaProxima) ? e.calibracion.fechaProxima : '—';
         var lab = (e.calibracion&&e.calibracion.laboratorio) ? e.calibracion.laboratorio : '—';
-        var asigRaw = e.asignadoA || e.inspectorEmail || e.inspector || '';
-        var asigU = asigRaw ? usuariosData.find(function(u){ return u.email===asigRaw||u.nombre===asigRaw; }) : null;
-        var asigNombre = asigU ? (asigU.nombre||asigU.email) : (asigRaw||'Sin asignar');
+        var propEmail = asignacionPorEquipo[e.id] || '';
+        var propU = propEmail ? usuariosData.find(function(u){ return u.email===propEmail; }) : null;
+        var asigNombre = propU ? (propU.nombre||propU.email) : 'Sin asignar';
         html += '<div class="eq-card" onclick="abrirEditar(\''+escHtml(e.id)+'\')">' +
           '<div class="eq-row1"><span class="eq-cod">'+escHtml(e.id)+'</span><span class="eq-tipo">'+escHtml(e.tipo||'')+'</span><span class="badge '+st.cls+'">'+st.txt+'</span></div>' +
           '<div class="eq-row2">'+escHtml(e.marca||'')+(e.modelo?' &middot; '+escHtml(e.modelo):'')+(e.sede?' &middot; '+escHtml(e.sede):'')+'</div>' +
@@ -232,19 +240,12 @@
 
   // ── MODAL ──
   function usuariosOpts(seleccionado) {
-    var isSinAsignar = !seleccionado || seleccionado === '__PENDIENTE__';
-    var html = '<option value=""'+(isSinAsignar?' selected':'')+'>— Sin asignar —</option>';
-    var matched = isSinAsignar;
-    usuariosData.forEach(function(u) {
-      var isMatch = seleccionado === u.email || seleccionado === (u.nombre||'');
-      if (isMatch) matched = true;
-      var n = escHtml(u.nombre||u.email);
-      if (u.activo === false) n += ' (inactivo)';
-      html += '<option value="'+escHtml(u.email)+'"'+(isMatch?' selected':'')+'>'+n+'</option>';
-    });
-    if (!matched && seleccionado) {
-      html += '<option value="'+escHtml(seleccionado)+'" selected>[?] '+escHtml(seleccionado)+'</option>';
-    }
+    var html = '<option value=""'+(seleccionado===''?' selected':'')+'>— Sin asignar —</option>';
+    usuariosData
+      .filter(function(u){ return u.activo !== false && u.rol !== 'oficina'; })
+      .forEach(function(u) {
+        html += '<option value="'+escHtml(u.email)+'"'+(seleccionado===u.email?' selected':'')+'>'+escHtml(u.nombre||u.email)+'</option>';
+      });
     return html;
   }
 
@@ -266,7 +267,7 @@
         field('Sede','f_sede',escHtml(e.sede||'')) +
       '</div>' +
       '<div class="form-row"><label>Inspector asignado</label>' +
-        '<select id="f_asignadoA">'+usuariosOpts(e.asignadoA||e.inspectorEmail||e.inspector||'')+'</select></div>' +
+        '<select id="f_asignadoA">'+usuariosOpts(asignacionPorEquipo[e.id||'']||'')+'</select></div>' +
       field('Observaciones','f_obs',escHtml(e.obs||''),'','textarea') +
       '<div class="toggle-row"><label>Activo</label>' +
         '<button class="toggle'+(e.activo===false?'':' on')+'" id="f_activo" onclick="toggleActivo()"></button></div>' +
@@ -331,6 +332,8 @@
     if (!id) { alert('El código del equipo es obligatorio.'); return; }
     var activo = document.getElementById('f_activo').classList.contains('on');
     var meses = parseInt(document.getElementById('f_cal_meses').value)||0;
+    var nuevoAsignado  = document.getElementById('f_asignadoA').value; // email o ''
+    var anteriorAsignado = asignacionPorEquipo[id] || '';
     var data = {
       codigo:    document.getElementById('f_id').value.trim().toUpperCase(),
       tipo:      document.getElementById('f_tipo').value.trim().toUpperCase(),
@@ -339,7 +342,6 @@
       modelo:    document.getElementById('f_modelo').value.trim(),
       nSerie:    document.getElementById('f_nSerie').value.trim(),
       sede:      document.getElementById('f_sede').value.trim().toUpperCase(),
-      asignadoA: document.getElementById('f_asignadoA').value,
       obs:       document.getElementById('f_obs').value.trim(),
       activo:    activo,
       calibracion: {
@@ -353,7 +355,20 @@
     };
     var btn = document.querySelector('.btn-guardar');
     btn.disabled = true; btn.textContent = 'Guardando...';
-    db.collection('equipos').doc(id).set(data, {merge:true}).then(function() {
+    var ops = [db.collection('equipos').doc(id).set(data, {merge:true})];
+    if (nuevoAsignado !== anteriorAsignado) {
+      if (anteriorAsignado) {
+        ops.push(db.collection('usuarios').doc(anteriorAsignado).update({
+          equiposAsignados: firebase.firestore.FieldValue.arrayRemove(id)
+        }));
+      }
+      if (nuevoAsignado) {
+        ops.push(db.collection('usuarios').doc(nuevoAsignado).update({
+          equiposAsignados: firebase.firestore.FieldValue.arrayUnion(id)
+        }));
+      }
+    }
+    Promise.all(ops).then(function() {
       cerrarModal();
       cargar();
     }).catch(function(e){ alert('Error: '+e.message); })
