@@ -178,6 +178,7 @@
     /* FIX: autosave badge */
     .autosave-badge{position:fixed;bottom:70px;right:16px;background:var(--green);color:white;padding:6px 12px;border-radius:20px;font-size:11px;display:none;z-index:300}
     .autosave-badge.visible{display:block}
+    .foto-pending-badge{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#E65100;color:white;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;display:none;z-index:301;white-space:nowrap}
     .err-banner{background:#FFEBEE;border:1px solid #FFCDD2;border-radius:10px;padding:12px 14px;margin:16px;font-size:12px;color:var(--red);line-height:1.5;display:none}
     .err-banner.visible{display:block}
     .lock-banner{background:#1A1A1A;border-radius:10px;padding:14px 16px;margin:16px;font-size:13px;color:white;line-height:1.5;display:none}
@@ -340,6 +341,7 @@
   <button class="btn-completar" onclick="completar()">Completar inspección &#8594;</button>
 </div>
 <div class="offline-badge" id="offlineBadge">Sin conexión &#8212; modo offline</div>
+<div class="foto-pending-badge" id="fotoPendingBadge"></div>
 <div class="autosave-badge" id="autosaveBadge">&#10003; Guardado</div>
 
 <!-- MODAL FIN CIRCUITO -->
@@ -705,33 +707,60 @@
     } catch(e) { return null; }
   }
 
-  async function sincronizarFotosPendientes() {
-    if (!navigator.onLine || !inspeccionId) return;
-    var cambios = false;
+  let _sincronizando = false;
 
-    // fotos generales eliminadas
-    for (var ci = 0; ci < S.circuitos.length; ci++) {
-      for (var ji = 0; ji < (S.circuitos[ci].juegos || []).length; ji++) {
-        var fotos = S.circuitos[ci].juegos[ji].fotos || [];
-        for (var fi = 0; fi < fotos.length; fi++) {
-          var r = await subirFotoPendiente(fotos[fi], 'inspecciones/' + inspeccionId + '/juegos/' + ci + '_' + ji + '/' + Date.now() + '_' + fi + '.jpg');
-          if (r) { S.circuitos[ci].juegos[ji].fotos[fi] = r; cambios = true; }
+  function actualizarBadgeFotosPendientes() {
+    var n = 0;
+    S.circuitos.forEach(function(c) {
+      (c.juegos || []).forEach(function(j) {
+        (j.fotos || []).forEach(function(f) { if (f.pendiente) n++; });
+      });
+    });
+    S.ncs.forEach(function(nc) {
+      (nc.fotosDefecto || []).forEach(function(f) { if (f.pendiente) n++; });
+      (nc.fotosCorreccion || []).forEach(function(f) { if (f.pendiente) n++; });
+    });
+    var badge = document.getElementById('fotoPendingBadge');
+    if (!badge) return;
+    if (n > 0) {
+      badge.textContent = '⚠️ ' + n + ' foto' + (n > 1 ? 's' : '') + ' sin subir';
+      badge.style.display = 'block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  async function sincronizarFotosPendientes() {
+    if (!navigator.onLine || !inspeccionId || _sincronizando) return;
+    _sincronizando = true;
+    var cambios = false;
+    try {
+      for (var ci = 0; ci < S.circuitos.length; ci++) {
+        for (var ji = 0; ji < (S.circuitos[ci].juegos || []).length; ji++) {
+          var fotos = S.circuitos[ci].juegos[ji].fotos || [];
+          for (var fi = 0; fi < fotos.length; fi++) {
+            var r = await subirFotoPendiente(fotos[fi], 'inspecciones/' + inspeccionId + '/juegos/' + ci + '_' + ji + '/' + Date.now() + '_' + fi + '.jpg');
+            if (r) { S.circuitos[ci].juegos[ji].fotos[fi] = r; cambios = true; }
+          }
         }
       }
-    }
-    for (var ni = 0; ni < S.ncs.length; ni++) {
-      var fotsD = S.ncs[ni].fotosDefecto || [];
-      for (var fi = 0; fi < fotsD.length; fi++) {
-        var r = await subirFotoPendiente(fotsD[fi], 'inspecciones/' + inspeccionId + '/ncs/' + ni + '/defecto_' + Date.now() + '_' + fi + '.jpg');
-        if (r) { S.ncs[ni].fotosDefecto[fi] = r; cambios = true; }
+      for (var ni = 0; ni < S.ncs.length; ni++) {
+        var fotsD = S.ncs[ni].fotosDefecto || [];
+        for (var fi = 0; fi < fotsD.length; fi++) {
+          var r = await subirFotoPendiente(fotsD[fi], 'inspecciones/' + inspeccionId + '/ncs/' + ni + '/defecto_' + Date.now() + '_' + fi + '.jpg');
+          if (r) { S.ncs[ni].fotosDefecto[fi] = r; cambios = true; }
+        }
+        var fotsC = S.ncs[ni].fotosCorreccion || [];
+        for (var fi2 = 0; fi2 < fotsC.length; fi2++) {
+          var r = await subirFotoPendiente(fotsC[fi2], 'inspecciones/' + inspeccionId + '/ncs/' + ni + '/correccion_' + Date.now() + '_' + fi2 + '.jpg');
+          if (r) { S.ncs[ni].fotosCorreccion[fi2] = r; cambios = true; }
+        }
       }
-      var fotsC = S.ncs[ni].fotosCorreccion || [];
-      for (var fi2 = 0; fi2 < fotsC.length; fi2++) {
-        var r = await subirFotoPendiente(fotsC[fi2], 'inspecciones/' + inspeccionId + '/ncs/' + ni + '/correccion_' + Date.now() + '_' + fi2 + '.jpg');
-        if (r) { S.ncs[ni].fotosCorreccion[fi2] = r; cambios = true; }
-      }
+    } finally {
+      _sincronizando = false;
     }
     if (cambios) { markDirty(); guardarSilencioso(); renderCircuitos(); renderNCs(); }
+    actualizarBadgeFotosPendientes();
   }
 
   // Intentar sincronizar al recuperar conexión
@@ -795,6 +824,7 @@
       actualizarEstado(data.estado||"borrador");
       if(!S.circuitos.length&&data.nombreInstalacion) buscarCircuitosAnteriores(data.nombreInstalacion);
       renderGen(); renderCircuitos(); renderNCs(); renderEquipos();
+      actualizarBadgeFotosPendientes();
       setTimeout(cargarFotosPendientesUI, 100);
       document.getElementById("obsGral").value=S.obsGral;
       document.getElementById("ensayos").value=S.ensayos;
@@ -1570,7 +1600,7 @@
   // handleFotos y renderFotos eliminados — fotos generales ya no existen
 
   // GUARDAR / COMPLETAR
-  function markDirty(){ isDirty=true; }
+  function markDirty(){ isDirty=true; actualizarBadgeFotosPendientes(); }
 
   function buildPayload(estado){
     // FIX: sanitizar TODO antes de enviar a Firestore
@@ -1694,7 +1724,7 @@
       );
       const nOtroDisp = checks.filter(Boolean).length;
       if (nOtroDisp > 0) {
-        alert(`${nOtroDisp} foto(s) no están disponibles en este dispositivo.\n\nFueron tomadas en otro móvil. Completa la inspección desde ese dispositivo.`);
+        alert(`${nOtroDisp} foto(s) no están disponibles en este dispositivo.\n\nPueden haberse tomado en otro móvil, o los datos temporales se borraron al reiniciar el navegador.\n\n• Si las tomaste en otro dispositivo: completa la inspección desde allí.\n• Si se perdieron en este dispositivo: borra esos slots de foto en el checklist y vuelve a tomarlas.`);
         return;
       }
       // Fotos en este dispositivo pero sin subir
