@@ -163,7 +163,7 @@
       html += '<div class="empty-state">No hay usuarios.</div>';
     } else {
       usuariosData.forEach(function(u) {
-        var ini = computeIni(u.iniciales||u.nombre||u.email);
+        var ini = u.nombreCorto || computeIni(u.nombre||u.email);
         var inactivo = u.activo === false;
         html += '<div class="u-card'+(inactivo?' inactivo':'')+'" onclick="abrirEditar(\''+escHtml(u.email)+'\')">' +
           '<div class="u-avatar'+(inactivo?' inactivo':'')+'">'+escHtml(ini)+'</div>' +
@@ -197,9 +197,9 @@
       '<div class="form-row"><label>Nombre completo</label>' +
         '<input id="f_nombre" type="text" value="'+escHtml(u.nombre||'')+'" placeholder="Nombre Apellido">' +
       '</div>' +
-      '<div class="form-row"><label>Iniciales</label>' +
-        '<input id="f_iniciales" type="text" value="'+escHtml(u.iniciales||'')+'" placeholder="Auto (2 letras)" maxlength="4" style="text-transform:uppercase">' +
-        '<div class="form-hint">Se usan en la numeración de ofertas. Si se deja vacío se calculan del nombre.</div>' +
+      '<div class="form-row"><label>Nombre corto (2 letras)</label>' +
+        '<input id="f_nombreCorto" type="text" value="'+escHtml(u.nombreCorto||'')+'" placeholder="Ej: GM, DR, NC" maxlength="4" style="text-transform:uppercase">' +
+        '<div class="form-hint">Se usa en la numeración de ofertas (260114/GM/0/Rev.0). Si se deja vacío se calcula del nombre.</div>' +
       '</div>' +
       '<div class="form-row"><label>Rol</label>' +
         '<select id="f_rol">'+rolOpts+'</select>' +
@@ -239,18 +239,17 @@
   window.guardar = function() {
     var email = editandoEmail || document.getElementById('f_email').value.trim().toLowerCase();
     if (!email) { alert('El email es obligatorio.'); return; }
-    var nombre   = document.getElementById('f_nombre').value.trim();
-    var inicialesInput = document.getElementById('f_iniciales').value.trim().toUpperCase();
-    var iniciales = inicialesInput || computeIni(nombre||email);
-    var rol      = document.getElementById('f_rol').value;
-    var activo   = document.getElementById('f_activo').classList.contains('on');
-    var btn      = document.querySelector('.btn-guardar');
+    var nombre      = document.getElementById('f_nombre').value.trim();
+    var nombreCorto = document.getElementById('f_nombreCorto').value.trim().toUpperCase() || computeIni(nombre||email);
+    var rol         = document.getElementById('f_rol').value;
+    var activo      = document.getElementById('f_activo').classList.contains('on');
+    var btn         = document.querySelector('.btn-guardar');
     btn.disabled = true; btn.textContent = 'Guardando…';
     db.collection('usuarios').doc(email).set({
-      nombre:    nombre,
-      iniciales: iniciales,
-      rol:       rol,
-      activo:    activo
+      nombre:      nombre,
+      nombreCorto: nombreCorto,
+      rol:         rol,
+      activo:      activo
     }, { merge: true }).then(function() {
       btn.disabled = false;
       btn.textContent = editandoEmail ? 'Guardar cambios' : 'Crear usuario';

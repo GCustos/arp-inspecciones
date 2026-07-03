@@ -147,7 +147,7 @@ auth.onAuthStateChanged(function(user) {
     usuarioActual = {
       email:     user.email,
       nombre:    d.nombre || '',
-      iniciales: d.iniciales || computeIniciales(d.nombre),
+      iniciales: d.nombreCorto || computeIniciales(d.nombre),
       rol:       d.rol
     };
     cargarClientes();
