@@ -1441,6 +1441,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text(diaStr, PW/2, y, {align:'center'}); y += 6;
       doc.text(D.inspectorNombre||'', PW/2, y, {align:'center'}); y += 5;
+      if (D.inspector2Nombre) { doc.text(D.inspector2Nombre, PW/2, y, {align:'center'}); y += 5; }
       doc.setFont('helvetica','normal'); doc.setFontSize(10);
       doc.text('Inspector Autorizado', PW/2, y, {align:'center'}); y += 12;
 
@@ -1656,9 +1657,12 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       // Inspector
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
       doc.text('INSPECTOR', ML, y); y += 4;
-      doc.setDrawColor(...DARK); doc.rect(ML, y, CW, 8, 'D');
+      var inspBoxH = D.inspector2Nombre ? 14 : 8;
+      doc.setDrawColor(...DARK); doc.rect(ML, y, CW, inspBoxH, 'D');
       doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      doc.text(D.inspectorNombre||'', ML+2, y+5.5); y += 12;
+      doc.text(D.inspectorNombre||'', ML+2, y+5.5);
+      if (D.inspector2Nombre) { doc.text(D.inspector2Nombre, ML+2, y+11.5); }
+      y += inspBoxH + 4;
 
       // Fecha + hora
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);

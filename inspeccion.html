@@ -907,6 +907,8 @@
         estado:'en_curso',
         inspectorEmail:email,
         inspectorNombre:nombre,
+        horaInicio:'',
+        horaFin:'',
         sesiones:firebase.firestore.FieldValue.arrayUnion({fecha:new Date().toISOString().split('T')[0],horaInicio:'',horaFin:''}),
         ultimaModificacion:firebase.firestore.FieldValue.serverTimestamp()
       });
