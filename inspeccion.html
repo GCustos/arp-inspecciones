@@ -1693,10 +1693,15 @@
         )
       );
       const nOtroDisp = checks.filter(Boolean).length;
-      const msg = nOtroDisp > 0
-        ? `⚠️ ${nOtroDisp} foto(s) fueron tomadas en otro dispositivo y no se pueden subir desde aquí.\n\nPara no perderlas, completa la inspección desde ese dispositivo.\n\nSi continúas ahora esas fotos se perderán del informe PDF. ¿Continuar de todas formas?`
-        : `Aviso: ${fotosPendientesList.length} foto(s) no se han podido subir (sin conexión o error).\nNo aparecerán en PDFs generados desde otro dispositivo.\n¿Completar igualmente?`;
-      if (!confirm(msg)) return;
+      if (nOtroDisp > 0) {
+        alert(`${nOtroDisp} foto(s) no están disponibles en este dispositivo.\n\nFueron tomadas en otro móvil. Completa la inspección desde ese dispositivo.`);
+        return;
+      }
+      // Fotos en este dispositivo pero sin subir
+      alert(navigator.onLine
+        ? `${fotosPendientesList.length} foto(s) no se han podido subir (error de red).\nEspera unos segundos y vuelve a intentarlo.`
+        : `Sin conexión. ${fotosPendientesList.length} foto(s) pendientes de subir.\nConéctate a internet e inténtalo de nuevo.`);
+      return;
     }
     try {
       await db.collection("inspecciones").doc(inspeccionId).update({
