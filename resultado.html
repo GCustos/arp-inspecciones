@@ -86,6 +86,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="/arp-inspecciones/utils.js"></script>
 <script>
   if (!firebase.apps.length) {
     firebase.initializeApp({
@@ -433,13 +434,7 @@
     return parts.join(', ') || '';
   }
 
-  function fmtFecha(str) {
-    if (!str) return '';
-    // YYYY-MM-DD → DD/MM/YYYY
-    const m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
-    return str;
-  }
+
 
   function getSesionesStr() {
     if (D.sesiones && D.sesiones.length) {
@@ -1423,23 +1418,19 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       y = addTextBlock(doc, TEXTO_CARACTERISTICAS, ML, y, CW, 9, DARK, 'normal', 5, PH-40, ref, fmtRev, fmtFechaStr, nPag, totPag);
       y += 10;
 
-      // Fecha y nombre inspector
-      const sessFecha = D.sesiones && D.sesiones.length
-        ? fmtFecha(D.sesiones[D.sesiones.length-1].fecha)
-        : fmtFecha(D.fechaInspeccion||'');
-
+      // Fecha(s) y nombre inspector — portada muestra todas las visitas sin horas
       const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-      let diaStr = '';
-      if (sessFecha) {
-        try {
-          const parts = sessFecha.split('/');
-          const dateObj = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-          diaStr = diasSemana[dateObj.getDay()] + ', ' + sessFecha;
-        } catch(e) { diaStr = sessFecha; }
-      }
+      const portadaSes = D.sesiones && D.sesiones.length ? D.sesiones : [{fecha:D.fechaInspeccion||''}];
+      const diasArr = portadaSes.map((s,i) => {
+        const raw = i===0 ? (D.fechaInspeccion||s.fecha||'') : (s.fecha||'');
+        const f = fmtFecha(raw);
+        if (!f) return '';
+        try { const p=f.split('/'); return diasSemana[new Date(`${p[2]}-${p[1]}-${p[0]}`).getDay()]+', '+f; }
+        catch(e) { return f; }
+      }).filter(Boolean);
 
       doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-      doc.text(diaStr, PW/2, y, {align:'center'}); y += 6;
+      diasArr.forEach(ds => { doc.text(ds, PW/2, y, {align:'center'}); y += 6; });
       doc.text(D.inspectorNombre||'', PW/2, y, {align:'center'}); y += 5;
       if (D.inspector2Nombre) { doc.text(D.inspector2Nombre, PW/2, y, {align:'center'}); y += 5; }
       doc.setFont('helvetica','normal'); doc.setFontSize(10);

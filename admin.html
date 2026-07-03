@@ -72,6 +72,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="/arp-inspecciones/utils.js"></script>
 <script>
   if (!firebase.apps.length) {
     firebase.initializeApp({
@@ -195,16 +196,16 @@
       '<div class="cfg-sec">Número de acreditación ENAC</div>' +
       '<div class="cfg-card"><div class="cfg-field">' +
         '<label>Número ENAC</label>' +
-        '<input id="cinput-acred" value="' + esc(configData.acreditacion||'') + '" placeholder="Ej: Nº 489 / EI 558">' +
+        '<input id="cinput-acred" value="' + escHtml(configData.acreditacion||'') + '" placeholder="Ej: Nº 489 / EI 558">' +
         '<p class="cfg-note">Solo aparece en certificados de tipos con ENAC activo.</p>' +
       '</div></div>' +
       '<div class="cfg-sec">Revisión del certificado</div>' +
       '<div class="cfg-card">' +
         '<div class="cfg-field"><label>Sin ENAC</label>' +
-          '<input id="cinput-rev-sin" value="' + esc(configData.revCertificadoDoc||'19/05/2023 Rev 3.') + '">' +
+          '<input id="cinput-rev-sin" value="' + escHtml(configData.revCertificadoDoc||'19/05/2023 Rev 3.') + '">' +
           '<p class="cfg-note">Pie del certificado cuando el alcance no tiene ENAC.</p></div>' +
         '<div class="cfg-field"><label>Con ENAC</label>' +
-          '<input id="cinput-rev-con" value="' + esc(configData.revCertificadoDocEnac||'08/01/2025 Rev 5.') + '">' +
+          '<input id="cinput-rev-con" value="' + escHtml(configData.revCertificadoDocEnac||'08/01/2025 Rev 5.') + '">' +
           '<p class="cfg-note">Pie del certificado cuando el alcance sí tiene ENAC.</p></div>' +
       '</div>' +
       '<button class="btn-save-cfg" id="btnSaveCfg" onclick="guardarConfig()">Guardar cambios</button>';
@@ -235,13 +236,6 @@
     });
   }
 
-  function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-  function showToast(msg) {
-    var t = document.getElementById('toast');
-    t.textContent = msg; t.classList.add('show');
-    setTimeout(function() { t.classList.remove('show'); }, 2500);
-  }
 
   function cargarContadores() {
     setBadge('config', '&#9881;', 'off');

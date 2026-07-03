@@ -245,6 +245,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="/arp-inspecciones/utils.js"></script>
 <script>
   if (!firebase.apps.length) {
     firebase.initializeApp({
@@ -273,12 +274,6 @@
   var codigoNuevoValido = false;
   var todosInspectores = [];
 
-  function slugify(s) {
-    return String(s || "").toLowerCase()
-      .normalize("NFD").replace(/[̀-ͯ]/g, "")
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
-  }
 
   document.getElementById("fechaInspeccion").value = new Date().toISOString().split("T")[0];
 
@@ -340,9 +335,6 @@
     }).catch(function(e) { console.warn("No se pudieron cargar instalaciones:", e.message); });
   }
 
-  function escHtml(s) {
-    return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  }
 
   window.onNombreInput = function() {
     var v = document.getElementById("nombreInstalacion").value;
@@ -509,13 +501,10 @@
     }
 
     if (todosInspectores.length) { renderSelect(todosInspectores); return; }
-    db.collection("usuarios").get().then(function(snap) {
-      todosInspectores = [];
-      snap.forEach(function(d) {
-        if (d.data().activo) todosInspectores.push(Object.assign({ email: d.id }, d.data()));
-      });
+    cargarInspectores(function(lista) {
+      todosInspectores = lista;
       renderSelect(todosInspectores);
-    }).catch(function(e) {
+    }, function() {
       container.innerHTML = '<div style="color:var(--red);font-size:13px">Error cargando inspectores.</div>';
     });
   }

@@ -431,6 +431,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+<script src="/arp-inspecciones/utils.js"></script>
 <script>
   if (!firebase.apps.length) {
     firebase.initializeApp({
@@ -865,11 +866,10 @@
     if(todosInspectoresRev.length){ render(); }
     else {
       sel.innerHTML='<option value="">Cargando...</option>';
-      db.collection('usuarios').get().then(snap=>{
-        todosInspectoresRev=[];
-        snap.forEach(d=>{ if(d.data().activo) todosInspectoresRev.push(Object.assign({email:d.id},d.data())); });
+      cargarInspectores(function(lista){
+        todosInspectoresRev=lista;
         render();
-      }).catch(e=>{ sel.innerHTML='<option value="">Error cargando inspectores</option>'; });
+      }, function(){ sel.innerHTML='<option value="">Error cargando inspectores</option>'; });
     }
     document.getElementById('modalReabrir').classList.add('open');
   }

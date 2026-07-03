@@ -97,6 +97,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="/arp-inspecciones/utils.js"></script>
 <script>
 if (!firebase.apps.length) {
   firebase.initializeApp({
@@ -207,9 +208,9 @@ function renderOfertaCard(id, o) {
   var LABELS = { borrador:'Borrador', enviada:'Enviada', aceptada:'Aceptada', rechazada:'Rechazada' };
   var fecha  = o.fechaCreacion ? new Date(o.fechaCreacion.seconds * 1000).toLocaleDateString('es-ES') : '';
   return '<div class="oferta-card" onclick="mostrarDetalle(\'' + id + '\')">' +
-    '<div class="oferta-num">' + esc(o.nOferta || '') + '</div>' +
-    '<div class="oferta-cliente">' + esc(o.clienteNombre || '') + '</div>' +
-    '<div class="oferta-proyecto">' + esc(o.proyecto || '') + '</div>' +
+    '<div class="oferta-num">' + escHtml(o.nOferta || '') + '</div>' +
+    '<div class="oferta-cliente">' + escHtml(o.clienteNombre || '') + '</div>' +
+    '<div class="oferta-proyecto">' + escHtml(o.proyecto || '') + '</div>' +
     '<div class="oferta-foot">' +
     '<span class="badge ' + (BADGES[o.estado] || 'badge-borrador') + '">' + (LABELS[o.estado] || o.estado) + '</span>' +
     '<span class="oferta-fecha">' + fecha + '</span>' +
@@ -232,22 +233,22 @@ function mostrarForm(ofertaId, datos) {
 
   var optsCliente = clientes.map(function(c) {
     var sel = datos && datos.clienteId === c.id ? ' selected' : '';
-    return '<option value="' + esc(c.id) + '"' + sel + '>' + esc(c.nombre) + '</option>';
+    return '<option value="' + escHtml(c.id) + '"' + sel + '>' + escHtml(c.nombre) + '</option>';
   }).join('');
 
   var normasHtml = NORMAS.map(function(n, i) {
     var chk    = normasChk.indexOf(n.ref) >= 0 ? 'checked' : '';
     var refTxt = n.ref + (n.partes ? ' ' + n.partes : '');
     return '<label class="norma-row">' +
-      '<input type="checkbox" id="norma-' + i + '" value="' + esc(n.ref) + '" ' + chk + '>' +
-      '<div><div class="norma-ref">' + esc(refTxt) + '</div>' +
-      '<div class="norma-titulo">' + esc(n.titulo) + (n.fecha ? ' · ' + n.fecha : '') + '</div></div>' +
+      '<input type="checkbox" id="norma-' + i + '" value="' + escHtml(n.ref) + '" ' + chk + '>' +
+      '<div><div class="norma-ref">' + escHtml(refTxt) + '</div>' +
+      '<div class="norma-titulo">' + escHtml(n.titulo) + (n.fecha ? ' · ' + n.fecha : '') + '</div></div>' +
       '</label>';
   }).join('');
 
   var filas = partidas.map(function(p, i) {
     var sub = (parseFloat(p.costeUnitario) || 0) * (parseFloat(p.unidades) || 0);
-    return '<tr><td style="font-size:11px">' + esc(p.concepto) + '</td>' +
+    return '<tr><td style="font-size:11px">' + escHtml(p.concepto) + '</td>' +
       '<td class="td-r"><input class="inp-num" type="number" min="0" step="0.01" id="cu-' + i + '" value="' + (p.costeUnitario || 0) + '" oninput="recalc()"></td>' +
       '<td class="td-r"><input class="inp-num" type="number" min="0" step="1"    id="ud-' + i + '" value="' + (p.unidades || 0)      + '" oninput="recalc()"></td>' +
       '<td class="td-r" id="sub-' + i + '">' + fmtEur(sub) + '</td></tr>';
@@ -259,7 +260,7 @@ function mostrarForm(ofertaId, datos) {
       '<div class="form-field"><label>Cliente</label>' +
         '<select id="fCliente"><option value="">— Selecciona cliente —</option>' + optsCliente + '</select></div>' +
       '<div class="form-field"><label>Proyecto / instalación</label>' +
-        '<textarea id="fProyecto" rows="2" placeholder="Inspección Técnica de la Instalación, ...">' + esc((datos && datos.proyecto) || '') + '</textarea></div>' +
+        '<textarea id="fProyecto" rows="2" placeholder="Inspección Técnica de la Instalación, ...">' + escHtml((datos && datos.proyecto) || '') + '</textarea></div>' +
     '</div>' +
     '<div class="sec-label">Normas aplicables</div>' +
     '<div class="form-card">' + normasHtml + '</div>' +
@@ -411,7 +412,7 @@ function renderDetalle(id, o) {
 
   var filas = (o.partidas || []).map(function(p) {
     var sub = (p.costeUnitario || 0) * (p.unidades || 0);
-    return '<tr><td style="font-size:11px">' + esc(p.concepto) + '</td>' +
+    return '<tr><td style="font-size:11px">' + escHtml(p.concepto) + '</td>' +
       '<td class="td-r">' + fmtEur(p.costeUnitario) + '</td>' +
       '<td class="td-r">' + (p.unidades || 0) + '</td>' +
       '<td class="td-r">' + fmtEur(sub) + '</td></tr>';
@@ -456,11 +457,11 @@ function renderDetalle(id, o) {
     '<div class="form-card det-block">' +
       '<span class="badge ' + (BADGES[o.estado] || 'badge-borrador') + '">' + (LABELS[o.estado] || o.estado) + '</span>' +
       '<div style="margin-top:12px"><div class="det-label">Oferta nº</div>' +
-        '<div class="det-val" style="font-size:16px;font-weight:700;color:var(--gold);font-family:monospace">' + esc(o.nOferta) + '</div></div>' +
-      '<div><div class="det-label">Cliente</div><div class="det-val">' + esc(o.clienteNombre) + '</div></div>' +
-      '<div><div class="det-label">Proyecto</div><div class="det-val">' + esc(o.proyecto) + '</div></div>' +
-      '<div><div class="det-label">Normas aplicables</div><div class="det-val" style="font-size:12px">' + esc(normasTxt) + '</div></div>' +
-      '<div><div class="det-label">Fecha creación</div><div class="det-val">' + fecha + ' · ' + esc(o.creadoPorNombre || o.creadoPor || '') + '</div></div>' +
+        '<div class="det-val" style="font-size:16px;font-weight:700;color:var(--gold);font-family:monospace">' + escHtml(o.nOferta) + '</div></div>' +
+      '<div><div class="det-label">Cliente</div><div class="det-val">' + escHtml(o.clienteNombre) + '</div></div>' +
+      '<div><div class="det-label">Proyecto</div><div class="det-val">' + escHtml(o.proyecto) + '</div></div>' +
+      '<div><div class="det-label">Normas aplicables</div><div class="det-val" style="font-size:12px">' + escHtml(normasTxt) + '</div></div>' +
+      '<div><div class="det-label">Fecha creación</div><div class="det-val">' + fecha + ' · ' + escHtml(o.creadoPorNombre || o.creadoPor || '') + '</div></div>' +
     '</div>' +
     '<div class="sec-label">Presupuesto</div>' +
     '<div class="form-card"><div class="partidas-wrap"><table class="partidas-table">' +
@@ -933,14 +934,7 @@ function buildPDF(o) {
 function fmtEur(n) {
   return (parseFloat(n) || 0).toFixed(2).replace('.', ',') + ' €';
 }
-function esc(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function showToast(msg) {
-  var t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 2500);
-}
+
 </script>
 </body>
 </html>

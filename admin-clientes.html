@@ -236,6 +236,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="/arp-inspecciones/utils.js"></script>
 <script>
   if (!firebase.apps.length) {
     firebase.initializeApp({
@@ -262,7 +263,6 @@
 
   var contactoSeleccionadoId = null; // en modalVincular
 
-  function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function iniciales(n){ return (n||'?').trim().split(/\s+/).map(function(p){return p[0]||'';}).join('').slice(0,2).toUpperCase(); }
 
   // ── AUTH ──
