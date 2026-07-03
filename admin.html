@@ -141,7 +141,7 @@
         card('equipos',       '&#128295;', 'Equipos',             'Calibraciones próximas e inventario de material por inspector', 'admin-equipos.html') +
         card('instalaciones', '&#127959;', 'Instalaciones',       'Instalaciones sin inspección en los últimos 12 meses',          'admin-instalaciones.html') +
         cardOff('&#128203;', 'Checklist PAA',  'Editor de preguntas y criterios de inspección') +
-        cardOff('&#128119;', 'Inspectores',    'Gestión de usuarios, autorizaciones y formaciones');
+        card('usuarios', '&#128119;', 'Usuarios', 'Alta, roles y acceso de los miembros del equipo', 'admin-usuarios.html');
     }
     document.getElementById('content').innerHTML = html;
   }
@@ -267,6 +267,10 @@
       });
       setBadge('equipos', n ? n + ' por caducar' : 'Todo en regla', n ? 'warn' : 'ok');
     }).catch(function() { setBadge('equipos', 'Error', 'warn'); });
+
+    db.collection('usuarios').where('activo','==',true).get().then(function(snap) {
+      setBadge('usuarios', snap.size + ' activo' + (snap.size !== 1 ? 's' : ''), 'ok');
+    }).catch(function() { setBadge('usuarios', '···', 'loading'); });
 
     var hace12mStr = (function(){ var d = new Date(); d.setMonth(d.getMonth()-12); return d.toISOString().slice(0,10); })();
     db.collection('instalaciones').get().then(function(snap) {

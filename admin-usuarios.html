@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Usuarios - ARP</title>
+  <style>
+    :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;--orange:#E67E22;}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
+    .app-header{background:var(--dark);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+    .btn-back{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;padding:0;line-height:1}
+    .hdr-mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white}
+    .hdr-title{color:white;font-size:15px;font-weight:600;flex:1}
+    .content{padding:16px;max-width:680px;margin:0 auto;padding-bottom:40px}
+    .toolbar{display:flex;gap:8px;margin-bottom:14px;align-items:center}
+    .btn-primary{padding:9px 16px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+    .btn-primary:hover{opacity:.9}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+    .contador{font-size:12px;color:var(--muted);margin-bottom:10px}
+    .u-card{background:white;border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s}
+    .u-card:hover{border-color:var(--gold)}
+    .u-card.inactivo{opacity:.55}
+    .u-avatar{width:38px;height:38px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0;letter-spacing:.03em}
+    .u-avatar.inactivo{background:var(--border);color:var(--muted)}
+    .u-body{flex:1;min-width:0}
+    .u-nombre{font-size:14px;font-weight:600;color:var(--dark)}
+    .u-email{font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .u-rol{flex-shrink:0;font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px}
+    .rol-admin{background:#F3E5F5;color:#6A1B9A}
+    .rol-director{background:#E3F2FD;color:#0D47A1}
+    .rol-oficina{background:#FFF8E1;color:var(--orange)}
+    .rol-inspector{background:#E8F5E9;color:var(--green)}
+    .empty-state{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px}
+    .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    /* Modal */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:flex-end;justify-content:center}
+    .overlay.open{display:flex}
+    @media(min-width:520px){.overlay{align-items:center}}
+    .modal{background:white;border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:20px 16px 32px}
+    @media(min-width:520px){.modal{border-radius:16px;padding:24px}}
+    .modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .modal-titulo{font-size:16px;font-weight:700;color:var(--dark)}
+    .btn-close{background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;padding:0;line-height:1}
+    .form-row{margin-bottom:14px}
+    .form-row label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+    .form-row input,.form-row select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text);background:white;outline:none;transition:border-color .15s}
+    .form-row input:focus,.form-row select:focus{border-color:var(--gold)}
+    .form-row input[readonly]{background:var(--surf);color:var(--muted)}
+    .form-hint{font-size:10px;color:var(--muted);margin-top:4px}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border);margin-top:4px}
+    .toggle-row label{font-size:14px;font-weight:500;color:var(--dark)}
+    .toggle{width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;background:var(--border);position:relative;transition:background .2s;flex-shrink:0}
+    .toggle::after{content:'';position:absolute;top:4px;left:4px;width:16px;height:16px;border-radius:50%;background:white;transition:left .2s}
+    .toggle.on{background:var(--green)}
+    .toggle.on::after{left:24px}
+    .modal-footer{display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+    .btn-danger{flex:1;padding:12px;background:white;color:var(--red);border:1.5px solid var(--red);border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+    .btn-guardar{flex:2;padding:12px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+    .btn-guardar:disabled{opacity:.5;cursor:not-allowed}
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999}
+    .toast.show{opacity:1}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="location.href='admin.html'">&#8592;</button>
+  <div class="hdr-mark">ARP</div>
+  <div class="hdr-title">Usuarios</div>
+</div>
+
+<div class="content" id="content">
+  <div class="spinner"></div>
+</div>
+
+<div class="overlay" id="overlay" onclick="cerrarModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-hdr">
+      <div class="modal-titulo" id="modalTitulo">Nuevo usuario</div>
+      <button class="btn-close" onclick="cerrarModal()">&#10005;</button>
+    </div>
+    <div id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain:"arp-inspecciones.firebaseapp.com",
+      projectId:"arp-inspecciones",
+      storageBucket:"arp-inspecciones.firebasestorage.app",
+      messagingSenderId:"35880168451",
+      appId:"1:35880168451:web:090e3c250b4416ed0b3236"
+    });
+  }
+  var auth = firebase.auth();
+  var db   = firebase.firestore();
+
+  var usuariosData = [];
+  var editandoEmail = null;
+
+  auth.onAuthStateChanged(function(user) {
+    if (!user) { location.href = 'index.html'; return; }
+    db.collection('usuarios').doc(user.email).get().then(function(snap) {
+      if (!snap.exists || !snap.data().activo) { location.href = 'index.html'; return; }
+      var rol = snap.data().rol;
+      if (rol !== 'admin' && rol !== 'director') {
+        document.getElementById('content').innerHTML = '<p style="text-align:center;color:var(--muted);padding:40px 20px">Acceso restringido.</p>';
+        return;
+      }
+      cargar();
+    });
+  });
+
+  function cargar() {
+    db.collection('usuarios').orderBy('nombre').get().then(function(snap) {
+      usuariosData = [];
+      snap.forEach(function(d){ usuariosData.push(Object.assign({email:d.id},d.data())); });
+      render();
+    }).catch(function(e) {
+      // orderBy may fail without index — fallback without sort
+      db.collection('usuarios').get().then(function(snap) {
+        usuariosData = [];
+        snap.forEach(function(d){ usuariosData.push(Object.assign({email:d.id},d.data())); });
+        usuariosData.sort(function(a,b){ return (a.nombre||a.email).localeCompare(b.nombre||b.email); });
+        render();
+      }).catch(function(e2) {
+        document.getElementById('content').innerHTML = '<div class="empty-state">Error: '+escHtml(e2.message)+'</div>';
+      });
+    });
+  }
+
+  function rolClase(r) {
+    if (r==='admin')     return 'rol-admin';
+    if (r==='director')  return 'rol-director';
+    if (r==='oficina')   return 'rol-oficina';
+    return 'rol-inspector';
+  }
+
+  function rolLabel(r) {
+    if (r==='admin')    return 'Admin';
+    if (r==='director') return 'Director';
+    if (r==='oficina')  return 'Oficina';
+    return 'Inspector';
+  }
+
+  function render() {
+    var html = '<div class="toolbar">' +
+      '<span style="flex:1;font-size:13px;color:var(--muted)">'+usuariosData.length+' usuario'+(usuariosData.length!==1?'s':'')+'</span>' +
+      '<button class="btn-primary" onclick="abrirNuevo()">+ Nuevo usuario</button>' +
+      '</div>';
+    if (!usuariosData.length) {
+      html += '<div class="empty-state">No hay usuarios.</div>';
+    } else {
+      usuariosData.forEach(function(u) {
+        var ini = computeIni(u.iniciales||u.nombre||u.email);
+        var inactivo = u.activo === false;
+        html += '<div class="u-card'+(inactivo?' inactivo':'')+'" onclick="abrirEditar(\''+escHtml(u.email)+'\')">' +
+          '<div class="u-avatar'+(inactivo?' inactivo':'')+'">'+escHtml(ini)+'</div>' +
+          '<div class="u-body">' +
+            '<div class="u-nombre">'+escHtml(u.nombre||u.email)+(inactivo?' <span style="font-size:10px;color:var(--muted)">(inactivo)</span>':'')+'</div>' +
+            '<div class="u-email">'+escHtml(u.email)+'</div>' +
+          '</div>' +
+          '<div class="u-rol '+rolClase(u.rol)+'">'+rolLabel(u.rol)+'</div>' +
+        '</div>';
+      });
+    }
+    document.getElementById('content').innerHTML = html;
+  }
+
+  function computeIni(s) {
+    if (!s) return '?';
+    var partes = s.trim().split(/\s+/);
+    return (partes[0]&&partes[0][0]||'').toUpperCase() + (partes[1]&&partes[1][0]||'').toUpperCase() || s.slice(0,2).toUpperCase();
+  }
+
+  function formHtml(u) {
+    u = u || {};
+    var roles = ['inspector','director','admin','oficina'];
+    var rolOpts = roles.map(function(r) {
+      return '<option value="'+r+'"'+(u.rol===r?' selected':'')+'>'+rolLabel(r)+'</option>';
+    }).join('');
+    return '<div class="form-row"><label>Email (usuario)</label>' +
+        '<input id="f_email" type="email" value="'+escHtml(u.email||'')+'"'+(editandoEmail?' readonly':'')+' placeholder="correo@ejemplo.com">' +
+        (editandoEmail?'':'<div class="form-hint">Debe coincidir exactamente con el email de Firebase Auth.</div>') +
+      '</div>' +
+      '<div class="form-row"><label>Nombre completo</label>' +
+        '<input id="f_nombre" type="text" value="'+escHtml(u.nombre||'')+'" placeholder="Nombre Apellido">' +
+      '</div>' +
+      '<div class="form-row"><label>Iniciales</label>' +
+        '<input id="f_iniciales" type="text" value="'+escHtml(u.iniciales||'')+'" placeholder="Auto (2 letras)" maxlength="4" style="text-transform:uppercase">' +
+        '<div class="form-hint">Se usan en la numeración de ofertas. Si se deja vacío se calculan del nombre.</div>' +
+      '</div>' +
+      '<div class="form-row"><label>Rol</label>' +
+        '<select id="f_rol">'+rolOpts+'</select>' +
+      '</div>' +
+      '<div class="toggle-row"><label>Cuenta activa</label>' +
+        '<button class="toggle'+(u.activo===false?'':' on')+'" id="f_activo" onclick="this.classList.toggle(\'on\')"></button>' +
+      '</div>';
+  }
+
+  window.abrirNuevo = function() {
+    editandoEmail = null;
+    document.getElementById('modalTitulo').textContent = 'Nuevo usuario';
+    document.getElementById('modalBody').innerHTML = formHtml(null);
+    document.getElementById('modalFooter').innerHTML =
+      '<button class="btn-guardar" onclick="guardar()">Crear usuario</button>';
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('modal').scrollTop = 0;
+  };
+
+  window.abrirEditar = function(email) {
+    var u = usuariosData.find(function(x){ return x.email===email; });
+    if (!u) return;
+    editandoEmail = email;
+    document.getElementById('modalTitulo').textContent = u.nombre || email;
+    document.getElementById('modalBody').innerHTML = formHtml(u);
+    document.getElementById('modalFooter').innerHTML =
+      '<button class="btn-guardar" onclick="guardar()">Guardar cambios</button>';
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('modal').scrollTop = 0;
+  };
+
+  window.cerrarModal = function(evt) {
+    if (evt && evt.target !== document.getElementById('overlay')) return;
+    document.getElementById('overlay').classList.remove('open');
+  };
+
+  window.guardar = function() {
+    var email = editandoEmail || document.getElementById('f_email').value.trim().toLowerCase();
+    if (!email) { alert('El email es obligatorio.'); return; }
+    var nombre   = document.getElementById('f_nombre').value.trim();
+    var inicialesInput = document.getElementById('f_iniciales').value.trim().toUpperCase();
+    var iniciales = inicialesInput || computeIni(nombre||email);
+    var rol      = document.getElementById('f_rol').value;
+    var activo   = document.getElementById('f_activo').classList.contains('on');
+    var btn      = document.querySelector('.btn-guardar');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+    db.collection('usuarios').doc(email).set({
+      nombre:    nombre,
+      iniciales: iniciales,
+      rol:       rol,
+      activo:    activo
+    }, { merge: true }).then(function() {
+      btn.disabled = false;
+      btn.textContent = editandoEmail ? 'Guardar cambios' : 'Crear usuario';
+      document.getElementById('overlay').classList.remove('open');
+      showToast(editandoEmail ? 'Usuario actualizado' : 'Usuario creado');
+      cargar();
+    }).catch(function(e) {
+      btn.disabled = false;
+      btn.textContent = editandoEmail ? 'Guardar cambios' : 'Crear usuario';
+      alert('Error: ' + e.message);
+    });
+  };
+
+  function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 2500);
+  }
+</script>
+</body>
+</html>

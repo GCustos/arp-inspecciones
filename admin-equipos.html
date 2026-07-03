@@ -160,7 +160,7 @@
   function cargar() {
     Promise.all([
       db.collection('equipos').get(),
-      db.collection('usuarios').where('activo','==',true).get()
+      db.collection('usuarios').get()
     ]).then(function(res) {
       equiposData = [];
       res[0].forEach(function(d){ equiposData.push(Object.assign({id:d.id},d.data())); });
@@ -199,10 +199,13 @@
         var st = estadoCal(e);
         var fp = (e.calibracion&&e.calibracion.fechaProxima) ? e.calibracion.fechaProxima : '—';
         var lab = (e.calibracion&&e.calibracion.laboratorio) ? e.calibracion.laboratorio : '—';
+        var asigRaw = e.asignadoA || e.inspectorEmail || e.inspector || '';
+        var asigU = asigRaw ? usuariosData.find(function(u){ return u.email===asigRaw||u.nombre===asigRaw; }) : null;
+        var asigNombre = asigU ? (asigU.nombre||asigU.email) : (asigRaw||'Sin asignar');
         html += '<div class="eq-card" onclick="abrirEditar(\''+escHtml(e.id)+'\')">' +
           '<div class="eq-row1"><span class="eq-cod">'+escHtml(e.id)+'</span><span class="eq-tipo">'+escHtml(e.tipo||'')+'</span><span class="badge '+st.cls+'">'+st.txt+'</span></div>' +
           '<div class="eq-row2">'+escHtml(e.marca||'')+(e.modelo?' &middot; '+escHtml(e.modelo):'')+(e.sede?' &middot; '+escHtml(e.sede):'')+'</div>' +
-          '<div class="eq-row2">'+lab+' &middot; hasta '+escHtml(fp)+'</div>' +
+          '<div class="eq-row2">'+escHtml(asigNombre)+' &middot; '+lab+' &middot; hasta '+escHtml(fp)+'</div>' +
           '</div>';
       });
     }
@@ -229,11 +232,19 @@
 
   // ── MODAL ──
   function usuariosOpts(seleccionado) {
-    var html = '<option value="__PENDIENTE__"'+(seleccionado==='__PENDIENTE__'?' selected':'')+'>— Sin asignar —</option>';
+    var isSinAsignar = !seleccionado || seleccionado === '__PENDIENTE__';
+    var html = '<option value=""'+(isSinAsignar?' selected':'')+'>— Sin asignar —</option>';
+    var matched = isSinAsignar;
     usuariosData.forEach(function(u) {
+      var isMatch = seleccionado === u.email || seleccionado === (u.nombre||'');
+      if (isMatch) matched = true;
       var n = escHtml(u.nombre||u.email);
-      html += '<option value="'+escHtml(u.email)+'"'+(seleccionado===u.email?' selected':'')+'>'+n+'</option>';
+      if (u.activo === false) n += ' (inactivo)';
+      html += '<option value="'+escHtml(u.email)+'"'+(isMatch?' selected':'')+'>'+n+'</option>';
     });
+    if (!matched && seleccionado) {
+      html += '<option value="'+escHtml(seleccionado)+'" selected>[?] '+escHtml(seleccionado)+'</option>';
+    }
     return html;
   }
 
@@ -255,7 +266,7 @@
         field('Sede','f_sede',escHtml(e.sede||'')) +
       '</div>' +
       '<div class="form-row"><label>Inspector asignado</label>' +
-        '<select id="f_asignadoA">'+usuariosOpts(e.asignadoA||'__PENDIENTE__')+'</select></div>' +
+        '<select id="f_asignadoA">'+usuariosOpts(e.asignadoA||e.inspectorEmail||e.inspector||'')+'</select></div>' +
       field('Observaciones','f_obs',escHtml(e.obs||''),'','textarea') +
       '<div class="toggle-row"><label>Activo</label>' +
         '<button class="toggle'+(e.activo===false?'':' on')+'" id="f_activo" onclick="toggleActivo()"></button></div>' +
