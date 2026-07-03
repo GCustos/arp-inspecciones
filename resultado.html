@@ -142,9 +142,8 @@
   };
 
   // ── CARGA ──
-  auth.onAuthStateChanged(async user => {
-    if (!user) { location.href='index.html'; return; }
-    await cargarDatos();
+  initAuth({
+    onReady: function(user, ud) { cargarDatos(); }
   });
 
   setTimeout(async () => {

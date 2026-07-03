@@ -767,36 +767,25 @@
   window.addEventListener('online', () => { sincronizarFotosPendientes(); updateOnline(); });
 
   // AUTH
-  let authOk=false;
-  setTimeout(()=>{
-    if(authOk) return;
-    const keys=Object.keys(localStorage).filter(k=>k.startsWith('arpUser_'));
-    if(keys.length){ iniciarCarga({email:keys[0].replace('arpUser_',''),photoURL:'',displayName:''}); }
-    else { showError('Sesión no verificada. <a href="index.html" style="color:var(--red);font-weight:700">Inicia sesión de nuevo</a>.'); }
-  },5000);
-
-  auth.onAuthStateChanged(user=>{
-    authOk=true;
-    if(!user){ location.href='index.html'; return; }
-    iniciarCarga(user);
+  initAuth({
+    offline: true,
+    offlineTimeout: 5000,
+    onReady: function(user, ud) { iniciarCarga(user, ud); }
   });
 
-  async function iniciarCarga(user) {
+  async function iniciarCarga(user, ud) {
     if(cargaIniciada) return;
     cargaIniciada=true;
     currentUser=user;
+    miRol = ud ? ud.rol : null;
     try {
       const snap = await db.collection("inspecciones").doc(inspeccionId).get();
       if(!snap.exists){ showError('Inspección no encontrada. ID: '+inspeccionId); return; }
       const data = snap.data();
       docDataFull=data;
-      try {
-        const uSnap = await db.collection("usuarios").doc(currentUser.email).get();
-        if(uSnap.exists) miRol=uSnap.data().rol||null;
-        if(uSnap.exists&&uSnap.data().rol==="inspector"&&data.inspectorEmail!==currentUser.email){
-          alert("No tienes acceso a esta inspección."); location.href="inspecciones.html"; return;
-        }
-      } catch(e){ console.warn('No se pudo verificar rol:',e.message); }
+      if(miRol==="inspector"&&data.inspectorEmail!==currentUser.email){
+        alert("No tienes acceso a esta inspección."); location.href="inspecciones.html"; return;
+      }
       if(data.checklist) Object.assign(S.gen,data.checklist);
       if(data.checklistObs) Object.assign(S.genObs,data.checklistObs);
       if(data.obsGral) S.obsGral=data.obsGral;

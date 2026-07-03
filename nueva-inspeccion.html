@@ -277,17 +277,15 @@
 
   document.getElementById("fechaInspeccion").value = new Date().toISOString().split("T")[0];
 
-  auth.onAuthStateChanged(function(user) {
-    if (!user) { location.href = "index.html"; return; }
-    currentUser = user;
-    db.collection("usuarios").doc(user.email).get().then(function(snap) {
-      if (!snap.exists || !snap.data().activo) { location.href = "index.html"; return; }
-      userData = snap.data();
+  initAuth({
+    onReady: function(user, ud) {
+      currentUser = user;
+      userData = ud;
       renderInspector();
       cargarInstalaciones();
       cargarClientes();
       cargarConfigEnac();
-    }).catch(function(e) { console.error("Error auth:", e); });
+    }
   });
 
   // ── CONFIG ENAC ──

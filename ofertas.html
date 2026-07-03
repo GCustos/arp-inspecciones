@@ -139,21 +139,18 @@ var PARTIDAS = [
 
 // ─── AUTH ───────────────────────────────────────────────────────────────────
 
-auth.onAuthStateChanged(function(user) {
-  if (!user) { location.href = 'index.html'; return; }
-  db.collection('usuarios').doc(user.email).get().then(function(snap) {
-    if (!snap.exists || !snap.data().activo) { location.href = 'index.html'; return; }
-    var d = snap.data();
-    if (d.rol !== 'admin' && d.rol !== 'director' && d.rol !== 'oficina') { location.href = 'index.html'; return; }
+initAuth({
+  roles: ['admin', 'director', 'oficina'],
+  onReady: function(user, ud) {
     usuarioActual = {
       email:     user.email,
-      nombre:    d.nombre || '',
-      iniciales: d.nombreCorto || computeIniciales(d.nombre),
-      rol:       d.rol
+      nombre:    ud.nombre || '',
+      iniciales: ud.nombreCorto || computeIniciales(ud.nombre),
+      rol:       ud.rol
     };
     cargarClientes();
     cargarOfertas();
-  });
+  }
 });
 
 function computeIniciales(nombre) {

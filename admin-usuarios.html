@@ -110,17 +110,10 @@
   var usuariosData = [];
   var editandoEmail = null;
 
-  auth.onAuthStateChanged(function(user) {
-    if (!user) { location.href = 'index.html'; return; }
-    db.collection('usuarios').doc(user.email).get().then(function(snap) {
-      if (!snap.exists || !snap.data().activo) { location.href = 'index.html'; return; }
-      var rol = snap.data().rol;
-      if (rol !== 'admin' && rol !== 'director') {
-        document.getElementById('content').innerHTML = '<p style="text-align:center;color:var(--muted);padding:40px 20px">Acceso restringido.</p>';
-        return;
-      }
-      cargar();
-    });
+  initAuth({
+    roles: ['admin', 'director'],
+    onDenied: 'message',
+    onReady: function(user, ud) { cargar(); }
   });
 
   function cargar() {
