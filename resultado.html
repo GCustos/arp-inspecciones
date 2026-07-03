@@ -1664,25 +1664,29 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       if (D.inspector2Nombre) { doc.text(D.inspector2Nombre, ML+2, y+11.5); }
       y += inspBoxH + 4;
 
-      // Fecha + hora
+      // Fecha + hora — una fila por visita (Rev.0, Rev.1, Rev.2…)
+      var allSes = D.sesiones && D.sesiones.length ? D.sesiones : [{fecha:D.fechaInspeccion||'',horaInicio:'',horaFin:''}];
+      var histRev = D.historialRevisiones || [];
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text('FECHA DE INSPECCION', ML, y);
+      doc.text(allSes.length > 1 ? 'FECHAS DE INSPECCION' : 'FECHA DE INSPECCION', ML, y);
       doc.text('Hora de inicio', ML+CW*0.65, y);
       doc.text('Hora fin', ML+CW*0.82, y); y += 4;
-
-      // Usar fecha/hora de raíz (actualizados por el inspector) con fallback a sesiones
-      var regFecha = D.fechaInspeccion || (D.sesiones && D.sesiones.length ? D.sesiones[0].fecha : '') || '';
-      var regHoraI = D.horaInicio || (D.sesiones && D.sesiones.length ? D.sesiones[0].horaInicio : '') || '';
-      var regHoraF = D.horaFin || (D.sesiones && D.sesiones.length ? D.sesiones[0].horaFin : '') || '';
-      doc.setDrawColor(...DARK);
-      doc.rect(ML, y, CW*0.63, 8, 'D');
-      doc.rect(ML+CW*0.65, y, CW*0.15, 8, 'D');
-      doc.rect(ML+CW*0.82, y, CW*0.18, 8, 'D');
-      doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      doc.text(fmtFecha(regFecha), ML+2, y+5.5);
-      doc.text(regHoraI, ML+CW*0.65+2, y+5.5);
-      doc.text(regHoraF, ML+CW*0.82+2, y+5.5);
-      y += 12;
+      allSes.forEach(function(ses, si) {
+        var isLast = si === allSes.length - 1;
+        var sesFecha = si === 0 ? (D.fechaInspeccion || ses.fecha || '') : (ses.fecha || '');
+        var hist = histRev[si] || {};
+        var sesHoraI = isLast ? (D.horaInicio || '') : (hist.horaInicio || ses.horaInicio || '');
+        var sesHoraF = isLast ? (D.horaFin || '') : (hist.horaFin || ses.horaFin || '');
+        doc.setDrawColor(...DARK);
+        doc.rect(ML, y, CW*0.63, 8, 'D');
+        doc.rect(ML+CW*0.65, y, CW*0.15, 8, 'D');
+        doc.rect(ML+CW*0.82, y, CW*0.18, 8, 'D');
+        doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text(fmtFecha(sesFecha), ML+2, y+5.5);
+        doc.text(sesHoraI, ML+CW*0.65+2, y+5.5);
+        doc.text(sesHoraF, ML+CW*0.82+2, y+5.5);
+        y += 12;
+      });
 
       // Lugar
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);

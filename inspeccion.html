@@ -890,6 +890,8 @@
       const resultadoActual=(docSnap.exists&&docSnap.data().resultado)||'';
       const snapshot=sanitizar({
         revision:S.revision,
+        horaInicio:S.horaInicio||'',
+        horaFin:S.horaFin||'',
         fechaCompletada:new Date().toISOString(),
         resultado:resultadoActual,
         checklist:S.gen, checklistObs:S.genObs, obsGral:document.getElementById('obsGral').value||'',
