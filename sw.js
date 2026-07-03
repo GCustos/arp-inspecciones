@@ -1,5 +1,5 @@
 // ── ARP Inspecciones Service Worker ──
-const CACHE_NAME = 'arp-v5.0';
+const CACHE_NAME = 'arp-v5.1';
 
 const PRECACHE = [
   '/arp-inspecciones/',
@@ -62,13 +62,14 @@ self.addEventListener('activate', event => {
 
 // ── FETCH ──
 self.addEventListener('fetch', event => {
+  // POST y métodos no-GET nunca se cachean
+  if (event.request.method !== 'GET') return;
+
   const url = new URL(event.request.url);
 
-  // Firebase: siempre network (gestión propia de offline)
-  if (url.hostname.includes('firestore.googleapis.com') ||
-      url.hostname.includes('firebasestorage.googleapis.com') ||
-      url.hostname.includes('identitytoolkit.googleapis.com') ||
-      url.hostname.includes('securetoken.googleapis.com')) {
+  // Google APIs (Firebase Auth, Firestore, Storage, etc.): siempre network
+  if (url.hostname.includes('googleapis.com') ||
+      url.hostname.includes('firebaseapp.com')) {
     return;
   }
 
