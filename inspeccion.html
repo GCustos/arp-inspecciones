@@ -898,6 +898,16 @@
     return /Rev\d+$/.test(nRegistro) ? nRegistro.replace(/Rev\d+$/,'Rev'+newRev) : nRegistro;
   }
 
+  // Corrige la parte de fecha en nRegistro usando la fecha real de inspección.
+  // Formato: {codigo}/{alcance}/{YYMMDD}/Rev0 — reemplaza solo los 6 dígitos.
+  function corregirFechaNRegistro(nRegistro, fechaISO) {
+    if (!nRegistro || !fechaISO) return nRegistro;
+    var p = fechaISO.split('-');
+    if (p.length !== 3) return nRegistro;
+    var aammdd = p[0].slice(2) + p[1] + p[2];
+    return nRegistro.replace(/\/\d{6}\//, '/' + aammdd + '/');
+  }
+
   async function confirmarReabrir(){
     const sel=document.getElementById('reabrirInspectorSel');
     const email=sel.value;
@@ -1722,6 +1732,8 @@
         : `Sin conexión. ${fotosPendientesList.length} foto(s) pendientes de subir.\nConéctate a internet e inténtalo de nuevo.`);
       return;
     }
+    // Corregir la fecha del nRegistro con la fecha real de inspección
+    S.nRegistro = corregirFechaNRegistro(S.nRegistro, S.fechaInspeccion);
     try {
       await db.collection("inspecciones").doc(inspeccionId).update({
         ...buildPayload("completada"),
