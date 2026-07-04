@@ -1684,8 +1684,31 @@
       alert(`Hay ${incompletas.length} no conformidad${incompletas.length>1?'es':''} sin tipo o gravedad asignada. Completa los campos antes de finalizar.`);
       return;
     }
-    // FIX: OBSERVACION no bloquea certificado ni cuenta como NC para resultado
-    // Solo OBSERVACION no bloquea. GRAVE/MEDIA/LEVE/DOCUMENTAL = DESFAVORABLE
+    // Validar checklist general completo
+    var genIncompletos=GEN_ITEMS.filter(function(item){ return !S.gen[item.id]; });
+    if(genIncompletos.length){
+      goTab(1);
+      alert('Faltan '+genIncompletos.length+' ítem(s) por marcar en el checklist general:\n'+
+        genIncompletos.slice(0,5).map(function(i){ return i.ref+' '+i.sec; }).join('\n')+
+        (genIncompletos.length>5?'\n...y '+(genIncompletos.length-5)+' más':''));
+      return;
+    }
+    // Validar columnas de juegos completas
+    var juegosSinCol=[];
+    S.circuitos.forEach(function(c,ci){
+      (c.juegos||[]).forEach(function(j,ji){
+        var vacias=COLS.filter(function(col){ return !j[col.key]; });
+        if(vacias.length) juegosSinCol.push(c.nombre+' — '+(j.nombre||'Juego '+(ji+1))+
+          ' ('+vacias.map(function(col){ return COL_LABELS[col.key]||col.key; }).join(', ')+')');
+      });
+    });
+    if(juegosSinCol.length){
+      goTab(2);
+      alert('Faltan columnas por marcar en '+juegosSinCol.length+' juego(s):\n'+
+        juegosSinCol.slice(0,5).join('\n')+
+        (juegosSinCol.length>5?'\n...y '+(juegosSinCol.length-5)+' más':''));
+      return;
+    }
     // Auto-captura horas (solo después de pasar todas las validaciones)
     autoCapturarHoraInicio();
     if (!S.horaFin) {
