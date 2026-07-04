@@ -240,7 +240,7 @@
     ncs.forEach(nc => {
       const key = (nc.tipo||'Sin tipo') + '|' + nc.prio;
       if (!ncGrupos[key]) ncGrupos[key] = { tipo: nc.tipo||'Sin tipo', prio: nc.prio, items: [] };
-      ncGrupos[key].items.push(nc.elem||'');
+      ncGrupos[key].items.push(getNcElem(nc));
     });
 
     const allNcsDisplay = (D.ncs||[]).filter(n=>n.prio).map(nc => {
@@ -249,7 +249,7 @@
         <span class="nc-badge p-${nc.prio}">${nc.prio}</span>
         <div style="flex:1">
           <div style="font-weight:600;font-size:12px;${cerrada?'text-decoration:line-through':''}">${nc.tipo||'Sin tipo'}</div>
-          <div style="font-size:11px;color:var(--muted)">${nc.elem||''}${nc.desc?' — '+nc.desc:''}</div>
+          <div style="font-size:11px;color:var(--muted)">${getNcElem(nc)}${nc.desc?' — '+nc.desc:''}</div>
           ${cerrada?'<div style="font-size:10px;color:var(--green);font-weight:600">✓ CERRADA — '+( nc.resolucion||'Resuelta')+'</div>':''}
         </div>
       </div>`;
@@ -333,6 +333,17 @@
   // ═══════════════════════════════════════════════════
 
   // Colores
+  // Resuelve el nombre del elemento de una NC usando los circuitos actuales.
+  // nc.elem puede estar desactualizado si el juego fue renombrado tras crear la NC.
+  function getNcElem(nc) {
+    if (nc._ci !== undefined && nc._ci !== 'g' && nc._ji !== undefined && D && D.circuitos) {
+      var circ = D.circuitos[nc._ci];
+      var juego = circ && circ.juegos && circ.juegos[nc._ji];
+      if (circ && juego) return circ.nombre + ' — ' + (juego.nombre || ('Juego ' + (nc._ji + 1)));
+    }
+    return nc.elem || '';
+  }
+
   const GOLD = [200, 153, 58];
   const DARK = [26, 26, 26];
   const MUTED = [138, 130, 120];
@@ -1142,7 +1153,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         }
         var ncsAbiertas = ncsDelCol.filter(function(n){ return !n.cerrada; });
         var todasCerradas = ncsDelCol.length > 0 && ncsAbiertas.length === 0;
-        const notaCol = ncsDelCol.map(function(n){ ncNumGlobal++; return (n.cerrada?'(✓) ':'')+ncNumGlobal+'. '+((n.elem||'')+(n.desc?' — '+n.desc:'')); }).join(' ');
+        const notaCol = ncsDelCol.map(function(n){ ncNumGlobal++; return (n.cerrada?'(✓) ':'')+ncNumGlobal+'. '+(getNcElem(n)+(n.desc?' — '+n.desc:'')); }).join(' ');
 
         // Color fila según NC más grave ABIERTA del criterio
         const prioCol = ncsAbiertas.length ? ncsAbiertas.reduce((max,n) => {
@@ -1247,7 +1258,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         if (!ncGruposMap[key]) ncGruposMap[key] = { tipo:key, prio:nc.prio||'', elems:[], descs:[], fotosDefecto:[], fotosCorreccion:[], norma:nc.norma||'', resoluciones:[], cerradas:true };
         var g = ncGruposMap[key];
         if ((PRIO_ORD[nc.prio]||0) > (PRIO_ORD[g.prio]||0)) g.prio = nc.prio;
-        if (nc.elem) g.elems.push({texto:nc.elem, prio:nc.prio});
+        var ncElemText = getNcElem(nc); if (ncElemText) g.elems.push({texto:ncElemText, prio:nc.prio});
         if (nc.desc) g.descs.push(nc.desc);
         if (nc.fotosDefecto && nc.fotosDefecto.length) g.fotosDefecto.push(nc.fotosDefecto[0]);
         if (nc.fotosCorreccion && nc.fotosCorreccion.length) g.fotosCorreccion.push(nc.fotosCorreccion[0]);
