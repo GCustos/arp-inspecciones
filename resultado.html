@@ -260,7 +260,7 @@
       <div class="res-header ${favorable?'favorable':'desfavorable'}">
         <div class="res-icon">${favorable?'✓':'!'}</div>
         <div class="res-titulo">${favorable?'FAVORABLE':'DESFAVORABLE'}</div>
-        <div class="res-ref">${D.nRegistro||D.id}</div>
+        <div class="res-ref">${getNRegistro()||D.id}</div>
         <div class="res-instalacion">${D.nombreInstalacion||''}</div>
       </div>
 
@@ -454,14 +454,12 @@
   }
 
   function getNRegistro() {
-    if (D.nRegistro) return D.nRegistro;
-    // Construir desde campos si existe codigoInstalacion
     const cod = D.codigoInstalacion || 'SIN_COD';
     const alcance = D.tipoAlcance || 'PAA';
-    const fecha = (D.sesiones && D.sesiones.length ? D.sesiones[0].fecha : D.fechaInspeccion || '');
-    const fechaCod = fecha.replace(/-/g,'').substring(2,8); // AAMMDD
+    const p = (D.fechaInspeccion || '').split('-');
+    const fechaCod = p.length === 3 ? p[0].slice(2) + p[1] + p[2] : '';
     const rev = D.revision !== undefined ? D.revision : 0;
-    return `${cod}/${alcance}/${fechaCod}/Rev${rev}`;
+    return fechaCod ? `${cod}/${alcance}/${fechaCod}/Rev${rev}` : (D.nRegistro || '');
   }
 
   function colorNC(prio) {
