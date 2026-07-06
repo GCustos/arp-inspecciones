@@ -439,7 +439,7 @@
     if (d.cp) loc += d.cp + ' ';
     if (d.localidad) loc += d.localidad;
     if (loc.trim()) parts.push(loc.trim());
-    if (d.municipio) parts.push(d.municipio);
+    if (d.municipio && d.municipio !== (d.localidad || '')) parts.push(d.municipio);
     if (d.provincia && d.provincia !== d.municipio) parts.push(d.provincia);
     return parts.join(', ') || '';
   }
