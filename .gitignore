@@ -1,6 +1,11 @@
 # Claves de servicio Firebase — NUNCA subir a git
 *adminsdk*.json
 
+# Mapa público de certificaciones — archivo separado, no parte de la app
+mapa.html
+mapa-standalone.html
+certificados-publicos.js
+
 # Scripts de administración temporales — nunca subir
 _scripts/*.js
 _scripts/node_modules/

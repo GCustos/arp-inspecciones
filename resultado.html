@@ -637,10 +637,16 @@ Documentos realizados en el informe de inspecciÃ³n por ADELL RIESGOS Y PREVENCIÃ
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
+        const MAX_W = 1200, MAX_H = 900;
+        let w = img.width, h = img.height;
+        if (w > MAX_W || h > MAX_H) {
+          const r = Math.min(MAX_W / w, MAX_H / h);
+          w = Math.round(w * r); h = Math.round(h * r);
+        }
         const canvas = document.createElement('canvas');
-        canvas.width = img.width; canvas.height = img.height;
-        canvas.getContext('2d').drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/jpeg', 0.85));
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
       };
       img.onerror = () => resolve(null);
       img.src = url;
