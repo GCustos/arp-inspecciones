@@ -344,13 +344,14 @@
     codigoNuevoValido = false;
     document.getElementById("acNueva").classList.remove("vis");
     if (v.length < 2) { document.getElementById("acDropdown").style.display = "none"; return; }
-    var q = v.toLowerCase();
+    var norm = function(s) { return (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase(); };
+    var q = norm(v);
     var resultados = instalacionesList.filter(function(i) {
-      return (i.nombre || "").toLowerCase().includes(q) ||
-             (i.municipio || "").toLowerCase().includes(q) ||
-             (i.codigo || "").toLowerCase().includes(q) ||
-             (i.aliases || []).some(function(a) { return (a || "").toLowerCase().includes(q); }) ||
-             (i.aka    || []).some(function(a) { return (a || "").toLowerCase().includes(q); });
+      return norm(i.nombre).includes(q) ||
+             norm(i.municipio).includes(q) ||
+             norm(i.codigo).includes(q) ||
+             (i.aliases || []).some(function(a) { return norm(a).includes(q); }) ||
+             (i.aka    || []).some(function(a) { return norm(a).includes(q); });
     }).slice(0, 8);
     var dropdown = document.getElementById("acDropdown");
     if (!resultados.length) {
