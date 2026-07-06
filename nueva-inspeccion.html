@@ -418,8 +418,14 @@
     fill("localidad", inst.localidad);
     fill("municipio", inst.municipio);
     fill("provincia", inst.provincia);
-    fill("propietario", inst.propietario);
-    fill("cif", inst.cif);
+    if (inst.propietarioId) {
+      var clienteVinc = clientesData.find(function(c) { return c.id === inst.propietarioId; });
+      fill("propietario", clienteVinc ? clienteVinc.nombre : inst.propietario);
+      fill("cif", clienteVinc ? clienteVinc.cif : inst.cif);
+    } else {
+      fill("propietario", inst.propietario);
+      fill("cif", inst.cif);
+    }
     fill("gestor", inst.gestorActual);
     fill("solicitante", inst.solicitanteActual);
     document.getElementById("acDropdown").style.display = "none";
