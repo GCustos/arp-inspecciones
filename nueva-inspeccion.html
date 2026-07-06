@@ -349,7 +349,8 @@
       return (i.nombre || "").toLowerCase().includes(q) ||
              (i.municipio || "").toLowerCase().includes(q) ||
              (i.codigo || "").toLowerCase().includes(q) ||
-             (i.aliases || []).some(function(a) { return (a || "").toLowerCase().includes(q); });
+             (i.aliases || []).some(function(a) { return (a || "").toLowerCase().includes(q); }) ||
+             (i.aka    || []).some(function(a) { return (a || "").toLowerCase().includes(q); });
     }).slice(0, 8);
     var dropdown = document.getElementById("acDropdown");
     if (!resultados.length) {
