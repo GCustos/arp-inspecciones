@@ -138,6 +138,12 @@
     paa: {
       formatoRevision: 9,
       formatoFecha: "26/02/2026"
+    },
+    director: {
+      nombre:     'José Manuel Moreno Vélez',
+      cargo:      'Director Técnico',
+      titulacion: 'Ing. Civil e Ing. de Edificación',
+      colegiado:  'colegiado 7.780',
     }
   };
 
@@ -167,13 +173,15 @@
     try {
       // Cargar configuración
       try {
-        const [ceSnap, paaSnap] = await Promise.all([
+        const [ceSnap, paaSnap, dirSnap] = await Promise.all([
           db.collection('config').doc('empresa').get(),
-          db.collection('config').doc('paa').get()
+          db.collection('config').doc('paa').get(),
+          db.collection('config').doc('director').get()
         ]);
         CONFIG = {
-          empresa: ceSnap.exists ? ceSnap.data() : CONFIG_DEFAULT.empresa,
-          paa: paaSnap.exists ? paaSnap.data() : CONFIG_DEFAULT.paa
+          empresa:  ceSnap.exists  ? ceSnap.data()  : CONFIG_DEFAULT.empresa,
+          paa:      paaSnap.exists ? paaSnap.data() : CONFIG_DEFAULT.paa,
+          director: dirSnap.exists ? dirSnap.data() : CONFIG_DEFAULT.director
         };
       } catch(e) {
         CONFIG = CONFIG_DEFAULT;
@@ -1567,12 +1575,13 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       y += 10;
 
       // Datos firmante
+      const dir = CONFIG?.director || CONFIG_DEFAULT.director;
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-      doc.text('José Manuel Moreno Vélez', PW-MR, y, {align:'right'}); y += 5;
+      doc.text(dir.nombre, PW-MR, y, {align:'right'}); y += 5;
       doc.setFont('helvetica','normal');
-      doc.text('Director Técnico', PW-MR, y, {align:'right'}); y += 5;
-      doc.text('Ing. Civil e Ing. de Edificación', PW-MR, y, {align:'right'}); y += 5;
-      doc.text('colegiado 7.780', PW-MR, y, {align:'right'}); y += 10;
+      doc.text(dir.cargo, PW-MR, y, {align:'right'}); y += 5;
+      doc.text(dir.titulacion, PW-MR, y, {align:'right'}); y += 5;
+      doc.text(dir.colegiado, PW-MR, y, {align:'right'}); y += 10;
 
       doc.text('FIRMA DIGITAL', PW-MR, y, {align:'right'}); y += 15;
 
