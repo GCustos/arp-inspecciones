@@ -2061,9 +2061,9 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
         var fotosD = (nc.fotosDefecto||[]).filter(function(f){ return f && (f.dataUrl || f.url); });
         var nFotos = Math.min(fotosD.length, 3);
 
-        // Estimación altura bloque
-        var descH = descLns.length ? descLns.length*4.5 + (descTrunc ? 6 : 3) : 0;
-        var estH = 9 + (elem ? 6 : 0) + descH + 4 + fH + 4 + 4 + fH + 5 + 6;
+        // Estimación altura bloque (defecto + corrección ahora en la misma fila)
+        var descH = descLns.length ? 4.5 + descLns.length*4.5 + (descTrunc ? 6 : 3) : 0;
+        var estH = 9 + (elem ? 6 : 0) + descH + 2 + 4 + fH + 5 + 6;
 
         if (y + estH > PH - MB - 12) {
           addPiePC(); pgPC++;
@@ -2092,25 +2092,32 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
         // Descripción (máx 4 líneas)
         if (descLns.length) {
           doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-          descLns.forEach(function(l,li){ doc.text(l, ML+2, y+li*4.5); });
+          descLns.forEach(function(l,li){ doc.text(l, ML+2, y+4.5+li*4.5); });
           if (descTrunc) {
             doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
-            doc.text('(texto completo en el informe)', ML+2, y+descLns.length*4.5+1.5);
+            doc.text('(texto completo en el informe)', ML+2, y+4.5+descLns.length*4.5+1.5);
           }
-          y += descLns.length * 4.5 + (descTrunc ? 6 : 3);
+          y += 4.5 + descLns.length * 4.5 + (descTrunc ? 6 : 3);
         }
 
         y += 2;
 
-        // Fotos del defecto (hasta 3 en fila, ancho total)
-        doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(...MUTED);
-        doc.text('Fotografía del defecto:', ML, y); y += 4;
+        // Defecto (izquierda) y Corrección (derecha) en la misma fila
+        var halfW = (CW - 4) / 2;
+        var corrX = ML + halfW + 4;
 
+        // Labels en la misma línea
+        doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(...MUTED);
+        doc.text('Fotografía del defecto:', ML, y);
+        doc.text('Fotografía de corrección:', corrX, y);
+        y += 4;
+
+        // Izquierda: fotos del defecto (hasta 3 en fila dentro del halfW)
         if (nFotos > 0) {
-          var fw = nFotos > 1 ? (CW / nFotos - 2) : CW;
+          var fw = nFotos > 1 ? (halfW / nFotos - 1) : halfW;
           fotosD.slice(0, 3).forEach(function(fd, fi) {
             var fotoSrc = fd.dataUrl || fd.url;
-            var fx = ML + fi * (fw + 2);
+            var fx = ML + fi * (fw + 1);
             try {
               var fmt = fotoSrc.startsWith('data:image/png') ? 'PNG' : 'JPEG';
               var fit = fitImage(doc, fotoSrc, fw, fH);
@@ -2122,22 +2129,20 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
             doc.rect(fx, y, fw, fH, 'D');
           });
         } else {
-          doc.setFillColor(225,225,225); doc.rect(ML, y, CW, fH, 'F');
-          doc.setDrawColor(...BORDER); doc.rect(ML, y, CW, fH, 'D');
+          doc.setFillColor(225,225,225); doc.rect(ML, y, halfW, fH, 'F');
+          doc.setDrawColor(...BORDER); doc.rect(ML, y, halfW, fH, 'D');
           doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
-          doc.text('Sin fotografía del defecto', ML+CW/2, y+fH/2, {align:'center'});
+          doc.text('Sin fotografía', ML + halfW/2, y+fH/2, {align:'center'});
         }
-        y += fH + 4;
 
-        // Caja corrección vacía (borde discontinuo, ancho completo)
-        doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(...MUTED);
-        doc.text('Fotografía de corrección:', ML, y); y += 4;
+        // Derecha: caja corrección vacía (borde discontinuo)
         doc.setDrawColor(...MUTED); doc.setLineWidth(0.5);
         doc.setLineDashPattern([2, 1.5], 0);
-        doc.rect(ML, y, CW, fH, 'D');
+        doc.rect(corrX, y, halfW, fH, 'D');
         doc.setLineDashPattern([], 0);
         doc.setFontSize(9); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
-        doc.text('Foto corrección', ML+CW/2, y+fH/2, {align:'center'});
+        doc.text('Foto corrección', corrX + halfW/2, y+fH/2, {align:'center'});
+
         y += fH + 5;
 
         // Separador
