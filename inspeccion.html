@@ -243,6 +243,15 @@
 
 <div class="err-banner" id="errBanner"></div>
 <div class="lock-banner" id="lockBanner"></div>
+<div class="import-banner" id="bannerSesionFin" style="background:#FFF3E0;border-color:var(--orange)">
+  <p><strong>&#9200; Jornada anterior sin hora de cierre</strong><br>
+  Esta inspección tiene varias jornadas. ¿A qué hora terminaste el <span id="bannerSesionFecha"></span>?</p>
+  <div style="display:flex;gap:8px;align-items:center">
+    <input type="time" id="bannerSesionHora" style="border:1.5px solid var(--orange);border-radius:8px;padding:6px 10px;font-size:15px;flex:1">
+    <button onclick="confirmarHoraFinAnterior()" style="background:var(--orange);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">Guardar</button>
+    <button onclick="document.getElementById('bannerSesionFin').classList.remove('vis')" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1">&#215;</button>
+  </div>
+</div>
 
 <!-- MODAL REABRIR REVISIÓN -->
 <div class="modal-overlay" id="modalReabrir">
@@ -456,7 +465,7 @@
   const inspeccionId = params.get("id");
   if (!inspeccionId) { location.href="inspecciones.html"; }
 
-  let currentUser=null, isDirty=false, cargaIniciada=false;
+  let currentUser=null, isDirty=false, cargaIniciada=false, cargaCompleta=false;
   let docDataFull={}; // FIX: copia íntegra del doc cargado, para respaldo offline completo al completar
   let modalJuegoRef=null, circuitosAnteriores=null;
   let modalNCRef=null;
@@ -468,7 +477,7 @@
   var tiposNCList=["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente","Riesgo de atrapamiento"];
   db.collection("config").doc("paa").get().then(function(snap){if(snap.exists&&snap.data().tiposNC){tiposNCList=snap.data().tiposNC.filter(function(t){return t.activo!==false}).map(function(t){return t.label})}}).catch(function(){});
 
-  const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], ensayos:"", equiposMedicion:[], revision:0, historialRevisiones:[], nRegistro:"", codigoInstalacion:"", tipoAlcance:"", estado:"borrador", fechaInspeccion:"", horaInicio:"", horaFin:"" };
+  const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], ensayos:"", equiposMedicion:[], revision:0, historialRevisiones:[], nRegistro:"", codigoInstalacion:"", tipoAlcance:"", estado:"borrador", fechaInspeccion:"", horaInicio:"", horaFin:"", sesiones:[] };
 
   const GEN_ITEMS = [
     {id:"g1",ref:"4.1",sec:"Selección de Lugar y Entorno",desc:"Evacuación posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosión)."},
@@ -802,6 +811,27 @@
       S.fechaInspeccion=data.fechaInspeccion||"";
       S.horaInicio=data.horaInicio||"";
       S.horaFin=data.horaFin||"";
+      S.sesiones=(data.sesiones||[]).slice();
+      // Detectar nueva jornada: si hoy es distinto a fechaInspeccion y la inspección está en curso
+      if (S.estado !== 'completada') {
+        var _hoyISO = new Date().toISOString().split('T')[0];
+        var _tieneHoy = S.sesiones.some(function(s){ return s.fecha === _hoyISO; });
+        if (!_tieneHoy && S.fechaInspeccion && _hoyISO !== S.fechaInspeccion) {
+          var _sesFin = S.sesiones.length ? S.sesiones[S.sesiones.length-1] : null;
+          // Mostrar banner si la sesión anterior no tiene horaFin
+          if (_sesFin && !_sesFin.horaFin) {
+            document.getElementById('bannerSesionFecha').textContent = typeof fmtFecha==='function' ? fmtFecha(_sesFin.fecha) : _sesFin.fecha;
+            document.getElementById('bannerSesionFin').classList.add('vis');
+            window._bannerSesionFechaTarget = _sesFin.fecha;
+          }
+          var _nuevaSes = {fecha:_hoyISO, horaInicio:'', horaFin:''};
+          S.sesiones.push(_nuevaSes);
+          db.collection('inspecciones').doc(inspeccionId)
+            .update({sesiones: firebase.firestore.FieldValue.arrayUnion(_nuevaSes)})
+            .catch(function(e){ console.warn('No se pudo registrar sesión del día:', e.message); });
+        }
+      }
+      cargaCompleta = true;
       if(data.equiposMedicion&&data.equiposMedicion.length) {
         S.equiposMedicion=data.equiposMedicion;
       } else {
@@ -1619,21 +1649,28 @@
     });
     // serverTimestamp no se puede sanitizar — restaurar
     payload.ultimaModificacion = firebase.firestore.FieldValue.serverTimestamp();
+    // sesiones fuera de sanitizar (no se puede serializar a "")
+    if (S.sesiones.length) payload.sesiones = S.sesiones;
     return payload;
   }
 
   // Auto-captura hora inicio en el primer guardado si está vacía
   function autoCapturarHoraInicio() {
+    var ahoraStr = new Date().toTimeString().slice(0, 5);
     if (!S.horaInicio) {
-      var ahora = new Date();
-      S.horaInicio = ahora.toTimeString().slice(0, 5);
+      S.horaInicio = ahoraStr;
       var inp = document.getElementById("inpHoraInicio");
       if (inp) inp.value = S.horaInicio;
     }
+    // También en la sesión de hoy (multi-jornada)
+    var _hoyISO2 = new Date().toISOString().split('T')[0];
+    var _sesHoy = S.sesiones.find(function(s){ return s.fecha === _hoyISO2; });
+    if (_sesHoy && !_sesHoy.horaInicio) _sesHoy.horaInicio = ahoraStr;
   }
 
   // FIX: guardar silencioso para autoguardado
   async function guardarSilencioso(){
+    if (!cargaCompleta) return; // P3: no guardar antes de que carguen los datos del servidor
     autoCapturarHoraInicio();
     try {
       await db.collection("inspecciones").doc(inspeccionId).update(buildPayload("en_curso"));
@@ -1711,11 +1748,16 @@
     }
     // Auto-captura horas (solo después de pasar todas las validaciones)
     autoCapturarHoraInicio();
+    var _ahoraFin = new Date().toTimeString().slice(0, 5);
     if (!S.horaFin) {
-      S.horaFin = new Date().toTimeString().slice(0, 5);
+      S.horaFin = _ahoraFin;
       var inpHF = document.getElementById("inpHoraFin");
       if (inpHF) inpHF.value = S.horaFin;
     }
+    // Registrar horaFin en la sesión de hoy (multi-jornada)
+    var _hoyISOFin = new Date().toISOString().split('T')[0];
+    var _sesHoyFin = S.sesiones.find(function(s){ return s.fecha === _hoyISOFin; });
+    if (_sesHoyFin && !_sesHoyFin.horaFin) _sesHoyFin.horaFin = _ahoraFin;
     const ncsBloqueantes=S.ncs.filter(n=>n.prio&&n.prio!=="OBSERVACION"&&!n.cerrada);
     const resultado=ncsBloqueantes.length===0?"FAVORABLE":"DESFAVORABLE";
     const msg=ncsBloqueantes.length===0
@@ -1814,6 +1856,18 @@
   }
 
   window.addEventListener("beforeunload",e=>{ if(isDirty){ e.preventDefault(); e.returnValue=""; } });
+  function confirmarHoraFinAnterior() {
+    var hora = document.getElementById('bannerSesionHora').value;
+    if (!hora) { alert('Introduce la hora de fin.'); return; }
+    var fecha = window._bannerSesionFechaTarget;
+    var ses = S.sesiones.find(function(s){ return s.fecha === fecha; });
+    if (ses) {
+      ses.horaFin = hora;
+      guardarSilencioso();
+    }
+    document.getElementById('bannerSesionFin').classList.remove('vis');
+  }
+
   function updateOnline(){ document.getElementById("offlineBadge").classList.toggle("visible",!navigator.onLine); }
   window.addEventListener("online",updateOnline);
   window.addEventListener("offline",updateOnline);

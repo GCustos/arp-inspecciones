@@ -1697,8 +1697,8 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
         var isLast = si === allSes.length - 1;
         var sesFecha = si === 0 ? (D.fechaInspeccion || ses.fecha || '') : (ses.fecha || '');
         var hist = histRev[si] || {};
-        var sesHoraI = isLast ? (D.horaInicio || '') : (hist.horaInicio || ses.horaInicio || '');
-        var sesHoraF = isLast ? (D.horaFin || '') : (hist.horaFin || ses.horaFin || '');
+        var sesHoraI = ses.horaInicio || (isLast ? (D.horaInicio || '') : (hist.horaInicio || ''));
+        var sesHoraF = ses.horaFin || (isLast ? (D.horaFin || '') : (hist.horaFin || ''));
         doc.setDrawColor(...DARK);
         doc.rect(ML, y, CW*0.63, 8, 'D');
         doc.rect(ML+CW*0.65, y, CW*0.15, 8, 'D');
