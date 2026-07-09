@@ -304,6 +304,7 @@
         <button class="btn-pdf btn-registro" onclick="generarRegistro()">
           &#128203; Generar Registro
         </button>
+        ${(D.ncs||[]).filter(function(n){return n.prio&&n.prio!=='OBSERVACION';}).length?`<button class="btn-pdf" style="background:#2C3E50;color:white;" onclick="generarPlanCorrecciones()">&#9998; Plan de Correcciones (cliente)</button>`:''}
       </div>
 
       ${(D_actual.historialRevisiones&&D_actual.historialRevisiones.length)?`
@@ -1165,7 +1166,8 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         }
         var ncsAbiertas = ncsDelCol.filter(function(n){ return !n.cerrada; });
         var todasCerradas = ncsDelCol.length > 0 && ncsAbiertas.length === 0;
-        const notaCol = ncsDelCol.map(function(n){ ncNumGlobal++; return (n.cerrada?'(✓) ':'')+ncNumGlobal+'. '+(getNcElem(n)+(n.desc?' — '+n.desc:'')); }).join(' ');
+        var _ncItemsFull = ncsDelCol.map(function(n){ ncNumGlobal++; return (n.cerrada?'(✓) ':'')+ncNumGlobal+'. '+(getNcElem(n)+(n.desc?' — '+n.desc:'')); });
+        var notaCol = _ncItemsFull.slice(0,5).join(' ') + (_ncItemsFull.length > 5 ? ' ... y '+(_ncItemsFull.length-5)+' más (ver Listado)' : '');
 
         // Color fila según NC más grave ABIERTA del criterio
         const prioCol = ncsAbiertas.length ? ncsAbiertas.reduce((max,n) => {
@@ -1312,17 +1314,23 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
           doc.text(`${ncIdx+1}. ${nc.tipo||'Sin tipo'}`, ML+2, y+5.5); y += 8;
 
-          // Elementos afectados (agrupados) con gravedad a la derecha
+          // Elementos afectados (agrupados) con gravedad a la derecha — máx 8 visibles
           if (nc.elems.length) {
-            var elemH = Math.max(7, nc.elems.length * 5 + 2);
+            var elemsVis = nc.elems.slice(0, 8);
+            var elemsExtra = nc.elems.length - elemsVis.length;
+            var elemH = Math.max(7, (elemsVis.length + (elemsExtra ? 1 : 0)) * 5 + 2);
             doc.setFillColor(...WHITE); doc.rect(ML, y, CW, elemH, 'FD');
-            nc.elems.forEach(function(el, ei) {
+            elemsVis.forEach(function(el, ei) {
               doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
               doc.text('• ' + el.texto, ML+2, y + 4.5 + ei*5, {maxWidth:CW-30});
               var elColor = colorNC(el.prio);
               doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...elColor);
               doc.text(el.prio||'', PW-MR-2, y + 4.5 + ei*5, {align:'right'});
             });
+            if (elemsExtra > 0) {
+              doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
+              doc.text('... y ' + elemsExtra + ' elemento' + (elemsExtra > 1 ? 's' : '') + ' más con el mismo defecto', ML+2, y + 4.5 + elemsVis.length*5);
+            }
             y += elemH;
           }
 
@@ -1979,6 +1987,185 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
     } catch(e) {
       hideGenerating();
       alert('Error generando registro: ' + e.message);
+      console.error(e);
+    }
+  }
+
+  async function generarPlanCorrecciones() {
+    if (!D) return;
+    var ncsConPrio = (D.ncs||[]).filter(function(n){ return n.prio && n.prio !== 'OBSERVACION'; });
+    if (!ncsConPrio.length) { alert('No hay no conformidades para incluir en el plan.'); return; }
+
+    showGenerating('Generando Plan de Correcciones...', 'Cargando fotos...');
+
+    // Preload fotos defecto (si no estaban ya cargadas por generarInforme)
+    for (var _i = 0; _i < (D.ncs||[]).length; _i++) {
+      var _nc = D.ncs[_i];
+      for (var _j = 0; _j < (_nc.fotosDefecto||[]).length; _j++) {
+        var _f = _nc.fotosDefecto[_j];
+        if (!_f.dataUrl) {
+          try { _f.dataUrl = await loadImageAsBase64(_f.url, _f.localKey); } catch(e){}
+        }
+      }
+    }
+
+    await new Promise(function(r){ setTimeout(r, 80); });
+    showGenerating('Generando Plan de Correcciones...', 'Preparando páginas...');
+
+    try {
+      const PRIO_PC = {GRAVE:4,MEDIA:3,LEVE:2,DOCUMENTAL:1,OBSERVACION:0};
+      var gruposPC = {};
+      ncsConPrio.forEach(function(nc) {
+        var key = nc.tipo || 'Sin tipo';
+        if (!gruposPC[key]) gruposPC[key] = { tipo:key, prio:nc.prio||'', elems:[], descs:[], fotosDefecto:[] };
+        var g = gruposPC[key];
+        if ((PRIO_PC[nc.prio]||0) > (PRIO_PC[g.prio]||0)) g.prio = nc.prio;
+        var el = getNcElem(nc); if (el) g.elems.push(el);
+        if (nc.desc) g.descs.push(nc.desc);
+        if (nc.fotosDefecto && nc.fotosDefecto.length) {
+          var fd0 = nc.fotosDefecto[0];
+          if (fd0 && (fd0.dataUrl || fd0.url)) g.fotosDefecto.push(fd0);
+        }
+      });
+      var gruposArr = Object.values(gruposPC).sort(function(a,b){ return (PRIO_PC[b.prio]||0)-(PRIO_PC[a.prio]||0); });
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
+      const ref = getNRegistro();
+      var pgPC = 1;
+
+      function addPiePC() {
+        doc.setDrawColor(...GOLD); doc.setLineWidth(0.3);
+        doc.line(ML, PH-10, PW-MR, PH-10);
+        doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+        doc.text(ref, PW/2, PH-7, {align:'center'});
+        doc.text('Página ' + pgPC, PW-MR, PH-7, {align:'right'});
+      }
+
+      var y = MT;
+      var halfW = (CW - 5) / 2;
+      var fH = 50;
+
+      // Cabecera primera página
+      try { doc.addImage('data:image/jpeg;base64,'+LOGO_B64,'JPEG', ML, y-2, 28, 20); } catch(e){}
+      doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+      var empPC = (CONFIG && CONFIG.empresa && CONFIG.empresa.nombreCorto) || 'Arp Prevención S.L.';
+      doc.text(empPC, PW-MR, y+4, {align:'right'});
+      doc.text(ref, PW-MR, y+9, {align:'right'});
+      doc.text(fmtFecha(D.fechaInspeccion||''), PW-MR, y+14, {align:'right'});
+      doc.setDrawColor(...GOLD); doc.setLineWidth(0.5);
+      doc.line(ML, y+18, PW-MR, y+18);
+      y += 24;
+
+      doc.setFontSize(15); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
+      doc.text('PLAN DE CORRECCIONES', PW/2, y, {align:'center'}); y += 7;
+      doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+      doc.text(D.nombreInstalacion||'', PW/2, y, {align:'center'}); y += 10;
+
+      doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
+      var introLines = doc.splitTextToSize('Documento de no conformidades detectadas en la inspección. Para cada defecto se muestra fotografía del estado observado y espacio para fotografía acreditativa de la corrección realizada.', CW);
+      introLines.forEach(function(l,li){ doc.text(l, ML, y+li*5); });
+      y += introLines.length * 5 + 8;
+
+      gruposArr.forEach(function(nc, ncIdx) {
+        var ncColor = colorNC(nc.prio);
+        var ncBg = bgNC(nc.prio);
+        var elemsVis = nc.elems.slice(0, 6);
+        var elemsExtra = nc.elems.length - elemsVis.length;
+        var descTexto = nc.descs.filter(Boolean).join('. ');
+        var descLns = descTexto ? doc.splitTextToSize(descTexto, CW-4) : [];
+        var estH = 10 + elemsVis.length*5 + (elemsExtra?5:0) + (descLns.length ? descLns.length*4.5+6 : 0) + 8 + fH + 10;
+
+        if (y + estH > PH - MB - 12) {
+          addPiePC(); pgPC++;
+          doc.addPage(); y = MT;
+        }
+
+        // Cabecera NC
+        doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.3);
+        doc.rect(ML, y, CW, 9, 'FD');
+        var badgeW = 30;
+        doc.setFillColor(...ncBg); doc.setDrawColor(...ncColor); doc.setLineWidth(0.4);
+        doc.rect(PW-MR-badgeW, y+1, badgeW, 7, 'FD');
+        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...ncColor);
+        doc.text(nc.prio, PW-MR-badgeW/2, y+5.5, {align:'center'});
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+        doc.text((ncIdx+1)+'. '+nc.tipo, ML+2, y+5.8, {maxWidth:CW-badgeW-6});
+        y += 9;
+
+        // Elementos afectados
+        if (elemsVis.length) {
+          elemsVis.forEach(function(el, ei) {
+            doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+            doc.text('• '+el, ML+2, y+4.5+ei*5, {maxWidth:CW-4});
+          });
+          y += elemsVis.length * 5 + 2;
+        }
+        if (elemsExtra > 0) {
+          doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
+          doc.text('... y '+elemsExtra+' elemento'+(elemsExtra>1?'s':'')+' más con el mismo defecto', ML+2, y);
+          y += 5;
+        }
+
+        // Descripción del defecto
+        if (descLns.length) {
+          y += 2;
+          doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+          descLns.forEach(function(l,li){ doc.text(l, ML+2, y+li*4.5); });
+          y += descLns.length * 4.5 + 4;
+        }
+
+        y += 3;
+
+        // Labels columnas foto
+        doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(...MUTED);
+        doc.text('Fotografía del defecto:', ML, y);
+        doc.text('Fotografía de corrección:', ML+halfW+5, y);
+        y += 4;
+
+        // Foto defecto (izquierda)
+        var fd = nc.fotosDefecto[0];
+        var fotoSrc = fd ? (fd.dataUrl || fd.url) : null;
+        if (fotoSrc) {
+          try {
+            var fmt = fotoSrc.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+            var fit = fitImage(doc, fotoSrc, halfW, fH);
+            var ox = (halfW - fit.w) / 2;
+            var oy = (fH - fit.h) / 2;
+            doc.addImage(fotoSrc, fmt, ML+ox, y+oy, fit.w, fit.h);
+          } catch(e) {}
+          doc.setDrawColor(...BORDER); doc.setLineWidth(0.2);
+          doc.rect(ML, y, halfW, fH, 'D');
+        } else {
+          doc.setFillColor(230,230,230); doc.rect(ML, y, halfW, fH, 'F');
+          doc.setDrawColor(...BORDER); doc.rect(ML, y, halfW, fH, 'D');
+          doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
+          doc.text('Sin foto', ML+halfW/2, y+fH/2, {align:'center'});
+        }
+
+        // Caja corrección vacía (borde discontinuo, derecha)
+        doc.setDrawColor(...MUTED); doc.setLineWidth(0.5);
+        doc.setLineDashPattern([2, 1.5], 0);
+        doc.rect(ML+halfW+5, y, halfW, fH, 'D');
+        doc.setLineDashPattern([], 0);
+        doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
+        doc.text('Foto corrección', ML+halfW+5+halfW/2, y+fH/2, {align:'center'});
+
+        y += fH + 6;
+
+        // Separador fino
+        doc.setDrawColor(...BORDER); doc.setLineWidth(0.2);
+        doc.line(ML, y, PW-MR, y);
+        y += 6;
+      });
+
+      addPiePC();
+      var fileName = (ref.replace(/\//g,'_')||'plan') + '_CORRECCIONES.pdf';
+      doc.save(fileName);
+      hideGenerating();
+    } catch(e) {
+      hideGenerating();
+      alert('Error generando plan de correcciones: ' + e.message);
       console.error(e);
     }
   }
