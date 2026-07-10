@@ -1451,13 +1451,13 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       // Fecha(s) y nombre inspector — portada muestra todas las visitas sin horas
       const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
       const portadaSes = D.sesiones && D.sesiones.length ? D.sesiones : [{fecha:D.fechaInspeccion||''}];
-      const diasArr = portadaSes.map((s,i) => {
-        const raw = i===0 ? (D.fechaInspeccion||s.fecha||'') : (s.fecha||'');
-        const f = fmtFecha(raw);
-        if (!f) return '';
-        try { const p=f.split('/'); return diasSemana[new Date(`${p[2]}-${p[1]}-${p[0]}`).getDay()]+', '+f; }
-        catch(e) { return f; }
-      }).filter(Boolean);
+      const lastSes = portadaSes[portadaSes.length - 1];
+      const lastRaw = lastSes.fecha || D.fechaInspeccion || '';
+      const lastFmt = fmtFecha(lastRaw);
+      const diasArr = lastFmt ? (() => {
+        try { const p=lastFmt.split('/'); return [diasSemana[new Date(`${p[2]}-${p[1]}-${p[0]}`).getDay()]+', '+lastFmt]; }
+        catch(e) { return [lastFmt]; }
+      })() : [];
 
       doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       diasArr.forEach(ds => { doc.text(ds, PW/2, y, {align:'center'}); y += 6; });
