@@ -792,7 +792,7 @@
       if(!snap.exists){ showError('Inspección no encontrada. ID: '+inspeccionId); return; }
       const data = snap.data();
       docDataFull=data;
-      if(miRol==="inspector"&&data.inspectorEmail!==currentUser.email){
+      if(miRol==="inspector"&&data.inspectorEmail!==currentUser.email&&data.inspector2Email!==currentUser.email){
         alert("No tienes acceso a esta inspección."); location.href="inspecciones.html"; return;
       }
       if(data.checklist) Object.assign(S.gen,data.checklist);

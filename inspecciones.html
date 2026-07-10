@@ -127,9 +127,21 @@
         document.getElementById('btnAdminLink').style.display = 'flex';
         q = db.collection('inspecciones').orderBy('fechaCreacion', 'desc');
       } else {
-        q = db.collection('inspecciones')
+        const q1 = db.collection('inspecciones')
           .where('inspectorEmail', '==', currentUser.email)
           .orderBy('fechaCreacion', 'desc');
+        const q2 = db.collection('inspecciones')
+          .where('inspector2Email', '==', currentUser.email)
+          .orderBy('fechaCreacion', 'desc');
+        const [snap1, snap2] = await Promise.all([q1.get(), q2.get()]);
+        const seen = new Set();
+        const lista = [];
+        [snap1, snap2].forEach(snap => snap.forEach(d => {
+          if (!seen.has(d.id)) { seen.add(d.id); lista.push({ id: d.id, ...d.data() }); }
+        }));
+        lista.sort((a, b) => (b.fechaCreacion?.seconds || 0) - (a.fechaCreacion?.seconds || 0));
+        renderInspecciones(lista);
+        return;
       }
       // FIX: Firestore con persistencia usa caché automáticamente offline
       // No necesita source:'cache' explícito — funciona solo
