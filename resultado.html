@@ -1448,16 +1448,16 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       y = addTextBlock(doc, TEXTO_CARACTERISTICAS, ML, y, CW, 9, DARK, 'normal', 5, PH-40, ref, fmtRev, fmtFechaStr, nPag, totPag);
       y += 10;
 
-      // Fecha(s) y nombre inspector — portada muestra todas las visitas sin horas
+      // Fecha(s) y nombre inspector — ultima hoja muestra solo la ultima visita
       const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
       const portadaSes = D.sesiones && D.sesiones.length ? D.sesiones : [{fecha:D.fechaInspeccion||''}];
-      const diasArr = portadaSes.map((s,i) => {
-        const raw = i===0 ? (D.fechaInspeccion||s.fecha||'') : (s.fecha||'');
-        const f = fmtFecha(raw);
-        if (!f) return '';
-        try { const p=f.split('/'); return diasSemana[new Date(`${p[2]}-${p[1]}-${p[0]}`).getDay()]+', '+f; }
-        catch(e) { return f; }
-      }).filter(Boolean);
+      const lastSesInf = portadaSes[portadaSes.length - 1];
+      const lastRawInf = portadaSes.length > 1 ? (lastSesInf.fecha||'') : (D.fechaInspeccion||lastSesInf.fecha||'');
+      const lastFmtInf = fmtFecha(lastRawInf);
+      const diasArr = lastFmtInf ? (() => {
+        try { const p=lastFmtInf.split('/'); return [diasSemana[new Date(`${p[2]}-${p[1]}-${p[0]}`).getDay()]+', '+lastFmtInf]; }
+        catch(e) { return [lastFmtInf]; }
+      })() : [];
 
       doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       diasArr.forEach(ds => { doc.text(ds, PW/2, y, {align:'center'}); y += 6; });
@@ -1689,25 +1689,26 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       // Fecha + hora — una fila por visita (Rev.0, Rev.1, Rev.2…)
       var allSes = D.sesiones && D.sesiones.length ? D.sesiones : [{fecha:D.fechaInspeccion||'',horaInicio:'',horaFin:''}];
       var histRev = D.historialRevisiones || [];
-      var lastSesReg = allSes[allSes.length - 1];
-      var lastSesIdx = allSes.length - 1;
-      var lastSesHist = histRev[lastSesIdx] || {};
-      var lastSesFecha = lastSesIdx === 0 ? (D.fechaInspeccion || lastSesReg.fecha || '') : (lastSesReg.fecha || '');
-      var lastSesHoraI = lastSesReg.horaInicio || D.horaInicio || lastSesHist.horaInicio || '';
-      var lastSesHoraF = lastSesReg.horaFin   || D.horaFin   || lastSesHist.horaFin   || '';
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      doc.text('FECHA DE INSPECCION', ML, y);
+      doc.text(allSes.length > 1 ? 'FECHAS DE INSPECCION' : 'FECHA DE INSPECCION', ML, y);
       doc.text('Hora de inicio', ML+CW*0.65, y);
       doc.text('Hora fin', ML+CW*0.82, y); y += 4;
-      doc.setDrawColor(...DARK);
-      doc.rect(ML, y, CW*0.63, 8, 'D');
-      doc.rect(ML+CW*0.65, y, CW*0.15, 8, 'D');
-      doc.rect(ML+CW*0.82, y, CW*0.18, 8, 'D');
-      doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      doc.text(fmtFecha(lastSesFecha), ML+2, y+5.5);
-      doc.text(lastSesHoraI, ML+CW*0.65+2, y+5.5);
-      doc.text(lastSesHoraF, ML+CW*0.82+2, y+5.5);
-      y += 12;
+      allSes.forEach(function(ses, si) {
+        var isLast = si === allSes.length - 1;
+        var sesFecha = si === 0 ? (D.fechaInspeccion || ses.fecha || '') : (ses.fecha || '');
+        var hist = histRev[si] || {};
+        var sesHoraI = ses.horaInicio || (isLast ? (D.horaInicio || '') : (hist.horaInicio || ''));
+        var sesHoraF = ses.horaFin || (isLast ? (D.horaFin || '') : (hist.horaFin || ''));
+        doc.setDrawColor(...DARK);
+        doc.rect(ML, y, CW*0.63, 8, 'D');
+        doc.rect(ML+CW*0.65, y, CW*0.15, 8, 'D');
+        doc.rect(ML+CW*0.82, y, CW*0.18, 8, 'D');
+        doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text(fmtFecha(sesFecha), ML+2, y+5.5);
+        doc.text(sesHoraI, ML+CW*0.65+2, y+5.5);
+        doc.text(sesHoraF, ML+CW*0.82+2, y+5.5);
+        y += 12;
+      });
 
       // Lugar
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
