@@ -85,6 +85,8 @@
     .juego-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
     .dot-ok{background:var(--green)}
     .dot-n{background:var(--orange)}
+    .dot-empty{background:white;border:1.5px solid var(--border)}
+    .foto-juego-hdr{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:2px;flex-shrink:0}
     .dot-empty{background:var(--border)}
     .juego-hdr-name{flex:1;font-size:13px;font-weight:600;color:var(--dark)}
     .juego-hdr-meta{font-size:10px;color:var(--muted);font-family:monospace}
@@ -1102,6 +1104,12 @@
     renderCircuitos();
   }
 
+  function irAlJuego(ci,ji){
+    var cb=document.getElementById('cb_'+ci);
+    if(cb&&!cb.classList.contains('open')) toggleCircuito(ci);
+    abrirJuegoMovil(ci,ji);
+  }
+
   function navJuego(ci,ji,dir){
     const total=S.circuitos[ci].juegos.length;
     const siguiente=ji+dir;
@@ -1170,6 +1178,7 @@
         const todoOk=COLS.every(col=>j[col.key]==="S"||j[col.key]==="NA");
         const hayNj=COLS.some(col=>j[col.key]==="N");
         const dotCls=hayNj?'dot-n':todoOk?'dot-ok':'dot-empty';
+        const nFotos=j.fotos&&j.fotos.length||0;
         const isOpen=jAb===ji;
         const esUltimo=ji===circ.juegos.length-1;
         const cuerpo=isOpen?`
@@ -1221,6 +1230,7 @@
               <div class="juego-dot ${dotCls}"></div>
               <div class="juego-hdr-name">${j.nombre||`Juego ${ji+1}`}</div>
               <span class="juego-hdr-meta">${j.tipo}${j.rama?' · '+j.rama:''}</span>
+              ${nFotos?`<span class="foto-juego-hdr">&#128247;${nFotos}</span>`:''}
               <span class="juego-toggle ${isOpen?'open':''}">&#9654;</span>
             </div>
             ${cuerpo}
@@ -1230,13 +1240,13 @@
       return `<div class="circ-card" data-ci="${ci}">
         <div class="circ-header" onclick="toggleCircuito(${ci})">
           <span class="drag-handle circ-handle" onclick="event.stopPropagation()" title="Arrastrar circuito">&#8285;</span>
-          <span class="circ-toggle open" id="ct_${ci}">&#9654;</span>
+          <span class="circ-toggle ${ci===0?'open':''}" id="ct_${ci}">&#9654;</span>
           <span class="circ-nombre">${circ.nombre}</span>
           <button onclick="event.stopPropagation();renombrarCircuito(${ci})" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:2px 6px;flex-shrink:0" title="Renombrar circuito">&#9998;</button>
           <button onclick="event.stopPropagation();delCircuito(${ci})" style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;padding:2px 6px;flex-shrink:0;opacity:.6" title="Borrar circuito">&#128465;</button>
           <span class="circ-stats" style="color:${hayN?'var(--orange)':ok===total&&total>0?'var(--green)':'var(--muted)'}">${ok}/${total} OK</span>
         </div>
-        <div class="circ-body open" id="cb_${ci}">
+        <div class="circ-body ${ci===0?'open':''}" id="cb_${ci}">
           ${tablaPC}
           <div class="juegos-movil"><div id="mlist-${ci}">${juegosMovil}</div>
             <button class="btn-add-juego" onclick="addJuegoToCircuito(${ci})">&#43; Añadir juego</button>
@@ -1697,15 +1707,19 @@
 
   async function completar(){
     // Validar fotos de juegos
-    var juegosSinFoto=[];
+    var juegosSinFoto=[]; var firstFoto={ci:-1,ji:-1};
     S.circuitos.forEach(function(c,ci){
       (c.juegos||[]).forEach(function(j,ji){
-        if(!(j.fotos&&j.fotos.length)) juegosSinFoto.push(c.nombre+" — "+(j.nombre||"Juego "+(ji+1)));
+        if(!(j.fotos&&j.fotos.length)){
+          juegosSinFoto.push(c.nombre+" — "+(j.nombre||"Juego "+(ji+1)));
+          if(firstFoto.ci<0){firstFoto={ci,ji};}
+        }
       });
     });
     if(juegosSinFoto.length){
       goTab(2);
       alert("Faltan fotos en "+juegosSinFoto.length+" juego(s):\n"+juegosSinFoto.slice(0,5).join("\n")+(juegosSinFoto.length>5?"\n...y "+(juegosSinFoto.length-5)+" más":""));
+      irAlJuego(firstFoto.ci,firstFoto.ji);
       return;
     }
     // Validar fotos de NC (al menos 1 foto de defecto por NC no cerrada)
@@ -1731,12 +1745,15 @@
       return;
     }
     // Validar columnas de juegos completas
-    var juegosSinCol=[];
+    var juegosSinCol=[]; var firstCol={ci:-1,ji:-1};
     S.circuitos.forEach(function(c,ci){
       (c.juegos||[]).forEach(function(j,ji){
         var vacias=COLS.filter(function(col){ return !j[col.key]; });
-        if(vacias.length) juegosSinCol.push(c.nombre+' — '+(j.nombre||'Juego '+(ji+1))+
-          ' ('+vacias.map(function(col){ return COL_LABELS[col.key]||col.key; }).join(', ')+')');
+        if(vacias.length){
+          juegosSinCol.push(c.nombre+' — '+(j.nombre||'Juego '+(ji+1))+
+            ' ('+vacias.map(function(col){ return COL_LABELS[col.key]||col.key; }).join(', ')+')');
+          if(firstCol.ci<0){firstCol={ci,ji};}
+        }
       });
     });
     if(juegosSinCol.length){
@@ -1744,6 +1761,7 @@
       alert('Faltan columnas por marcar en '+juegosSinCol.length+' juego(s):\n'+
         juegosSinCol.slice(0,5).join('\n')+
         (juegosSinCol.length>5?'\n...y '+(juegosSinCol.length-5)+' más':''));
+      irAlJuego(firstCol.ci,firstCol.ji);
       return;
     }
     // Auto-captura horas (solo después de pasar todas las validaciones)
