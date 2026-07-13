@@ -412,8 +412,8 @@
         <button class="btn-foto" onclick="document.getElementById('modalNCFotoCam').click()">&#128247; Cámara</button>
         <button class="btn-foto" onclick="document.getElementById('modalNCFotoGal').click()">&#128444; Galería</button>
       </div>
-      <input type="file" id="modalNCFotoCam" accept="image/*" capture="environment" style="display:none" onchange="handleFotoNC(this)">
-      <input type="file" id="modalNCFotoGal" accept="image/*" style="display:none" onchange="handleFotoNC(this)">
+      <input type="file" id="modalNCFotoCam" accept="image/*" capture="environment" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="handleFotoNC(this)">
+      <input type="file" id="modalNCFotoGal" accept="image/*" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="handleFotoNC(this)">
       <div id="modalNCFotoPreview" style="margin-top:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px"></div>
     </div>
     <!-- FIX: Botón cancelar que revierte el N -->
@@ -433,8 +433,8 @@
       <button class="btn-foto" onclick="document.getElementById('fileInputJuegoCam').click()">&#128247; Cámara</button>
       <button class="btn-foto" onclick="document.getElementById('fileInputJuegoGal').click()">&#128444; Galería</button>
     </div>
-    <input type="file" id="fileInputJuegoCam" accept="image/*" capture="environment" multiple style="display:none" onchange="handleFotosJuego(this)">
-    <input type="file" id="fileInputJuegoGal" accept="image/*" multiple style="display:none" onchange="handleFotosJuego(this)">
+    <input type="file" id="fileInputJuegoCam" accept="image/*" capture="environment" multiple style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="handleFotosJuego(this)">
+    <input type="file" id="fileInputJuegoGal" accept="image/*" multiple style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="handleFotosJuego(this)">
   </div>
 </div>
 
@@ -1518,8 +1518,8 @@
               <button class="btn-foto" onclick="document.getElementById('ncDefCam${i}').click()">&#128247; Cámara</button>
               <button class="btn-foto" onclick="document.getElementById('ncDefGal${i}').click()">&#128444; Galería</button>
             </div>
-            <input type="file" id="ncDefCam${i}" accept="image/*" capture="environment" style="display:none" onchange="handleFotoDefecto(this,${i})">
-            <input type="file" id="ncDefGal${i}" accept="image/*" style="display:none" onchange="handleFotoDefecto(this,${i})">
+            <input type="file" id="ncDefCam${i}" accept="image/*" capture="environment" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="handleFotoDefecto(this,${i})">
+            <input type="file" id="ncDefGal${i}" accept="image/*" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="handleFotoDefecto(this,${i})">
           </div>
           <div class="nc-close-box">
             <div class="nc-close-row">
@@ -1542,8 +1542,8 @@
               <button class="btn-foto" onclick="document.getElementById('ncCorrCam${i}').click()">&#128247; Cámara</button>
               <button class="btn-foto" onclick="document.getElementById('ncCorrGal${i}').click()">&#128444; Galería</button>
             </div>
-            <input type="file" id="ncCorrCam${i}" accept="image/*" capture="environment" style="display:none" onchange="handleFotoCorreccion(this,${i})">
-            <input type="file" id="ncCorrGal${i}" accept="image/*" style="display:none" onchange="handleFotoCorreccion(this,${i})">
+            <input type="file" id="ncCorrCam${i}" accept="image/*" capture="environment" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="handleFotoCorreccion(this,${i})">
+            <input type="file" id="ncCorrGal${i}" accept="image/*" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="handleFotoCorreccion(this,${i})">
           </div>
         </div>`;
     }).join("");
