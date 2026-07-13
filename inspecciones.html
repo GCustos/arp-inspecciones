@@ -130,15 +130,19 @@
         const q1 = db.collection('inspecciones')
           .where('inspectorEmail', '==', currentUser.email)
           .orderBy('fechaCreacion', 'desc');
+        // q2 sin orderBy — evita índice compuesto inexistente; el sort se hace en JS
         const q2 = db.collection('inspecciones')
-          .where('inspector2Email', '==', currentUser.email)
-          .orderBy('fechaCreacion', 'desc');
-        const [snap1, snap2] = await Promise.all([q1.get(), q2.get()]);
+          .where('inspector2Email', '==', currentUser.email);
+        const snap1 = await q1.get();
         const seen = new Set();
         const lista = [];
-        [snap1, snap2].forEach(snap => snap.forEach(d => {
-          if (!seen.has(d.id)) { seen.add(d.id); lista.push({ id: d.id, ...d.data() }); }
-        }));
+        snap1.forEach(d => { seen.add(d.id); lista.push({ id: d.id, ...d.data() }); });
+        try {
+          const snap2 = await q2.get();
+          snap2.forEach(d => {
+            if (!seen.has(d.id)) { seen.add(d.id); lista.push({ id: d.id, ...d.data() }); }
+          });
+        } catch(e2) { console.warn('inspector2 query falló (índice?):', e2.message); }
         lista.sort((a, b) => (b.fechaCreacion?.seconds || 0) - (a.fechaCreacion?.seconds || 0));
         renderInspecciones(lista);
         return;
