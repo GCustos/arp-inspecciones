@@ -651,7 +651,7 @@
         codigoInstalacion = instalacionSeleccionada.codigo || "";
         // FIX: completar datos pendientes, y proponer/aplicar cambios sobre datos reales según rol
         var PENDIENTE = "__PENDIENTE__";
-        var esAdminODirector = (userData.rol === "admin" || userData.rol === "director");
+        var esAdminODirector = (userData.rol === "admin" || userData.rol === "director" || userData.rol === "proyecto");
         var actualizacion = {};
         var cambiosPropuestos = [];
         function revisaCampo(campo, fieldId) {

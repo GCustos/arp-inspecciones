@@ -1,0 +1,108 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── helpers ────────────────────────────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function myEmail() {
+      return request.auth.token.email;
+    }
+
+    // Lee el doc del usuario autenticado para obtener su rol
+    // Coste: 1 lectura extra por verificación de rol (aceptable para este volumen)
+    function myRole() {
+      return get(/databases/$(database)/documents/usuarios/$(myEmail())).data.rol;
+    }
+
+    function isAdmin() {
+      return myRole() == 'admin';
+    }
+
+    function isAdminLike() {
+      // admin, director y proyecto tienen acceso total de lectura/escritura
+      return myRole() in ['admin', 'director', 'proyecto'];
+    }
+
+    function canReadAll() {
+      // oficina también puede leer todo pero no escribir
+      return myRole() in ['admin', 'director', 'proyecto', 'oficina'];
+    }
+
+    // ── usuarios ───────────────────────────────────────────────────────────
+    // Cualquier autenticado lee (necesario para cargarInspectores en nueva-inspeccion.html)
+    // Solo admin escribe
+    match /usuarios/{email} {
+      allow read:  if isAuth();
+      allow write: if isAuth() && isAdmin();
+    }
+
+    // ── inspecciones ───────────────────────────────────────────────────────
+    match /inspecciones/{docId} {
+      allow read: if isAuth() && (
+        canReadAll() ||
+        resource.data.inspectorEmail  == myEmail() ||
+        resource.data.inspector2Email == myEmail()
+      );
+
+      // Inspector y admin/director/proyecto pueden crear
+      // oficina no puede crear inspecciones
+      allow create: if isAuth() && myRole() != 'oficina';
+
+      // Inspector solo actualiza las suyas; admin/director/proyecto actualizan cualquiera
+      allow update: if isAuth() && (
+        isAdminLike() ||
+        resource.data.inspectorEmail  == myEmail() ||
+        resource.data.inspector2Email == myEmail()
+      );
+
+      // Solo admin borra
+      allow delete: if isAuth() && isAdmin();
+    }
+
+    // ── config ─────────────────────────────────────────────────────────────
+    // resultado.html y inspeccion.html la leen en runtime (todos los roles)
+    // Solo admin modifica config de empresa/formato
+    match /config/{docId} {
+      allow read:  if isAuth();
+      allow write: if isAuth() && isAdmin();
+    }
+
+    // ── instalaciones ──────────────────────────────────────────────────────
+    // Todos leen (inspectores necesitan buscar instalaciones en nueva-inspeccion)
+    // Inspectores crean instalaciones nuevas y actualizan ultimaInspeccion al completar
+    // Solo admin/director/proyecto eliminan
+    match /instalaciones/{docId} {
+      allow read:            if isAuth();
+      allow create, update:  if isAuth() && myRole() != 'oficina';
+      allow delete:          if isAuth() && isAdminLike();
+    }
+
+    // ── clientes ───────────────────────────────────────────────────────────
+    match /clientes/{docId} {
+      allow read:  if isAuth();
+      allow write: if isAuth() && isAdminLike();
+    }
+
+    // ── equipos ────────────────────────────────────────────────────────────
+    // Todos leen (inspectores ven sus equipos asignados)
+    // Solo admin/director/proyecto modifican fichas de calibración
+    match /equipos/{docId} {
+      allow read:  if isAuth();
+      allow write: if isAuth() && isAdminLike();
+    }
+
+    // ── cambiosPropuestos ──────────────────────────────────────────────────
+    // Cualquier usuario puede proponer un cambio (create)
+    // Solo admin/director/proyecto leen el listado y gestionan (update/delete)
+    match /cambiosPropuestos/{docId} {
+      allow read:   if isAuth() && isAdminLike();
+      allow create: if isAuth();
+      allow update: if isAuth() && isAdminLike();
+      allow delete: if isAuth() && isAdmin();
+    }
+
+  }
+}
