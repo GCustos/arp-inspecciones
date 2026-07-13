@@ -67,7 +67,7 @@
   function fechaHace(meses) { var d = new Date(); d.setMonth(d.getMonth()-meses); return d.toISOString().slice(0,10); }
 
   initAuth({
-    roles: ['admin', 'director'],
+    roles: ['admin', 'director', 'proyecto'],
     onReady: function(user, ud) { cargar(); }
   });
 

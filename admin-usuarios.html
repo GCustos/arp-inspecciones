@@ -111,7 +111,7 @@
   var editandoEmail = null;
 
   initAuth({
-    roles: ['admin', 'director'],
+    roles: ['admin', 'director', 'proyecto'],
     onDenied: 'message',
     onReady: function(user, ud) { cargar(); }
   });
@@ -144,6 +144,7 @@
   function rolLabel(r) {
     if (r==='admin')    return 'Admin';
     if (r==='director') return 'Director';
+    if (r==='proyecto') return 'Proyecto';
     if (r==='oficina')  return 'Oficina';
     return 'Inspector';
   }
@@ -180,7 +181,7 @@
 
   function formHtml(u) {
     u = u || {};
-    var roles = ['inspector','director','admin','oficina'];
+    var roles = ['inspector','director','proyecto','admin','oficina'];
     var rolOpts = roles.map(function(r) {
       return '<option value="'+r+'"'+(u.rol===r?' selected':'')+'>'+rolLabel(r)+'</option>';
     }).join('');
