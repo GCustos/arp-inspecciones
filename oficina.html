@@ -108,8 +108,9 @@
   var db   = firebase.firestore();
 
   var inspData    = [];
-  var usuariosMap = {}; // email → nombreCorto
+  var usuariosMap = {}; // email → iniciales
   var editandoId  = null;
+  var filtroAnio  = null; // null = todos
 
   initAuth({
     roles: ['admin', 'director', 'proyecto', 'oficina'],
@@ -166,12 +167,34 @@
     return f.length >= 10 ? f.slice(2,4) + f.slice(5,7) + f.slice(8,10) : f;
   }
 
-  function render() {
-    var total      = inspData.length;
-    var pendCobro  = inspData.filter(function(i){ return !(i.seguimientoAdmin && i.seguimientoAdmin.facturaCobrada); }).length;
-    var cerradas   = inspData.filter(function(i){ return i.seguimientoAdmin && i.seguimientoAdmin.finalizado; }).length;
+  window.setAnio = function(anio) { filtroAnio = anio; render(); };
 
-    var html =
+  function render() {
+    // Year filter buttons
+    var anios = [];
+    inspData.forEach(function(i) {
+      var y = (i.fechaInspeccion || '').slice(0, 4);
+      if (y && anios.indexOf(y) === -1) anios.push(y);
+    });
+    anios.sort().reverse();
+
+    var filtros = '<div class="toolbar" style="margin-bottom:16px">' +
+      '<button class="filtro-btn' + (filtroAnio === null ? ' active' : '') + '" onclick="setAnio(null)">Todos</button>';
+    anios.forEach(function(y) {
+      filtros += '<button class="filtro-btn' + (filtroAnio === y ? ' active' : '') + '" onclick="setAnio(\'' + y + '\')">' + y + '</button>';
+    });
+    filtros += '</div>';
+
+    // Apply filter
+    var lista = filtroAnio
+      ? inspData.filter(function(i){ return (i.fechaInspeccion || '').slice(0,4) === filtroAnio; })
+      : inspData;
+
+    var total      = lista.length;
+    var pendCobro  = lista.filter(function(i){ return !(i.seguimientoAdmin && i.seguimientoAdmin.facturaCobrada); }).length;
+    var cerradas   = lista.filter(function(i){ return i.seguimientoAdmin && i.seguimientoAdmin.finalizado; }).length;
+
+    var html = filtros +
       '<div class="stats-bar">' +
         '<div class="stat"><div class="stat-val">' + total + '</div><div class="stat-lbl">Completadas</div></div>' +
         '<div class="stat"><div class="stat-val" style="color:var(--orange)">' + pendCobro + '</div><div class="stat-lbl">Pdte. cobro</div></div>' +
@@ -187,10 +210,10 @@
         '<th>OK</th><th>Obs</th><th></th>' +
       '</tr></thead><tbody>';
 
-    if (!inspData.length) {
-      html += '<tr><td colspan="16" style="text-align:center;color:var(--muted);padding:30px 20px">No hay inspecciones completadas.</td></tr>';
+    if (!lista.length) {
+      html += '<tr><td colspan="16" style="text-align:center;color:var(--muted);padding:30px 20px">No hay inspecciones completadas' + (filtroAnio ? ' en ' + filtroAnio : '') + '.</td></tr>';
     } else {
-      inspData.forEach(function(i) {
+      lista.forEach(function(i) {
         var sa  = i.seguimientoAdmin || {};
         var res = i.resultado || '';
         var cert = certVisado(i);
