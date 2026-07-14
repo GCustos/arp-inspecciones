@@ -139,10 +139,10 @@
     </div>
     <div class="sec-title">Módulos</div>
     <div class="modules-grid">
-      <div class="mod-card" onclick="location.href='inspecciones.html'">
+      <div class="mod-card" id="cardInspecciones" onclick="location.href='inspecciones.html'">
         <div class="mod-icon">&#128203;</div>
-        <div class="mod-name">Inspecciones</div>
-        <div class="mod-desc">Nueva inspección, historial y seguimiento</div>
+        <div class="mod-name" id="cardInspeccionesNombre">Inspecciones</div>
+        <div class="mod-desc" id="cardInspeccionesDesc">Nueva inspección, historial y seguimiento</div>
         <span class="badge badge-on">Activo</span>
       </div>
       <div class="mod-card disabled">
@@ -335,7 +335,12 @@
     document.getElementById('welcomeRole').textContent = ud.rol || 'inspector';
     document.getElementById('menuName').textContent = nombre;
     document.getElementById('menuEmail').textContent = user.email || '';
-    if (ud.rol === 'admin' || ud.rol === 'director' || ud.rol === 'oficina') document.getElementById('adminCard').style.display = 'flex';
+    if (ud.rol === 'admin' || ud.rol === 'director' || ud.rol === 'proyecto' || ud.rol === 'oficina') document.getElementById('adminCard').style.display = 'flex';
+    if (ud.rol === 'oficina') {
+      document.getElementById('cardInspecciones').setAttribute('onclick', "location.href='oficina.html'");
+      document.getElementById('cardInspeccionesNombre').textContent = 'Oficina';
+      document.getElementById('cardInspeccionesDesc').textContent = 'Control de expedientes y seguimiento';
+    }
   }
 
   window.toggleMenu = () => document.getElementById('userMenu').classList.toggle('open');

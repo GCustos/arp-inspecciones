@@ -119,6 +119,7 @@
   function renderMenu(rol) {
     var esAdmin = rol === 'admin' || rol === 'director';
     var html = '<div class="sec-label">Panel de administración</div>' +
+      card('oficina',  '&#128197;', 'Oficina',       'Control de expedientes, seguimiento y facturación',             'oficina.html') +
       card('clientes', '&#128101;', 'Clientes',      'Gestión de empresas propietarias y solicitantes',               'admin-clientes.html') +
       card('ofertas',  '&#128203;', 'Ofertas',       'Presupuestos y propuestas económicas para clientes',            'ofertas.html') +
       card('config',   '&#9881;',   'Configuración', 'ENAC por alcance, número de acreditación y parámetros globales', null);
@@ -225,6 +226,14 @@
 
   function cargarContadores() {
     setBadge('config', '&#9881;', 'off');
+    db.collection('inspecciones').where('estado', '==', 'completada').get().then(function(snap) {
+      var n = 0;
+      snap.forEach(function(d) {
+        var sa = d.data().seguimientoAdmin;
+        if (!sa || !sa.finalizado) n++;
+      });
+      setBadge('oficina', n ? n + ' pendiente' + (n !== 1 ? 's' : '') : 'Al d&#237;a', n ? 'warn' : 'ok');
+    }).catch(function() { setBadge('oficina', '···', 'loading'); });
     db.collection('ofertas').where('estado', 'in', ['borrador','enviada']).get().then(function(snap) {
       var n = snap.size;
       setBadge('ofertas', n ? n + ' activa' + (n !== 1 ? 's' : '') : 'Sin activas', n ? 'warn' : 'ok');
