@@ -5,18 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#C8993A">
   <title>Nueva inspecci&#243;n - ARP</title>
+  <link rel="stylesheet" href="styles.css">
   <style>
-    :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;}
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
-    .app-header{background:var(--dark);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
-    .btn-back{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;padding:0;line-height:1}
-    .hdr-mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white}
-    .hdr-title{color:white;font-size:15px;font-weight:600;flex:1}
-    .content{padding:16px;max-width:680px;margin:0 auto;padding-bottom:40px}
     .card{background:white;border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px}
     .card-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-    .card-title::after{content:"";flex:1;height:1px;background:var(--border)}
     .f{margin-bottom:13px}
     .f:last-child{margin-bottom:0}
     .f label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px}
@@ -68,13 +60,10 @@
     .btn-crear:disabled{opacity:0.5;cursor:not-allowed;transform:none}
     .btn-cancelar{width:100%;padding:13px;background:white;color:var(--text);border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;margin-top:8px}
     .btn-cancelar:hover{border-color:var(--red);color:var(--red)}
-    .offline-badge{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:8px 16px;border-radius:20px;font-size:12px;display:none;z-index:300}
-    .offline-badge.visible{display:block}
     .loading-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:14px}
     .loading-overlay.visible{display:flex}
     .spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite}
     .loading-overlay p{color:white;font-size:14px;font-weight:500}
-    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
