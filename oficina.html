@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Oficina - ARP</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .content{padding:16px;max-width:1400px;margin:0 auto}
+    .stats-bar{display:flex;gap:24px;background:white;border:1px solid var(--border);border-radius:12px;padding:14px 20px;margin-bottom:18px;flex-wrap:wrap}
+    .stat{display:flex;flex-direction:column;gap:2px}
+    .stat-val{font-size:22px;font-weight:700;color:var(--dark);line-height:1}
+    .stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+    .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:12px}
+    table{border-collapse:collapse;width:100%;min-width:1100px;font-size:12px}
+    thead th{background:var(--dark);color:white;padding:9px 10px;text-align:left;white-space:nowrap;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;z-index:10}
+    thead th:first-child{border-radius:11px 0 0 0}
+    thead th:last-child{border-radius:0 11px 0 0}
+    thead th.sep{border-left:2px solid var(--gold)}
+    tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+    tbody tr:last-child{border-bottom:none}
+    tbody tr:hover{background:#FFF8F0}
+    tbody tr.finalizado td{color:var(--muted)}
+    td{padding:8px 10px;vertical-align:middle;white-space:nowrap}
+    td.sep{border-left:2px solid var(--gold)}
+    .tag-fav{color:var(--green);font-weight:700;font-size:10px;background:#E8F5E9;padding:2px 6px;border-radius:4px}
+    .tag-des{color:var(--red);font-weight:700;font-size:10px;background:#FFEBEE;padding:2px 6px;border-radius:4px}
+    .chk{display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;font-size:12px}
+    .chk.yes{color:var(--green)}
+    .chk.no{color:var(--border)}
+    .vacio{color:var(--border);font-style:italic}
+    .edit-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--muted);transition:all .15s;white-space:nowrap}
+    .edit-btn:hover{border-color:var(--gold);color:var(--gold)}
+    td-nombre{max-width:160px;overflow:hidden;text-overflow:ellipsis}
+    /* Modal */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center}
+    .overlay.open{display:flex}
+    @media(min-width:520px){.overlay{align-items:center}}
+    .modal{background:white;border-radius:16px 16px 0 0;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:20px 16px 32px}
+    @media(min-width:520px){.modal{border-radius:16px;padding:24px}}
+    .modal-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:10px}
+    .modal-titulo{font-size:15px;font-weight:700;color:var(--dark)}
+    .modal-sub{font-size:11px;color:var(--muted);margin-top:3px}
+    .btn-close{background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;padding:0;line-height:1;flex-shrink:0}
+    .form-row{margin-bottom:14px}
+    .form-row label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+    .form-row input,.form-row textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text);background:white;outline:none;transition:border-color .15s}
+    .form-row input:focus,.form-row textarea:focus{border-color:var(--gold)}
+    .form-row textarea{resize:vertical;min-height:70px}
+    .form-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .chk-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--border)}
+    .chk-row label{font-size:14px;color:var(--dark);flex:1;cursor:pointer}
+    .chk-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0}
+    .modal-footer{display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+    .btn-guardar{flex:1;padding:12px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+    .btn-guardar:disabled{opacity:.5;cursor:not-allowed}
+    .btn-cancel{padding:12px 20px;background:white;color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="history.back()">&#8592;</button>
+  <div class="hdr-mark">ARP</div>
+  <div class="hdr-title">Oficina</div>
+</div>
+
+<div class="content" id="content">
+  <div class="spinner"></div>
+</div>
+
+<div class="overlay" id="overlay" onclick="cerrarModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-titulo" id="modalTitulo"></div>
+        <div class="modal-sub" id="modalSub"></div>
+      </div>
+      <button class="btn-close" onclick="cerrarModal()">&#10005;</button>
+    </div>
+    <div id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-guardar" id="btnGuardar" onclick="guardar()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="utils.js"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain:"arp-inspecciones.firebaseapp.com",
+      projectId:"arp-inspecciones",
+      storageBucket:"arp-inspecciones.firebasestorage.app",
+      messagingSenderId:"35880168451",
+      appId:"1:35880168451:web:090e3c250b4416ed0b3236"
+    });
+  }
+  var auth = firebase.auth();
+  var db   = firebase.firestore();
+
+  var inspData    = [];
+  var usuariosMap = {}; // email → iniciales
+  var editandoId  = null;
+  var filtroAnio  = null; // null = todos
+
+  initAuth({
+    roles: ['admin', 'director', 'proyecto', 'oficina'],
+    onDenied: 'message',
+    onReady: function(user, ud) { cargar(); }
+  });
+
+  function cargar() {
+    Promise.all([
+      db.collection('usuarios').get(),
+      db.collection('inspecciones').where('estado', '==', 'completada').get()
+    ]).then(function(results) {
+      results[0].forEach(function(d) {
+        var data = d.data();
+        usuariosMap[d.id] = data.nombreCorto || computeIni(data.nombre || d.id);
+      });
+      inspData = [];
+      results[1].forEach(function(d) {
+        inspData.push(Object.assign({ id: d.id }, d.data()));
+      });
+      inspData.sort(function(a, b) {
+        var fa = a.fechaInspeccion || '';
+        var fb = b.fechaInspeccion || '';
+        return fb > fa ? 1 : fb < fa ? -1 : 0;
+      });
+      render();
+    }).catch(function(e) {
+      document.getElementById('content').innerHTML = '<div class="empty-state">Error: ' + escHtml(e.message) + '</div>';
+    });
+  }
+
+  function computeIni(s) {
+    if (!s) return '?';
+    var p = s.trim().split(/\s+/);
+    return ((p[0]&&p[0][0]||'') + (p[1]&&p[1][0]||'')).toUpperCase() || s.slice(0,2).toUpperCase();
+  }
+
+  function certVisado(insp) {
+    if (insp.resultado !== 'FAVORABLE') return null;
+    var fecha = insp.fechaInspeccion;
+    // Rev.1+: usar la fecha de la última sesión si hay más de una
+    if (insp.sesiones && insp.sesiones.length > 1) {
+      var last = insp.sesiones[insp.sesiones.length - 1];
+      if (last && last.fecha) fecha = last.fecha;
+    }
+    if (!fecha) return null;
+    var d = new Date(fecha + 'T12:00:00');
+    d.setFullYear(d.getFullYear() + 1);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function expediente(insp) {
+    var f = insp.fechaInspeccion || '';
+    return f.length >= 10 ? f.slice(2,4) + f.slice(5,7) + f.slice(8,10) : f;
+  }
+
+  window.setAnio = function(anio) { filtroAnio = anio; render(); };
+
+  function render() {
+    // Year filter buttons
+    var anios = [];
+    inspData.forEach(function(i) {
+      var y = (i.fechaInspeccion || '').slice(0, 4);
+      if (y && anios.indexOf(y) === -1) anios.push(y);
+    });
+    anios.sort().reverse();
+
+    var filtros = '<div class="toolbar" style="margin-bottom:16px">' +
+      '<button class="filtro-btn' + (filtroAnio === null ? ' active' : '') + '" onclick="setAnio(null)">Todos</button>';
+    anios.forEach(function(y) {
+      filtros += '<button class="filtro-btn' + (filtroAnio === y ? ' active' : '') + '" onclick="setAnio(\'' + y + '\')">' + y + '</button>';
+    });
+    filtros += '</div>';
+
+    // Apply filter
+    var lista = filtroAnio
+      ? inspData.filter(function(i){ return (i.fechaInspeccion || '').slice(0,4) === filtroAnio; })
+      : inspData;
+
+    var total      = lista.length;
+    var pendCobro  = lista.filter(function(i){ return !(i.seguimientoAdmin && i.seguimientoAdmin.facturaCobrada); }).length;
+    var cerradas   = lista.filter(function(i){ return i.seguimientoAdmin && i.seguimientoAdmin.finalizado; }).length;
+
+    var html = filtros +
+      '<div class="stats-bar">' +
+        '<div class="stat"><div class="stat-val">' + total + '</div><div class="stat-lbl">Completadas</div></div>' +
+        '<div class="stat"><div class="stat-val" style="color:var(--orange)">' + pendCobro + '</div><div class="stat-lbl">Pdte. cobro</div></div>' +
+        '<div class="stat"><div class="stat-val" style="color:var(--green)">' + cerradas + '</div><div class="stat-lbl">Cerradas</div></div>' +
+      '</div>' +
+      '<div class="tbl-wrap"><table>' +
+      '<thead><tr>' +
+        '<th>Expediente</th><th>Fecha</th><th>Insp.</th>' +
+        '<th>Instalaci&#243;n</th><th>Tipo</th><th>N&#176; Reg.</th>' +
+        '<th>Resultado</th><th>Cert./Visado</th>' +
+        '<th class="sep">Oferta Ref</th><th>Total &#8364;</th>' +
+        '<th>N&#176; Fra.</th><th>Mandada</th><th>Cobrada</th>' +
+        '<th>OK</th><th>Obs</th><th></th>' +
+      '</tr></thead><tbody>';
+
+    if (!lista.length) {
+      html += '<tr><td colspan="16" style="text-align:center;color:var(--muted);padding:30px 20px">No hay inspecciones completadas' + (filtroAnio ? ' en ' + filtroAnio : '') + '.</td></tr>';
+    } else {
+      lista.forEach(function(i) {
+        var sa  = i.seguimientoAdmin || {};
+        var res = i.resultado || '';
+        var cert = certVisado(i);
+        var ini = usuariosMap[i.inspectorEmail] || computeIni(i.inspectorNombre || '');
+        if (i.inspector2Email) {
+          var ini2 = usuariosMap[i.inspector2Email] || computeIni(i.inspector2Nombre || '');
+          if (ini2 && ini2 !== '?') ini += ' - ' + ini2;
+        }
+        var nReg = i.nRegistro || '';
+        // Display only up to Rev. part for width
+        var nRegDisplay = nReg.length > 20 ? nReg.slice(0, 20) + '…' : nReg;
+        var nombreDisplay = (i.nombreInstalacion || '').length > 22 ? (i.nombreInstalacion||'').slice(0,22) + '…' : (i.nombreInstalacion || '');
+
+        html += '<tr class="' + (sa.finalizado ? 'finalizado' : '') + '" onclick="abrirEditar(\'' + escHtml(i.id) + '\')">' +
+          '<td style="font-family:monospace;font-size:11px;color:var(--muted)">' + escHtml(expediente(i)) + '</td>' +
+          '<td style="font-size:11px">' + escHtml(i.fechaInspeccion || '') + '</td>' +
+          '<td style="font-weight:700;font-size:12px">' + escHtml(ini) + '</td>' +
+          '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="' + escHtml(i.nombreInstalacion || '') + '">' + escHtml(nombreDisplay) + '</td>' +
+          '<td><span style="font-size:9px;font-weight:700;padding:2px 6px;background:rgba(200,153,58,.15);color:var(--gold);border-radius:4px">' + escHtml(i.tipoAlcance || '') + '</span></td>' +
+          '<td style="font-family:monospace;font-size:10px" title="' + escHtml(nReg) + '">' + escHtml(nRegDisplay) + '</td>' +
+          '<td>' + (res === 'FAVORABLE' ? '<span class="tag-fav">FAV</span>' : res === 'DESFAVORABLE' ? '<span class="tag-des">DES</span>' : '<span style="font-size:10px;color:var(--muted)">' + escHtml(res) + '</span>') + '</td>' +
+          '<td style="font-size:11px;color:var(--muted)">' + (cert ? escHtml(cert) : '—') + '</td>' +
+          '<td class="sep"><span style="font-family:monospace;font-size:11px">' + (sa.ofertaRef ? escHtml(sa.ofertaRef) : '<span class="vacio">—</span>') + '</span></td>' +
+          '<td style="font-size:12px">' + (sa.ofertaTotal != null && sa.ofertaTotal !== '' ? escHtml(String(sa.ofertaTotal)) + ' &#8364;' : '<span class="vacio">—</span>') + '</td>' +
+          '<td style="font-family:monospace;font-size:11px">' + (sa.nFactura ? escHtml(sa.nFactura) : '<span class="vacio">—</span>') + '</td>' +
+          '<td><span class="chk ' + (sa.facturaMandada ? 'yes' : 'no') + '">' + (sa.facturaMandada ? '&#10003;' : '&#8212;') + '</span></td>' +
+          '<td><span class="chk ' + (sa.facturaCobrada ? 'yes' : 'no') + '">' + (sa.facturaCobrada ? '&#10003;' : '&#8212;') + '</span></td>' +
+          '<td><span class="chk ' + (sa.finalizado ? 'yes' : 'no') + '">' + (sa.finalizado ? '&#10003;' : '&#8212;') + '</span></td>' +
+          '<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--muted)" title="' + escHtml(sa.obs || '') + '">' + escHtml(sa.obs || '') + '</td>' +
+          '<td><button class="edit-btn" onclick="event.stopPropagation();abrirEditar(\'' + escHtml(i.id) + '\')">&#9998;</button></td>' +
+        '</tr>';
+      });
+    }
+
+    html += '</tbody></table></div>';
+    document.getElementById('content').innerHTML = html;
+  }
+
+  window.abrirEditar = function(id) {
+    var insp = inspData.find(function(i){ return i.id === id; });
+    if (!insp) return;
+    editandoId = id;
+    var sa = insp.seguimientoAdmin || {};
+    document.getElementById('modalTitulo').textContent = insp.nombreInstalacion || id;
+    document.getElementById('modalSub').textContent =
+      (insp.fechaInspeccion || '') + (insp.resultado ? ' · ' + insp.resultado : '') +
+      (insp.nRegistro ? ' · ' + insp.nRegistro : '');
+    document.getElementById('modalBody').innerHTML =
+      '<div class="form-2col">' +
+        '<div class="form-row"><label>Oferta Ref</label><input id="f_ofertaRef" type="text" value="' + escHtml(sa.ofertaRef || '') + '" placeholder="260109/JM/0/Rev.0"></div>' +
+        '<div class="form-row"><label>Total &#8364;</label><input id="f_ofertaTotal" type="number" step="0.01" min="0" value="' + (sa.ofertaTotal != null && sa.ofertaTotal !== '' ? escHtml(String(sa.ofertaTotal)) : '') + '" placeholder="0.00"></div>' +
+      '</div>' +
+      '<div class="form-row"><label>N&#176; Factura</label><input id="f_nFactura" type="text" value="' + escHtml(sa.nFactura || '') + '" placeholder="FV-2026-001"></div>' +
+      '<div class="chk-row"><label for="f_facturaMandada">Factura mandada</label><input type="checkbox" id="f_facturaMandada"' + (sa.facturaMandada ? ' checked' : '') + '></div>' +
+      '<div class="chk-row"><label for="f_facturaCobrada">Factura cobrada</label><input type="checkbox" id="f_facturaCobrada"' + (sa.facturaCobrada ? ' checked' : '') + '></div>' +
+      '<div class="chk-row"><label for="f_finalizado">Expediente finalizado</label><input type="checkbox" id="f_finalizado"' + (sa.finalizado ? ' checked' : '') + '></div>' +
+      '<div class="form-row" style="margin-top:12px"><label>Observaciones</label><textarea id="f_obs" placeholder="Notas internas...">' + escHtml(sa.obs || '') + '</textarea></div>';
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('modal').scrollTop = 0;
+    document.getElementById('btnGuardar').disabled = false;
+    document.getElementById('btnGuardar').textContent = 'Guardar';
+  };
+
+  window.cerrarModal = function(evt) {
+    if (evt && evt.target !== document.getElementById('overlay')) return;
+    document.getElementById('overlay').classList.remove('open');
+    editandoId = null;
+  };
+
+  window.guardar = function() {
+    if (!editandoId) return;
+    var btn = document.getElementById('btnGuardar');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+    var totalRaw = document.getElementById('f_ofertaTotal').value.trim();
+    var sa = {
+      ofertaRef:      document.getElementById('f_ofertaRef').value.trim(),
+      ofertaTotal:    totalRaw !== '' ? parseFloat(totalRaw) : null,
+      nFactura:       document.getElementById('f_nFactura').value.trim(),
+      facturaMandada: document.getElementById('f_facturaMandada').checked,
+      facturaCobrada: document.getElementById('f_facturaCobrada').checked,
+      finalizado:     document.getElementById('f_finalizado').checked,
+      obs:            document.getElementById('f_obs').value.trim()
+    };
+    db.collection('inspecciones').doc(editandoId).set({ seguimientoAdmin: sa }, { merge: true })
+      .then(function() {
+        var insp = inspData.find(function(i){ return i.id === editandoId; });
+        if (insp) insp.seguimientoAdmin = sa;
+        document.getElementById('overlay').classList.remove('open');
+        editandoId = null;
+        showToast('Guardado');
+        render();
+      })
+      .catch(function(e) {
+        btn.disabled = false; btn.textContent = 'Guardar';
+        alert('Error: ' + e.message);
+      });
+  };
+</script>
+</body>
+</html>
