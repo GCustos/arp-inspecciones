@@ -125,7 +125,7 @@
     ]).then(function(results) {
       results[0].forEach(function(d) {
         var data = d.data();
-        usuariosMap[d.id] = data.iniciales || data.nombreCorto || computeIni(data.nombre || d.id);
+        usuariosMap[d.id] = data.nombreCorto || computeIni(data.nombre || d.id);
       });
       inspData = [];
       results[1].forEach(function(d) {
