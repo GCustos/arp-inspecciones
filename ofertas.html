@@ -5,18 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#C8993A">
   <title>Ofertas - ARP</title>
+  <link rel="stylesheet" href="styles.css">
   <style>
-    :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;--orange:#E67E22;--blue:#1565C0;}
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);min-height:100vh}
-    .app-header{background:var(--dark);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
-    .btn-back{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;padding:0;line-height:1}
-    .hdr-mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0}
-    .hdr-title{color:white;font-size:15px;font-weight:600;flex:1}
     .btn-nueva{background:var(--gold);color:white;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
-    .content{padding:16px;max-width:680px;margin:0 auto;padding-bottom:40px}
-    .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
-    @keyframes spin{to{transform:rotate(360deg)}}
     /* lista */
     .oferta-card{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all .2s}
     .oferta-card:hover{border-color:var(--gold);box-shadow:0 4px 12px rgba(0,0,0,.08);transform:translateY(-1px)}
@@ -31,8 +22,6 @@
     .badge-rechazada{background:#FFEBEE;color:var(--red)}
     .oferta-fecha{font-size:10px;color:var(--muted);margin-left:auto}
     /* form */
-    .sec-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-    .sec-label:first-of-type{margin-top:4px}
     .form-card{background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px}
     .form-field{padding:12px 14px;border-bottom:1px solid var(--border)}
     .form-field:last-child{border-bottom:none}
@@ -61,7 +50,6 @@
     .tot-row.tot-iva{background:#F9F7F3;font-weight:700;color:var(--dark);border-radius:0 0 12px 12px}
     /* botones */
     .btn-primary{width:100%;padding:14px;background:var(--gold);color:white;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px}
-    .btn-primary:disabled{opacity:.5;cursor:not-allowed}
     .btn-row{display:flex;gap:10px;margin-top:10px}
     .btn-sec{flex:1;padding:11px;background:white;color:var(--dark);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
     .btn-ok{flex:1;padding:11px;background:var(--green);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
