@@ -124,7 +124,7 @@
     ]).then(function(results) {
       results[0].forEach(function(d) {
         var data = d.data();
-        usuariosMap[d.id] = data.nombreCorto || computeIni(data.nombre || d.id);
+        usuariosMap[d.id] = data.iniciales || data.nombreCorto || computeIni(data.nombre || d.id);
       });
       inspData = [];
       results[1].forEach(function(d) {
@@ -194,7 +194,11 @@
         var sa  = i.seguimientoAdmin || {};
         var res = i.resultado || '';
         var cert = certVisado(i);
-        var ini = usuariosMap[i.inspectorEmail] || (i.inspectorNombre ? i.inspectorNombre.trim().split(/\s+/).map(function(p){return p[0]||'';}).join('').slice(0,2).toUpperCase() : '—');
+        var ini = usuariosMap[i.inspectorEmail] || computeIni(i.inspectorNombre || '');
+        if (i.inspector2Email) {
+          var ini2 = usuariosMap[i.inspector2Email] || computeIni(i.inspector2Nombre || '');
+          if (ini2 && ini2 !== '?') ini += ' - ' + ini2;
+        }
         var nReg = i.nRegistro || '';
         // Display only up to Rev. part for width
         var nRegDisplay = nReg.length > 20 ? nReg.slice(0, 20) + '…' : nReg;
