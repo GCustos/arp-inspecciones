@@ -1115,10 +1115,10 @@
       const totalCirc=S.circuitos.length;
       var modal=document.getElementById('modalFinCirc');
       document.getElementById('modalFinCircTitulo').textContent='Último juego de "'+S.circuitos[ci].nombre+'"';
-      document.getElementById('btnFinAddJuego').onclick=function(){modal.classList.remove('vis');addJuegoToCircuito(ci);};
+      document.getElementById('btnFinAddJuego').onclick=function(){modal.classList.remove('open');addJuegoToCircuito(ci);};
       document.getElementById('btnFinSigCirc').style.display=ci+1<totalCirc?'':'none';
-      document.getElementById('btnFinSigCirc').onclick=function(){modal.classList.remove('vis');circuitoActivo=ci+1;juegoAbierto[ci+1]=0;renderCircuitos();goTab(2);};
-      document.getElementById('btnFinNuevoCirc').onclick=function(){modal.classList.remove('vis');addCircuito();};
+      document.getElementById('btnFinSigCirc').onclick=function(){modal.classList.remove('open');circuitoActivo=ci+1;juegoAbierto[ci+1]=0;renderCircuitos();goTab(2);};
+      document.getElementById('btnFinNuevoCirc').onclick=function(){modal.classList.remove('open');addCircuito();};
       modal.classList.add('open');
     }
   }
