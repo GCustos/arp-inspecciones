@@ -439,13 +439,18 @@
   if (!inspeccionId) { location.href="inspecciones.html"; }
 
   let currentUser=null, isDirty=false, cargaIniciada=false, cargaCompleta=false;
-  let docDataFull={}; // FIX: copia íntegra del doc cargado, para respaldo offline completo al completar
+  let docDataFull={};
   let modalJuegoRef=null, circuitosAnteriores=null;
   let modalNCRef=null;
   let modalNCPrio='';
-  let modalNCFotos=[]; // fotos del defecto en modal
-  let miRol=null; // rol del usuario actual: admin/director/inspector
-  let todosInspectoresRev=[]; // cache para selector de reapertura
+  let modalNCFotos=[];
+  let miRol=null;
+  let todosInspectoresRev=[];
+  let _sortableCC=null;
+  let _dirtyCircuitIds=new Set();   // IDs de circuitos modificados desde el último save
+  let _deletedCircuitIds=new Set(); // IDs de circuitos borrados — se eliminan de Firestore con FieldValue.delete()
+  function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
+  function markCircuitDirty(ci){ if(S.circuitos[ci]) _dirtyCircuitIds.add(S.circuitos[ci].id); }
   var tiposNCList=["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente","Riesgo de atrapamiento"];
   db.collection("config").doc("paa").get().then(function(snap){if(snap.exists&&snap.data().tiposNC){tiposNCList=snap.data().tiposNC.filter(function(t){return t.activo!==false}).map(function(t){return t.label})}}).catch(function(){});
 
@@ -569,7 +574,7 @@
     return new Promise(function(resolve, reject) {
       var req = indexedDB.open(FOTO_DB_NAME, 1);
       req.onupgradeneeded = function() { req.result.createObjectStore(FOTO_STORE); };
-      req.onsuccess = function() { _fotosDB = req.result; resolve(_fotosDB); };
+      req.onsuccess = function() { _fotosDB = req.result; _fotosDB.onclose=function(){ _fotosDB=null; }; resolve(_fotosDB); };
       req.onerror = function() { reject(req.error); };
     });
   }
@@ -770,7 +775,17 @@
       if(data.checklist) Object.assign(S.gen,data.checklist);
       if(data.checklistObs) Object.assign(S.genObs,data.checklistObs);
       if(data.obsGral) S.obsGral=data.obsGral;
-      if(data.circuitos) S.circuitos=data.circuitos;
+      if(data.circuitos){
+        // Soporta formato antiguo (array) y nuevo (mapa {id: circData})
+        S.circuitos=Array.isArray(data.circuitos)
+          ? data.circuitos
+          : Object.values(data.circuitos).sort(function(a,b){return (a.orden||0)-(b.orden||0);});
+        // Garantizar IDs en todos los circuitos y juegos (docs legacy sin IDs)
+        S.circuitos.forEach(function(c){
+          if(!c.id) c.id=uid();
+          (c.juegos||[]).forEach(function(j){ if(!j.id) j.id=uid(); });
+        });
+      }
       if(data.ncs) S.ncs=data.ncs;
       // fotos generales eliminadas — las fotos van en juegos y NCs
       if(data.ensayos) S.ensayos=data.ensayos;
@@ -851,9 +866,11 @@
   function importarCircuitos(){
     if(!circuitosAnteriores) return;
     S.circuitos=circuitosAnteriores.map(circ=>({
+      id:uid(),
       nombre:circ.nombre||"",
-      juegos:(circ.juegos||[]).map(j=>({nombre:j.nombre||"",tipo:j.tipo||"R",rama:j.rama||"",ie:"",af:"",ej:"",ra:"",zs:"",obs:"",fotos:[]}))
+      juegos:(circ.juegos||[]).map(j=>({id:uid(),nombre:j.nombre||"",tipo:j.tipo||"R",rama:j.rama||"",ie:"",af:"",ej:"",ra:"",zs:"",obs:"",fotos:[]}))
     }));
+    S.circuitos.forEach(function(c){ _dirtyCircuitIds.add(c.id); });
     document.getElementById('importBanner').classList.remove('vis');
     markDirty(); renderCircuitos(); goTab(2);
   }
@@ -1005,13 +1022,15 @@
     const nuevo = prompt("Nuevo nombre del circuito:", actual);
     if (!nuevo || nuevo === actual) return;
     S.circuitos[ci].nombre = nuevo;
-    markDirty(); renderCircuitos();
+    markCircuitDirty(ci); markDirty(); renderCircuitos();
   }
 
   function addCircuito(){
     const nombre=prompt("Nombre del circuito:","Circuito "+(S.circuitos.length+1));
     if(!nombre) return;
-    S.circuitos.push({nombre,juegos:[]});
+    const cId=uid();
+    S.circuitos.push({id:cId,nombre,juegos:[]});
+    _dirtyCircuitIds.add(cId);
     circuitoActivo = S.circuitos.length - 1;
     markDirty(); renderCircuitos();
     addJuegoToCircuito(S.circuitos.length-1);
@@ -1021,13 +1040,16 @@
     var c=S.circuitos[ci];
     var nj=(c.juegos||[]).length;
     if(!confirm("¿Borrar circuito \""+c.nombre+"\""+(nj?" y sus "+nj+" juego"+(nj>1?"s":""):"")+"?")) return;
+    _deletedCircuitIds.add(c.id); _dirtyCircuitIds.delete(c.id);
+    delete juegoAbierto[ci];
     S.circuitos.splice(ci,1);
     if (circuitoActivo >= S.circuitos.length) circuitoActivo = S.circuitos.length - 1;
     markDirty(); renderCircuitos();
   }
 
   function addJuegoToCircuito(ci){
-    S.circuitos[ci].juegos.push({nombre:"",tipo:"R",rama:"",ie:"",af:"",ej:"",ra:"",zs:"",obs:"",fotos:[]});
+    S.circuitos[ci].juegos.push({id:uid(),nombre:"",tipo:"R",rama:"",ie:"",af:"",ej:"",ra:"",zs:"",obs:"",fotos:[]});
+    markCircuitDirty(ci);
     circuitoActivo = ci;
     markDirty(); renderCircuitos();
     const lastJi=S.circuitos[ci].juegos.length-1;
@@ -1037,7 +1059,7 @@
   function setJuego(ci,ji,col,val){
     const prev=S.circuitos[ci].juegos[ji][col]||"";
     S.circuitos[ci].juegos[ji][col]=val;
-    markDirty();
+    markCircuitDirty(ci); markDirty();
     if(!["nombre","obs","rama"].includes(col)&&val==="N"&&prev!=="N"){
       const j=S.circuitos[ci].juegos[ji];
       const circ=S.circuitos[ci];
@@ -1050,7 +1072,7 @@
     }
   }
 
-  function delJuego(ci,ji){ S.circuitos[ci].juegos.splice(ji,1); markDirty(); renderCircuitos(); }
+  function delJuego(ci,ji){ S.circuitos[ci].juegos.splice(ji,1); markCircuitDirty(ci); markDirty(); renderCircuitos(); }
 
 
   function toggleCircuito(ci){
@@ -1231,20 +1253,24 @@
 
   function initSortables(){
     if(typeof Sortable==='undefined') return;
-    // Reordenar circuitos
+    // Reordenar circuitos — destroy instancia anterior para evitar handlers acumulados
     var cc=document.getElementById('circuitosContainer');
-    if(cc) Sortable.create(cc,{
-      handle:'.circ-handle',
-      animation:150,
-      ghostClass:'sortable-ghost',
-      onEnd:function(evt){
-        if(evt.oldIndex===evt.newIndex) return;
-        S.circuitos.splice(evt.newIndex,0,S.circuitos.splice(evt.oldIndex,1)[0]);
-        markDirty();
-        renderCircuitos();
-      }
-    });
-    // Reordenar juegos dentro de cada circuito
+    if(cc){
+      if(_sortableCC) _sortableCC.destroy();
+      _sortableCC=Sortable.create(cc,{
+        handle:'.circ-handle',
+        animation:150,
+        ghostClass:'sortable-ghost',
+        onEnd:function(evt){
+          if(evt.oldIndex===evt.newIndex) return;
+          S.circuitos.splice(evt.newIndex,0,S.circuitos.splice(evt.oldIndex,1)[0]);
+          // Todos los circuitos cambian de orden — marcar todos dirty
+          S.circuitos.forEach(function(c){ _dirtyCircuitIds.add(c.id); });
+          markDirty(); renderCircuitos();
+        }
+      });
+    }
+    // Reordenar juegos dentro de cada circuito (nodes recreados — no acumulan)
     S.circuitos.forEach(function(_,ci){
       var cfg={
         handle:'.drag-handle:not(.circ-handle)',
@@ -1255,7 +1281,7 @@
           var arr=S.circuitos[ci].juegos;
           arr.splice(evt.newIndex,0,arr.splice(evt.oldIndex,1)[0]);
           if(juegoAbierto[ci]===evt.oldIndex) juegoAbierto[ci]=evt.newIndex;
-          markDirty();
+          markCircuitDirty(ci); markDirty();
           renderCircuitos();
         }
       };
@@ -1307,7 +1333,7 @@
           uploadFotoToStorage(compressed, `inspecciones/${inspeccionId}/juegos/${ci}_${ji}/${Date.now()}.jpg`)
             .then(r => {
               S.circuitos[ci].juegos[ji].fotos.push(Object.assign({}, r, {name:String(f.name||'foto.jpg')}));
-              renderModalFotos(); markDirty();
+              markCircuitDirty(ci); renderModalFotos(); markDirty();
             });
         });
       };
@@ -1319,7 +1345,7 @@
     if(!modalJuegoRef) return;
     const{ci,ji}=modalJuegoRef;
     S.circuitos[ci].juegos[ji].fotos.splice(i,1);
-    renderModalFotos(); markDirty();
+    markCircuitDirty(ci); renderModalFotos(); markDirty();
   }
 
   // MODAL NC OBLIGATORIO
@@ -1392,7 +1418,7 @@
     }
 
     const ref=modalNCRef;
-    let elem='',autoId='',origen='auto';
+    let elem='',autoId='',juegoId=undefined,origen='auto';
     if(ref.itemId){
       const item=GEN_ITEMS.find(i=>i.id===ref.itemId);
       elem=item.sec; autoId=ref.itemId;
@@ -1400,14 +1426,16 @@
       const j=S.circuitos[ref.ci].juegos[ref.ji];
       const circ=S.circuitos[ref.ci];
       elem=`${circ.nombre} — ${j.nombre||'Juego '+(ref.ji+1)}`;
-      autoId=`c${ref.ci}j${ref.ji}_${ref.col}`;
+      juegoId=j.id;
+      autoId=`j_${j.id}_${ref.col}`; // formato estable: no depende de posición
     }
-    // FIX: marcar origen campo si fue tipo libre
     if(tipoSel==='__otro__') origen='campo';
 
     // Evitar duplicado de autoId
     if(!S.ncs.find(n=>n.autoId===autoId)){
-      S.ncs.push({autoId,tipo,elem,desc:obs,norma,prio:modalNCPrio,origen,fotosDefecto:[...modalNCFotos],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision});
+      const ncNew={autoId,tipo,elem,desc:obs,norma,prio:modalNCPrio,origen,fotosDefecto:[...modalNCFotos],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision};
+      if(juegoId) ncNew.juegoId=juegoId;
+      S.ncs.push(ncNew);
     }
 
     document.getElementById('modalNC').classList.remove('open');
@@ -1538,12 +1566,31 @@
     }
     S.ncs[i].cerrada=cerrada;
     // Auto-cambiar check del juego a S si la NC se cierra (y era de un juego)
-    var aid=S.ncs[i].autoId||'';
-    var m=aid.match(/^c(\d+)j(\d+)_(\w+)$/);
-    if(cerrada&&m&&m[3]!=='manual'){
-      var ci=parseInt(m[1]),ji=parseInt(m[2]),col=m[3];
-      if(S.circuitos[ci]&&S.circuitos[ci].juegos[ji]&&col){
-        S.circuitos[ci].juegos[ji][col]='S';
+    if(cerrada){
+      var nc=S.ncs[i]; var aid=nc.autoId||'';
+      // Formato nuevo: j_<juegoId>_<col>
+      var mNew=aid.match(/^j_([a-z0-9]+)_(\w+)$/);
+      if(mNew&&mNew[2]!=='manual'){
+        var jId=mNew[1],col=mNew[2];
+        outer: for(var ci2=0;ci2<S.circuitos.length;ci2++){
+          for(var ji2=0;ji2<(S.circuitos[ci2].juegos||[]).length;ji2++){
+            if(S.circuitos[ci2].juegos[ji2].id===jId){
+              S.circuitos[ci2].juegos[ji2][col]='S';
+              markCircuitDirty(ci2);
+              break outer;
+            }
+          }
+        }
+      } else {
+        // Fallback legacy: c<ci>j<ji>_<col>
+        var mOld=aid.match(/^c(\d+)j(\d+)_(\w+)$/);
+        if(mOld&&mOld[3]!=='manual'){
+          var ciO=parseInt(mOld[1]),jiO=parseInt(mOld[2]),colO=mOld[3];
+          if(S.circuitos[ciO]&&S.circuitos[ciO].juegos[jiO]&&colO){
+            S.circuitos[ciO].juegos[jiO][colO]='S';
+            markCircuitDirty(ciO);
+          }
+        }
       }
     }
     markDirty(); renderNCs(); renderCircuitos();
@@ -1614,14 +1661,12 @@
   function markDirty(){ isDirty=true; actualizarBadgeFotosPendientes(); }
 
   function buildPayload(estado){
-    // FIX: sanitizar TODO antes de enviar a Firestore
     const payload = sanitizar({
       checklist:S.gen,
       checklistObs:S.genObs,
       obsGral:document.getElementById("obsGral").value||"",
-      circuitos:S.circuitos,
       ncs:S.ncs,
-            ensayos:document.getElementById("ensayos").value||"",
+      ensayos:document.getElementById("ensayos").value||"",
       equiposMedicion:S.equiposMedicion,
       fechaInspeccion:S.fechaInspeccion,
       horaInicio:S.horaInicio,
@@ -1629,11 +1674,34 @@
       estado,
       ultimaModificacion:firebase.firestore.FieldValue.serverTimestamp()
     });
-    // serverTimestamp no se puede sanitizar — restaurar
     payload.ultimaModificacion = firebase.firestore.FieldValue.serverTimestamp();
-    // sesiones fuera de sanitizar (no se puede serializar a "")
     if (S.sesiones.length) payload.sesiones = S.sesiones;
     return payload;
+  }
+
+  // Genera las actualizaciones granulares de circuitos (dot-notation) para evitar
+  // sobreescribir circuitos editados en otro dispositivo durante sincronización offline.
+  function buildCircuitUpdates(){
+    var upd={};
+    _dirtyCircuitIds.forEach(function(cId){
+      var c=S.circuitos.find(function(c){ return c.id===cId; });
+      if(c) upd['circuitos.'+cId]=sanitizar({nombre:c.nombre,orden:S.circuitos.indexOf(c),juegos:c.juegos});
+    });
+    _deletedCircuitIds.forEach(function(cId){
+      upd['circuitos.'+cId]=firebase.firestore.FieldValue.delete();
+    });
+    _dirtyCircuitIds.clear();
+    _deletedCircuitIds.clear();
+    return upd;
+  }
+
+  // Convierte S.circuitos (array) al mapa {id: circData} para escrituras completas (completar).
+  function buildCircuitosMap(){
+    var map={};
+    S.circuitos.forEach(function(c,i){
+      map[c.id]=sanitizar({nombre:c.nombre,orden:i,juegos:c.juegos});
+    });
+    return map;
   }
 
   // Auto-captura hora inicio en el primer guardado si está vacía
@@ -1652,10 +1720,10 @@
 
   // FIX: guardar silencioso para autoguardado
   async function guardarSilencioso(){
-    if (!cargaCompleta) return; // P3: no guardar antes de que carguen los datos del servidor
+    if (!cargaCompleta) return;
     autoCapturarHoraInicio();
     try {
-      await db.collection("inspecciones").doc(inspeccionId).update(buildPayload("en_curso"));
+      await db.collection("inspecciones").doc(inspeccionId).update(Object.assign(buildPayload("en_curso"),buildCircuitUpdates()));
       isDirty=false;
       actualizarEstado("en_curso");
       const badge=document.getElementById('autosaveBadge');
@@ -1669,7 +1737,7 @@
 
   async function guardar(){
     try {
-      await db.collection("inspecciones").doc(inspeccionId).update(buildPayload("en_curso"));
+      await db.collection("inspecciones").doc(inspeccionId).update(Object.assign(buildPayload("en_curso"),buildCircuitUpdates()));
       isDirty=false; actualizarEstado("en_curso");
       const btn=document.querySelector(".btn-guardar");
       btn.textContent="✓ Guardado";
@@ -1678,6 +1746,12 @@
   }
 
   async function completar(){
+    // Validar fecha de inspección
+    if(!S.fechaInspeccion){
+      goTab(0);
+      alert('Falta la fecha de inspección. Complétala antes de finalizar.');
+      return;
+    }
     // Validar fotos de juegos
     var juegosSinFoto=[]; var firstFoto={ci:-1,ji:-1};
     S.circuitos.forEach(function(c,ci){
@@ -1790,8 +1864,11 @@
     // Corregir la fecha del nRegistro con la fecha real de inspección
     S.nRegistro = corregirFechaNRegistro(S.nRegistro, S.fechaInspeccion);
     try {
+      // En completar: escribir mapa completo de circuitos (estado definitivo, sin granularidad parcial)
+      _dirtyCircuitIds.clear(); _deletedCircuitIds.clear();
       await db.collection("inspecciones").doc(inspeccionId).update({
         ...buildPayload("completada"),
+        circuitos:buildCircuitosMap(),
         resultado,
         fechaCompletada:firebase.firestore.FieldValue.serverTimestamp(),
         fechaCompletadaLocal:new Date().toISOString()
