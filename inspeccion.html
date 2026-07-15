@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -1039,7 +1039,13 @@
   function delCircuito(ci){
     var c=S.circuitos[ci];
     var nj=(c.juegos||[]).length;
-    if(!confirm("¿Borrar circuito \""+c.nombre+"\""+(nj?" y sus "+nj+" juego"+(nj>1?"s":""):"")+"?")) return;
+    var jIds=new Set((c.juegos||[]).map(function(j){return j.id;}));
+    var ncsVinc=S.ncs.filter(function(nc){
+      return (nc.juegoId&&jIds.has(nc.juegoId))||(nc._ci===ci&&nc._ci!=='g');
+    });
+    var msg="¿Borrar circuito \""+c.nombre+"\""+(nj?" y sus "+nj+" juego"+(nj>1?"s":""):"")+"?";
+    if(ncsVinc.length) msg="ATENCIÓN: este circuito tiene "+ncsVinc.length+" NC(s) vinculada(s). Quedarán sin referencia de juego.\n\n"+msg;
+    if(!confirm(msg)) return;
     _deletedCircuitIds.add(c.id); _dirtyCircuitIds.delete(c.id);
     delete juegoAbierto[ci];
     S.circuitos.splice(ci,1);
@@ -1072,7 +1078,17 @@
     }
   }
 
-  function delJuego(ci,ji){ S.circuitos[ci].juegos.splice(ji,1); markCircuitDirty(ci); markDirty(); renderCircuitos(); }
+  function delJuego(ci,ji){
+    var j=S.circuitos[ci].juegos[ji];
+    var ncsVinc=S.ncs.filter(function(nc){
+      return (nc.juegoId&&nc.juegoId===j.id)||(nc._ci===ci&&nc._ji===ji&&nc._ci!=='g');
+    });
+    var msg=ncsVinc.length
+      ?"ATENCIÓN: este juego tiene "+ncsVinc.length+" NC(s) vinculada(s). Quedarán sin referencia.\n\n¿Borrar juego?"
+      :"¿Borrar juego?";
+    if(!confirm(msg)) return;
+    S.circuitos[ci].juegos.splice(ji,1); markCircuitDirty(ci); markDirty(); renderCircuitos();
+  }
 
 
   function toggleCircuito(ci){
