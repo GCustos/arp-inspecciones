@@ -1045,6 +1045,7 @@
     var nj=(c.juegos||[]).length;
     if(!confirm("¿Borrar circuito \""+c.nombre+"\""+(nj?" y sus "+nj+" juego"+(nj>1?"s":""):"")+"?")) return;
     S.circuitos.splice(ci,1);
+    if (circuitoActivo >= S.circuitos.length) circuitoActivo = S.circuitos.length - 1;
     markDirty(); renderCircuitos();
   }
 
@@ -1116,7 +1117,7 @@
       document.getElementById('modalFinCircTitulo').textContent='Último juego de "'+S.circuitos[ci].nombre+'"';
       document.getElementById('btnFinAddJuego').onclick=function(){modal.classList.remove('vis');addJuegoToCircuito(ci);};
       document.getElementById('btnFinSigCirc').style.display=ci+1<totalCirc?'':'none';
-      document.getElementById('btnFinSigCirc').onclick=function(){modal.classList.remove('vis');juegoAbierto[ci+1]=0;renderCircuitos();goTab(2);};
+      document.getElementById('btnFinSigCirc').onclick=function(){modal.classList.remove('vis');circuitoActivo=ci+1;juegoAbierto[ci+1]=0;renderCircuitos();goTab(2);};
       document.getElementById('btnFinNuevoCirc').onclick=function(){modal.classList.remove('vis');addCircuito();};
       modal.classList.add('open');
     }
