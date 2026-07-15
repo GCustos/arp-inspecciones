@@ -1280,7 +1280,12 @@
           if(evt.oldIndex===evt.newIndex) return;
           var arr=S.circuitos[ci].juegos;
           arr.splice(evt.newIndex,0,arr.splice(evt.oldIndex,1)[0]);
-          if(juegoAbierto[ci]===evt.oldIndex) juegoAbierto[ci]=evt.newIndex;
+          var _open=juegoAbierto[ci];
+          if(_open!==undefined){
+            if(_open===evt.oldIndex) juegoAbierto[ci]=evt.newIndex;
+            else if(evt.oldIndex<evt.newIndex&&_open>evt.oldIndex&&_open<=evt.newIndex) juegoAbierto[ci]=_open-1;
+            else if(evt.oldIndex>evt.newIndex&&_open<evt.oldIndex&&_open>=evt.newIndex) juegoAbierto[ci]=_open+1;
+          }
           markCircuitDirty(ci); markDirty();
           renderCircuitos();
         }
@@ -1568,21 +1573,22 @@
     // Auto-cambiar check del juego a S si la NC se cierra (y era de un juego)
     if(cerrada){
       var nc=S.ncs[i]; var aid=nc.autoId||'';
-      // Formato nuevo: j_<juegoId>_<col>
+      // Determinar jId+col: auto NC (j_<id>_<col>), NC manual con juegoId, o legacy posicional
+      var jId=null,col=null;
       var mNew=aid.match(/^j_([a-z0-9]+)_(\w+)$/);
-      if(mNew&&mNew[2]!=='manual'){
-        var jId=mNew[1],col=mNew[2];
+      if(mNew&&mNew[2]!=='manual'){ jId=mNew[1]; col=mNew[2]; }
+      else if(nc.juegoId&&nc._col&&nc._col!=='manual'){ jId=nc.juegoId; col=nc._col; }
+      if(jId&&col){
         outer: for(var ci2=0;ci2<S.circuitos.length;ci2++){
           for(var ji2=0;ji2<(S.circuitos[ci2].juegos||[]).length;ji2++){
             if(S.circuitos[ci2].juegos[ji2].id===jId){
               S.circuitos[ci2].juegos[ji2][col]='S';
-              markCircuitDirty(ci2);
-              break outer;
+              markCircuitDirty(ci2); break outer;
             }
           }
         }
       } else {
-        // Fallback legacy: c<ci>j<ji>_<col>
+        // Fallback legacy posicional: c<ci>j<ji>_<col>
         var mOld=aid.match(/^c(\d+)j(\d+)_(\w+)$/);
         if(mOld&&mOld[3]!=='manual'){
           var ciO=parseInt(mOld[1]),jiO=parseInt(mOld[2]),colO=mOld[3];
@@ -1642,7 +1648,7 @@
   function ncSelJuego(i,v){
     var nc=S.ncs[i]; var ji=parseInt(v); nc._ji=ji;
     var circ=S.circuitos[nc._ci]; var juego=circ?.juegos?.[ji];
-    if(juego){ nc.elem=circ.nombre+' — '+juego.nombre; ncBuildAutoId(nc,i); }
+    if(juego){ nc.elem=circ.nombre+' — '+juego.nombre; nc.juegoId=juego.id; ncBuildAutoId(nc,i); }
     markDirty(); renderNCs();
   }
   function ncSelColumna(i,v){
