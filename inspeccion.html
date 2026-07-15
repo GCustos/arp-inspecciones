@@ -117,11 +117,6 @@
     .nc-badges{display:flex;gap:6px;align-items:center}
     .nc-tipo-badge{font-size:10px;font-weight:600;color:var(--gold);background:rgba(200,153,58,.12);padding:2px 8px;border-radius:10px;border:1px solid rgba(200,153,58,.3)}
     .nc-prio-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
-    .p-GRAVE{background:#FFEBEE;color:var(--red);border:1px solid var(--red)}
-    .p-MEDIA{background:#FFF8E1;color:#E65100;border:1px solid #E65100}
-    .p-LEVE{background:#E8F5E9;color:var(--green);border:1px solid var(--green)}
-    .p-DOCUMENTAL{background:#E3F2FD;color:var(--blue);border:1px solid var(--blue)}
-    .p-OBSERVACION{background:#F5F5F5;color:#666;border:1px solid #999}
     .nc-del{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer}
     .nc-del:hover{color:var(--red)}
     .f{margin-bottom:10px}
@@ -148,20 +143,6 @@
     .foto-add-row{display:flex;gap:8px;margin-top:8px}
     .btn-foto{flex:1;padding:10px;border:1.5px dashed var(--border);border-radius:8px;background:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
     .btn-foto:hover{border-color:var(--gold);color:var(--gold);background:#FFF9F0}
-    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:none;align-items:flex-end;justify-content:center}
-    .modal-overlay.open{display:flex}
-    .modal-sheet{background:white;border-radius:16px 16px 0 0;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;padding:20px 16px 32px}
-    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-    .modal-title{font-size:15px;font-weight:700;color:var(--dark)}
-    .modal-context{font-size:12px;color:var(--muted);background:var(--surf);padding:8px 12px;border-radius:8px;margin-bottom:14px}
-    .modal-context strong{color:var(--text)}
-    .modal-err{font-size:12px;color:var(--red);margin-top:8px;display:none}
-    .modal-err.vis{display:block}
-    .btn-modal-ok{width:100%;padding:14px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;margin-top:16px;box-shadow:0 4px 12px rgba(200,153,58,.3)}
-    .btn-modal-ok:hover{opacity:.9}
-    /* FIX: Botón cancelar NC */
-    .btn-modal-cancel{width:100%;padding:12px;background:var(--surf);color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px}
-    .btn-modal-cancel:hover{border-color:var(--red);color:var(--red)}
     .modal-fotos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
     .foto-add-btns{display:flex;gap:8px;margin-top:10px}
     .bottom-bar{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px;z-index:150}
@@ -186,8 +167,6 @@
     .nc-close-box label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px}
     .nc-close-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
     .nc-close-row input[type=checkbox]{width:16px;height:16px}
-    .spinner-wrap{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
-    .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
     .import-banner{background:#FFF9F0;border:1.5px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:12px;display:none}
     .import-banner.vis{display:block}
     .import-banner p{font-size:12px;color:var(--text);margin-bottom:10px}
@@ -248,7 +227,7 @@
 </div>
 
 <!-- MODAL REABRIR REVISIÓN -->
-<div class="modal-overlay" id="modalReabrir">
+<div class="modal-overlay" id="modalReabrir" onclick="document.getElementById('modalReabrir').classList.remove('open')">
   <div class="modal-sheet" onclick="event.stopPropagation()">
     <div class="modal-header"><span class="modal-title">Abrir nueva revisión</span></div>
     <div class="f">
@@ -464,7 +443,6 @@
   let modalJuegoRef=null, circuitosAnteriores=null;
   let modalNCRef=null;
   let modalNCPrio='';
-  let modalNCPrevVal=''; // FIX: guardar valor previo para revertir si cancela
   let modalNCFotos=[]; // fotos del defecto en modal
   let miRol=null; // rol del usuario actual: admin/director/inspector
   let todosInspectoresRev=[]; // cache para selector de reapertura
@@ -1015,8 +993,7 @@
     markDirty();
     if(v==="N"&&prev!=="N"){
       const item=GEN_ITEMS.find(i=>i.id===id);
-      modalNCPrevVal=prev;
-      abrirModalNC({itemId:id,contexto:`Checklist general — ${item.ref} ${item.sec}`});
+      abrirModalNC({itemId:id,prevVal:prev,contexto:`Checklist general — ${item.ref} ${item.sec}`});
     } else {
       renderGen();
     }
@@ -1045,6 +1022,7 @@
     var nj=(c.juegos||[]).length;
     if(!confirm("¿Borrar circuito \""+c.nombre+"\""+(nj?" y sus "+nj+" juego"+(nj>1?"s":""):"")+"?")) return;
     S.circuitos.splice(ci,1);
+    if (circuitoActivo >= S.circuitos.length) circuitoActivo = S.circuitos.length - 1;
     markDirty(); renderCircuitos();
   }
 
@@ -1063,9 +1041,8 @@
     if(!["nombre","obs","rama"].includes(col)&&val==="N"&&prev!=="N"){
       const j=S.circuitos[ci].juegos[ji];
       const circ=S.circuitos[ci];
-      modalNCPrevVal=prev;
       abrirModalNC({
-        ci,ji,col,
+        ci,ji,col,prevVal:prev,
         contexto:`${circ.nombre} — ${j.nombre||"Juego "+(ji+1)} — ${COL_LABELS[col]}`
       });
     } else {
@@ -1114,10 +1091,10 @@
       const totalCirc=S.circuitos.length;
       var modal=document.getElementById('modalFinCirc');
       document.getElementById('modalFinCircTitulo').textContent='Último juego de "'+S.circuitos[ci].nombre+'"';
-      document.getElementById('btnFinAddJuego').onclick=function(){modal.classList.remove('vis');addJuegoToCircuito(ci);};
+      document.getElementById('btnFinAddJuego').onclick=function(){modal.classList.remove('open');addJuegoToCircuito(ci);};
       document.getElementById('btnFinSigCirc').style.display=ci+1<totalCirc?'':'none';
-      document.getElementById('btnFinSigCirc').onclick=function(){modal.classList.remove('vis');juegoAbierto[ci+1]=0;renderCircuitos();goTab(2);};
-      document.getElementById('btnFinNuevoCirc').onclick=function(){modal.classList.remove('vis');addCircuito();};
+      document.getElementById('btnFinSigCirc').onclick=function(){modal.classList.remove('open');circuitoActivo=ci+1;juegoAbierto[ci+1]=0;renderCircuitos();goTab(2);};
+      document.getElementById('btnFinNuevoCirc').onclick=function(){modal.classList.remove('open');addCircuito();};
       modal.classList.add('open');
     }
   }
@@ -1372,10 +1349,10 @@
     const ref=modalNCRef;
     // Revertir valor
     if(ref.itemId){
-      S.gen[ref.itemId]=modalNCPrevVal;
+      S.gen[ref.itemId]=ref.prevVal||'';
       renderGen();
     } else if(ref.ci!==undefined){
-      S.circuitos[ref.ci].juegos[ref.ji][ref.col]=modalNCPrevVal;
+      S.circuitos[ref.ci].juegos[ref.ji][ref.col]=ref.prevVal||'';
       renderCircuitos();
     }
     document.getElementById('modalNC').classList.remove('open');
