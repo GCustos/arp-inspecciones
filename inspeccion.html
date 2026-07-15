@@ -1035,6 +1035,7 @@
     const nombre=prompt("Nombre del circuito:","Circuito "+(S.circuitos.length+1));
     if(!nombre) return;
     S.circuitos.push({nombre,juegos:[]});
+    circuitoActivo = S.circuitos.length - 1;
     markDirty(); renderCircuitos();
     addJuegoToCircuito(S.circuitos.length-1);
   }
@@ -1049,6 +1050,7 @@
 
   function addJuegoToCircuito(ci){
     S.circuitos[ci].juegos.push({nombre:"",tipo:"R",rama:"",ie:"",af:"",ej:"",ra:"",zs:"",obs:"",fotos:[]});
+    circuitoActivo = ci;
     markDirty(); renderCircuitos();
     const lastJi=S.circuitos[ci].juegos.length-1;
     abrirJuegoMovil(ci,lastJi);
@@ -1075,11 +1077,12 @@
 
 
   function toggleCircuito(ci){
-    document.getElementById("cb_"+ci).classList.toggle("open");
-    document.getElementById("ct_"+ci).classList.toggle("open");
+    circuitoActivo = (circuitoActivo === ci) ? -1 : ci;
+    renderCircuitos();
   }
 
   const juegoAbierto={};
+  var circuitoActivo = 0;
 
   function abrirJuegoMovil(ci,ji){
     juegoAbierto[ci]=ji;
@@ -1151,9 +1154,9 @@
               </select></td>
               <td><input class="rama-inp" type="text" value="${j.rama||""}" placeholder="-" maxlength="2" onchange="setJuego(${ci},${ji},'rama',this.value)"></td>
               ${COLS.map(col=>`<td><div class="snb-c">
-                <button class="snb-s ${j[col.key]==="S"?"s-S":""}" onclick="setJuego(${ci},${ji},'${col.key}','S');renderCircuitos()">S</button>
-                <button class="snb-s ${j[col.key]==="N"?"s-N":""}" onclick="setJuego(${ci},${ji},'${col.key}','N');renderCircuitos()">N</button>
-                <button class="snb-s ${j[col.key]==="NA"?"s-NA":""}" onclick="setJuego(${ci},${ji},'${col.key}','NA');renderCircuitos()">NA</button>
+                <button class="snb-s ${j[col.key]==="S"?"s-S":""}" onclick="setJuego(${ci},${ji},'${col.key}','S')">S</button>
+                <button class="snb-s ${j[col.key]==="N"?"s-N":""}" onclick="setJuego(${ci},${ji},'${col.key}','N')">N</button>
+                <button class="snb-s ${j[col.key]==="NA"?"s-NA":""}" onclick="setJuego(${ci},${ji},'${col.key}','NA')">NA</button>
               </div></td>`).join("")}
               <td><input class="jt-inp" style="font-size:10px;color:var(--muted)" type="text" value="${(j.obs||'').replace(/"/g,'&quot;')}" placeholder="obs..." onchange="setJuego(${ci},${ji},'obs',this.value)"></td>
               <td><button class="foto-juego-btn" onclick="abrirModalFotos(${ci},${ji})" title="Fotos de este juego">
@@ -1197,9 +1200,9 @@
               <div class="criterio-row">
                 <span class="criterio-label">${COL_LABELS[col.key]}</span>
                 <div class="criterio-btns">
-                  <button class="snb-s ${j[col.key]==="S"?"s-S":""}" onclick="setJuego(${ci},${ji},'${col.key}','S');renderCircuitos()">S</button>
-                  <button class="snb-s ${j[col.key]==="N"?"s-N":""}" onclick="setJuego(${ci},${ji},'${col.key}','N');renderCircuitos()">N</button>
-                  <button class="snb-s ${j[col.key]==="NA"?"s-NA":""}" onclick="setJuego(${ci},${ji},'${col.key}','NA');renderCircuitos()">NA</button>
+                  <button class="snb-s ${j[col.key]==="S"?"s-S":""}" onclick="setJuego(${ci},${ji},'${col.key}','S')">S</button>
+                  <button class="snb-s ${j[col.key]==="N"?"s-N":""}" onclick="setJuego(${ci},${ji},'${col.key}','N')">N</button>
+                  <button class="snb-s ${j[col.key]==="NA"?"s-NA":""}" onclick="setJuego(${ci},${ji},'${col.key}','NA')">NA</button>
                 </div>
               </div>`).join("")}
             <div class="juego-field" style="margin-top:10px">
@@ -1232,13 +1235,13 @@
       return `<div class="circ-card" data-ci="${ci}">
         <div class="circ-header" onclick="toggleCircuito(${ci})">
           <span class="drag-handle circ-handle" onclick="event.stopPropagation()" title="Arrastrar circuito">&#8285;</span>
-          <span class="circ-toggle ${ci===0?'open':''}" id="ct_${ci}">&#9654;</span>
+          <span class="circ-toggle ${ci===circuitoActivo?'open':''}" id="ct_${ci}">&#9654;</span>
           <span class="circ-nombre">${circ.nombre}</span>
           <button onclick="event.stopPropagation();renombrarCircuito(${ci})" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:2px 6px;flex-shrink:0" title="Renombrar circuito">&#9998;</button>
           <button onclick="event.stopPropagation();delCircuito(${ci})" style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;padding:2px 6px;flex-shrink:0;opacity:.6" title="Borrar circuito">&#128465;</button>
           <span class="circ-stats" style="color:${hayN?'var(--orange)':ok===total&&total>0?'var(--green)':'var(--muted)'}">${ok}/${total} OK</span>
         </div>
-        <div class="circ-body ${ci===0?'open':''}" id="cb_${ci}">
+        <div class="circ-body ${ci===circuitoActivo?'open':''}" id="cb_${ci}">
           ${tablaPC}
           <div class="juegos-movil"><div id="mlist-${ci}">${juegosMovil}</div>
             <button class="btn-add-juego" onclick="addJuegoToCircuito(${ci})">&#43; Añadir juego</button>
