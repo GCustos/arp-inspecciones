@@ -228,9 +228,12 @@
 
     document.getElementById('hdrTitulo').textContent = D.nombreInstalacion || 'Resultado';
 
-    const sesiones = D.sesiones && D.sesiones.length
-      ? D.sesiones.map((s,si) => `<div class="sesion-item">📅 ${s.fecha||(si===0?D.fechaInspeccion:'')||'Sin fecha'} · ${s.horaInicio||'--'}–${s.horaFin||'--'}</div>`).join('')
-      : `<div class="sesion-item">📅 ${D.fechaInspeccion||'Sin fecha'}</div>`;
+    const sesiones = (function() {
+      const src = D.sesiones && D.sesiones.length ? D.sesiones : [];
+      const ses = src.filter(s => s.horaInicio || s.horaFin);
+      if (!ses.length) return `<div class="sesion-item">📅 ${D.fechaInspeccion||'Sin fecha'}</div>`;
+      return ses.map(s => `<div class="sesion-item">📅 ${s.fecha||'Sin fecha'} · ${s.horaInicio||'--'}–${s.horaFin||'--'}</div>`).join('');
+    })();
 
     // Agrupar NCs por tipo+prio para mostrar resumen
     const ncGrupos = {};
@@ -1690,6 +1693,8 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
 
       // Fecha + hora — una fila por visita (Rev.0, Rev.1, Rev.2…)
       var allSes = D.sesiones && D.sesiones.length ? D.sesiones : [{fecha:D.fechaInspeccion||'',horaInicio:'',horaFin:''}];
+      var _sesFilt = allSes.filter(function(s){return s.horaInicio||s.horaFin;});
+      if (_sesFilt.length) allSes = _sesFilt;
       var histRev = D.historialRevisiones || [];
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
       doc.text(allSes.length > 1 ? 'FECHAS DE INSPECCION' : 'FECHA DE INSPECCION', ML, y);
