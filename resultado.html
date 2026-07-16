@@ -175,6 +175,9 @@
       const snap = await db.collection('inspecciones').doc(inspeccionId).get();
       if (!snap.exists) { document.getElementById('mainContent').innerHTML = '<p style="color:var(--red);padding:20px">Inspección no encontrada.</p>'; return; }
       D = { id: snap.id, ...snap.data() };
+      // Normalizar circuitos: nuevo formato = mapa {id: circData}, legacy = array
+      if (D.circuitos && !Array.isArray(D.circuitos))
+        D.circuitos = Object.values(D.circuitos).sort(function(a,b){ return (a.orden||0)-(b.orden||0); });
       D_actual = D;
 
       // Guardar snapshot en localStorage (triple backup)
@@ -188,6 +191,8 @@
       if (local) {
         try {
           D = JSON.parse(local);
+          if (D.circuitos && !Array.isArray(D.circuitos))
+            D.circuitos = Object.values(D.circuitos).sort(function(a,b){ return (a.orden||0)-(b.orden||0); });
           D_actual = D;
           CONFIG = CONFIG_DEFAULT;
           document.getElementById('alertOffline').classList.add('vis');
@@ -326,13 +331,26 @@
   // ═══════════════════════════════════════════════════
 
   // Colores
-  // Resuelve el nombre del elemento de una NC usando los circuitos actuales.
-  // nc.elem puede estar desactualizado si el juego fue renombrado tras crear la NC.
+  // Resuelve el nombre del elemento de una NC.
+  // Formato nuevo: nc.juegoId → busca por ID estable (inmune a reordenación).
+  // Fallback legacy: nc._ci / nc._ji para inspecciones antiguas.
   function getNcElem(nc) {
-    if (nc._ci !== undefined && nc._ci !== 'g' && nc._ji !== undefined && D && D.circuitos) {
-      var circ = D.circuitos[nc._ci];
-      var juego = circ && circ.juegos && circ.juegos[nc._ji];
-      if (circ && juego) return circ.nombre + ' — ' + (juego.nombre || ('Juego ' + (nc._ji + 1)));
+    if (D && D.circuitos) {
+      var circs = Array.isArray(D.circuitos) ? D.circuitos : Object.values(D.circuitos);
+      // Formato nuevo: buscar juego por ID estable
+      if (nc.juegoId) {
+        for (var c of circs) {
+          for (var j of (c.juegos||[])) {
+            if (j.id === nc.juegoId) return c.nombre + ' — ' + (j.nombre || 'Juego');
+          }
+        }
+      }
+      // Fallback legacy: índices posicionales _ci/_ji
+      if (nc._ci !== undefined && nc._ci !== 'g' && nc._ji !== undefined) {
+        var circ = circs[nc._ci];
+        var juego = circ && circ.juegos && circ.juegos[nc._ji];
+        if (circ && juego) return circ.nombre + ' — ' + (juego.nombre || ('Juego ' + (nc._ji + 1)));
+      }
     }
     return nc.elem || '';
   }
