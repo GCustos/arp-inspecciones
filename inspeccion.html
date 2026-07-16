@@ -962,7 +962,7 @@
         inspectorNombre:nombre,
         horaInicio:'',
         horaFin:'',
-        sesiones:firebase.firestore.FieldValue.arrayUnion({fecha:new Date().toISOString().split('T')[0],horaInicio:'',horaFin:''}),
+        sesiones:[{fecha:new Date().toISOString().split('T')[0],horaInicio:'',horaFin:''}],
         ultimaModificacion:firebase.firestore.FieldValue.serverTimestamp()
       });
       location.reload();
