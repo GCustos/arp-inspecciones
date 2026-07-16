@@ -229,7 +229,7 @@
     document.getElementById('hdrTitulo').textContent = D.nombreInstalacion || 'Resultado';
 
     const sesiones = D.sesiones && D.sesiones.length
-      ? D.sesiones.map(s => `<div class="sesion-item">📅 ${s.fecha} · ${s.horaInicio||'--'}–${s.horaFin||'--'}</div>`).join('')
+      ? D.sesiones.map((s,si) => `<div class="sesion-item">📅 ${s.fecha||(si===0?D.fechaInspeccion:'')||'Sin fecha'} · ${s.horaInicio||'--'}–${s.horaFin||'--'}</div>`).join('')
       : `<div class="sesion-item">📅 ${D.fechaInspeccion||'Sin fecha'}</div>`;
 
     // Agrupar NCs por tipo+prio para mostrar resumen
@@ -1697,7 +1697,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.text('Hora fin', ML+CW*0.82, y); y += 4;
       allSes.forEach(function(ses, si) {
         var isLast = si === allSes.length - 1;
-        var sesFecha = si === 0 ? (D.fechaInspeccion || ses.fecha || '') : (ses.fecha || '');
+        var sesFecha = ses.fecha || (si === 0 ? (D.fechaInspeccion || '') : '') || '';
         var hist = histRev[si] || {};
         var sesHoraI = ses.horaInicio || (isLast ? (D.horaInicio || '') : (hist.horaInicio || ''));
         var sesHoraF = ses.horaFin || (isLast ? (D.horaFin || '') : (hist.horaFin || ''));
