@@ -7,6 +7,9 @@
   <title>Inspección - ARP</title>
   <link rel="stylesheet" href="styles.css">
   <style>
+    /* Ocultar modales antes de que cargue styles.css — evita flash si la hoja tarda */
+    .modal-overlay{display:none}
+    .modal-overlay.open{display:flex}
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     .app-header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:200}
     .hdr-info{flex:1;min-width:0}
@@ -1893,7 +1896,8 @@
         circuitos:buildCircuitosMap(),
         resultado,
         fechaCompletada:firebase.firestore.FieldValue.serverTimestamp(),
-        fechaCompletadaLocal:new Date().toISOString()
+        fechaCompletadaLocal:new Date().toISOString(),
+        completadoPor:currentUser.email
       });
       if(docDataFull.instalacionId){
         db.collection("instalaciones").doc(docDataFull.instalacionId).update({ultimaInspeccionId:inspeccionId}).catch(function(){});
