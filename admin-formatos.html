@@ -560,16 +560,17 @@
   // ── TAB HISTORIAL ──
   function renderHistorial() {
     document.getElementById('content').innerHTML = '<div class="spinner"></div>';
-    db.collection('config').doc('paa').collection('historial')
-      .orderBy(firebase.firestore.FieldPath.documentId(), 'desc').get()
+    db.collection('config').doc('paa').collection('historial').get()
       .then(function(snap) {
         if (snap.empty) {
           document.getElementById('content').innerHTML = '<div class="empty-state">Sin historial. Ejecuta el script de migración.</div>';
           return;
         }
+        var docs = [];
+        snap.forEach(function(d){ docs.push(d.data()); });
+        docs.sort(function(a,b){ return (b.revision||0)-(a.revision||0); });
         var html = '';
-        snap.forEach(function(d) {
-          var h = d.data();
+        docs.forEach(function(h) {
           var cambios = h.cambios || {};
           var chk  = cambios.checklist || {};
           var cols = cambios.columnas  || {};

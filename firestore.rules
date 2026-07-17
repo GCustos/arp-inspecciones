@@ -70,6 +70,12 @@ service cloud.firestore {
       allow write: if isAuth() && isAdmin();
     }
 
+    // historial de formato PAA (subcollección de config/paa)
+    match /config/paa/historial/{rev} {
+      allow read:  if isAuth();
+      allow write: if isAuth() && isAdminLike();
+    }
+
     // ── instalaciones ──────────────────────────────────────────────────────
     // Todos leen (inspectores necesitan buscar instalaciones en nueva-inspeccion)
     // Inspectores crean instalaciones nuevas y actualizan ultimaInspeccion al completar
