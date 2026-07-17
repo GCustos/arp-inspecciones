@@ -175,10 +175,12 @@
     ]).then(function(res) {
       var paa = res[0].exists ? res[0].data() : {};
       formatoActivo = {
-        revision:     paa.formatoRevision || 9,
-        fechaVigencia:paa.formatoFecha    || '26/02/2026',
-        checklist:    paa.checklist       || [],
-        columnas:     paa.columnas        || []
+        revision:         paa.formatoRevision  || 9,
+        fechaVigencia:    paa.formatoFecha      || '26/02/2026',
+        registroRevision: paa.registroRevision  || 7,
+        registroFecha:    paa.registroFecha     || '10/02/2026',
+        checklist:        paa.checklist         || [],
+        columnas:         paa.columnas          || []
       };
       borrador = res[1].exists ? res[1].data() : null;
       document.getElementById('borradorDot').style.display = borrador ? 'inline' : 'none';
@@ -208,9 +210,17 @@
   function renderActivo() {
     if (!formatoActivo) return;
     var f = formatoActivo;
-    var html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'
+    var html = '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:4px">'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<span style="font-size:11px;color:var(--muted);width:60px">Informe</span>'
       +'<span class="rev-badge">Rev '+f.revision+'</span>'
       +'<span class="fecha-badge">Vigente desde '+escHtml(f.fechaVigencia)+'</span>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<span style="font-size:11px;color:var(--muted);width:60px">Registro</span>'
+      +'<span class="rev-badge" style="background:var(--dark)">Rev '+f.registroRevision+'</span>'
+      +'<span class="fecha-badge">Vigente desde '+escHtml(f.registroFecha)+'</span>'
+      +'</div>'
       +'</div>';
 
     html += '<div class="sec-label" style="margin-top:16px">Preguntas generales ('+f.checklist.length+')</div>';
