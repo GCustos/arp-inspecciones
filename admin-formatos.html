@@ -588,13 +588,19 @@
                     + (cols.anadidas||[]).length + (cols.eliminadas||[]).length + (cols.modificadas||[]).length;
           var resumen = total ? total+' cambio'+(total!==1?'s':'') : (cambios.nota || 'Sin cambios registrados');
 
-          var regTag = h.registroRevision
-            ? ' &nbsp;<span style="font-size:11px;font-weight:400;color:var(--muted)">· Registro Rev '+h.registroRevision+'</span>'
+          var regLine = h.registroRevision
+            ? '<span style="font-size:11px;color:var(--muted)">Registro Rev '+h.registroRevision+' &middot; '+escHtml(h.registroFecha||'')+'</span>'
             : '';
           html += '<div class="hist-item">'
             +'<div class="hist-header" onclick="toggleHist(this)">'
-            +'<span class="hist-rev">Informe Rev '+h.revision+regTag+'</span>'
-            +'<span class="hist-meta">'+escHtml(h.fechaVigencia||'')+'&nbsp;&middot;&nbsp;'+escHtml(h.publicadoPor||'')+'&nbsp;&middot;&nbsp;'+escHtml(resumen)+'</span>'
+            +'<div style="flex:1;min-width:0">'
+            +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+            +'<span class="hist-rev">Informe Rev '+h.revision+'</span>'
+            +'<span style="font-size:11px;color:var(--muted)">'+escHtml(h.fechaVigencia||'')+'</span>'
+            +(regLine?'<span style="color:var(--border)">|</span>'+regLine:'')
+            +'</div>'
+            +'<div class="hist-meta" style="margin-top:2px">'+escHtml(h.publicadoPor||'')+'&nbsp;&middot;&nbsp;'+escHtml(resumen)+'</div>'
+            +'</div>'
             +'<span>&#9660;</span>'
             +'</div>'
             +'<div class="hist-body">';
