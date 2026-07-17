@@ -86,6 +86,12 @@ service cloud.firestore {
       allow write: if isAuth() && isAdminLike();
     }
 
+    // ── contactos ──────────────────────────────────────────────────────────
+    match /contactos/{docId} {
+      allow read:  if isAuth() && canReadAll();
+      allow write: if isAuth() && isAdminLike();
+    }
+
     // ── equipos ────────────────────────────────────────────────────────────
     // Todos leen (inspectores ven sus equipos asignados)
     // Solo admin/director/proyecto modifican fichas de calibración
