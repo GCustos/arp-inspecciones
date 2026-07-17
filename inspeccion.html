@@ -459,7 +459,8 @@
 
   const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], ensayos:"", equiposMedicion:[], revision:0, historialRevisiones:[], nRegistro:"", codigoInstalacion:"", tipoAlcance:"", estado:"borrador", fechaInspeccion:"", horaInicio:"", horaFin:"", sesiones:[] };
 
-  const GEN_ITEMS = [
+  // Formato efectivo — se reemplaza con el snapshot D.formatoDocumento al cargar la inspección
+  var GEN_ITEMS = [
     {id:"g1",ref:"4.1",sec:"Selección de Lugar y Entorno",desc:"Evacuación posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosión)."},
     {id:"g2",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.3 Sistemas de soporte naturales – Árboles. Evaluación de resistencia e idoneidad por experto; diagnóstico actualizado; protección de raíces; medidas correctivas."},
     {id:"g3",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.2 Sistemas de soporte artificiales. Adecuación a cargas; vientos y anclajes protegidos; verificación de estructuras existentes si aplican; cálculos disponibles."},
@@ -468,15 +469,24 @@
     {id:"g6",ref:"7",sec:"EPI y equipos de rescate",desc:"Identificación y marcados; revisión periódica vigente; prueba funcional si aplica; adecuación a morfología de usuarios; registros al día."},
     {id:"g7",ref:"8",sec:"Documentación",desc:"Manual del constructor, mantenimiento, evaluación arbórea, identificación en planos, marcados."},
   ];
-
-  const COLS = [
+  var COLS = [
     {key:"ie",label:"Integ.\nest."},
     {key:"af",label:"Anclajes\nfijac."},
     {key:"ej",label:"Elem.\njuego"},
     {key:"ra",label:"Riesgos\natrap."},
     {key:"zs",label:"Zona\nsegur."},
   ];
-  const COL_LABELS = {ie:"Integridad estructural",af:"Anclajes y fijaciones",ej:"Elementos de juego",ra:"Riesgos y atrapamientos",zs:"Zona de seguridad/Entorno"};
+  var COL_LABELS = {ie:"Integridad estructural",af:"Anclajes y fijaciones",ej:"Elementos de juego",ra:"Riesgos y atrapamientos",zs:"Zona de seguridad/Entorno"};
+
+  function _aplicarFormato(fmt) {
+    if (!fmt) return;
+    if (fmt.checklist && fmt.checklist.length) GEN_ITEMS = fmt.checklist;
+    if (fmt.columnas  && fmt.columnas.length) {
+      COLS = fmt.columnas.map(function(c){ return {key:c.id, label:c.abbrev}; });
+      COL_LABELS = {};
+      fmt.columnas.forEach(function(c){ COL_LABELS[c.id] = c.label; });
+    }
+  }
 
   // ── EQUIPOS DE MEDICIÓN ──
   function cargarEquiposDesdeInspector(email) {
@@ -793,6 +803,7 @@
         });
       }
       if(data.ncs) S.ncs=data.ncs;
+      _aplicarFormato(data.formatoDocumento);
       // fotos generales eliminadas — las fotos van en juegos y NCs
       if(data.ensayos) S.ensayos=data.ensayos;
       S.revision=data.revision!==undefined?data.revision:0;

@@ -121,7 +121,9 @@
     },
     paa: {
       formatoRevision: 9,
-      formatoFecha: "26/02/2026"
+      formatoFecha: "26/02/2026",
+      registroRevision: 7,
+      registroFecha: "10/02/2026"
     },
     director: {
       nombre:     'José Manuel Moreno Vélez',
@@ -714,8 +716,8 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
     try {
       const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
       const ref = getNRegistro();
-      const fmtRev = D.formatoDocumento?.revision || CONFIG?.paa?.formatoRevision || 9;
-      const fmtFechaStr = D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '26/02/2026';
+      const fmtRev = D.formatoDocumento?.informeRevision || D.formatoDocumento?.revision || CONFIG?.paa?.formatoRevision || 9;
+      const fmtFechaStr = D.formatoDocumento?.informeFecha || D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '26/02/2026';
 
       const totPag = [0];
       const nPag = [0];
@@ -1645,8 +1647,8 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
       const ref = getNRegistro();
       const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
-      const fmtRev = D.formatoDocumento?.revision || CONFIG?.paa?.formatoRevision || 9;
-      const fmtFechaStr = D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '26/02/2026';
+      const fmtRev = D.formatoDocumento?.registroRevision || CONFIG?.paa?.registroRevision || 7;
+      const fmtFechaStr = D.formatoDocumento?.registroFecha || CONFIG?.paa?.registroFecha || '10/02/2026';
 
       const totPag2 = [0];
       const nPag2 = [0];

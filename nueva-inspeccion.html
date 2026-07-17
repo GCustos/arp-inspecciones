@@ -630,8 +630,22 @@
 
     crearInstalacionPromise.then(function() {
       document.getElementById("loadingMsg").textContent = "Cargando equipos...";
-      return cargarEquiposInspector(selectedInspectorEmail);
-    }).then(function(equiposMedicion) {
+      return Promise.all([
+        cargarEquiposInspector(selectedInspectorEmail),
+        db.collection("config").doc("paa").get()
+      ]);
+    }).then(function(results) {
+      var equiposMedicion = results[0];
+      var paaSnap = results[1];
+      var _paa = paaSnap.exists ? paaSnap.data() : {};
+      var formatoDocumento = {
+        informeRevision: _paa.formatoRevision  || 9,
+        informeFecha:    _paa.formatoFecha     || "26/02/2026",
+        registroRevision:_paa.registroRevision || 7,
+        registroFecha:   _paa.registroFecha    || "10/02/2026",
+        checklist:       _paa.checklist        || [],
+        columnas:        _paa.columnas         || []
+      };
       document.getElementById("loadingMsg").textContent = "Creando inspección...";
 
       var instalacionId = "";
@@ -729,7 +743,8 @@
         estado: "borrador",
         sesiones: [{ fecha: fecha, horaInicio: horaInicio, horaFin: horaFin }],
         equiposMedicion: equiposMedicion,
-        fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
+        fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
+        formatoDocumento: formatoDocumento
       };
       if (circuitosHeredados) inspeccion.circuitos = circuitosHeredados;
 

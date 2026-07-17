@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Formatos de Inspección - ARP</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .tabs{display:flex;background:var(--dark);padding:0 16px}
+    .tab{flex:1;padding:10px 0;font-size:12px;font-weight:600;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;text-align:center}
+    .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+    .sec-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:20px 0 8px;display:flex;align-items:center;justify-content:space-between}
+    .rev-badge{background:var(--gold);color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+    .fecha-badge{font-size:11px;color:var(--muted);margin-top:2px}
+
+    /* items del formato */
+    .fmt-item{background:white;border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:6px;display:flex;gap:10px;align-items:flex-start}
+    .fmt-item.sortable-ghost{opacity:.4}
+    .drag-handle{color:var(--muted);font-size:16px;cursor:grab;padding:2px 0;flex-shrink:0;user-select:none}
+    .fmt-body{flex:1;min-width:0}
+    .fmt-ref{font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em}
+    .fmt-sec{font-size:13px;font-weight:600;color:var(--dark);margin:1px 0}
+    .fmt-desc{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+    .fmt-actions{display:flex;gap:6px;flex-shrink:0}
+    .btn-icon{background:none;border:1.5px solid var(--border);border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0}
+    .btn-icon:hover{border-color:var(--gold);color:var(--gold)}
+    .btn-icon.danger:hover{border-color:var(--red);color:var(--red)}
+
+    /* columnas */
+    .col-item{background:white;border:1px solid var(--border);border-radius:10px;padding:10px 13px;margin-bottom:6px;display:flex;gap:10px;align-items:center}
+    .col-id{font-family:monospace;font-size:12px;font-weight:700;color:var(--dark);min-width:28px}
+    .col-abbrev{font-size:12px;color:var(--muted);flex:1}
+    .col-label{font-size:12px;color:var(--text);flex:2}
+
+    /* botones */
+    .btn-add{width:100%;padding:10px;border:2px dashed var(--border);border-radius:10px;background:none;font-family:inherit;font-size:13px;color:var(--muted);cursor:pointer;margin-top:4px}
+    .btn-add:hover{border-color:var(--gold);color:var(--gold)}
+    .btn-primary{padding:11px 20px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    .btn-primary:hover{opacity:.9}
+    .btn-publish{padding:11px 20px;background:var(--dark);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    .btn-publish:hover{opacity:.85}
+    .btn-secondary{padding:11px 20px;background:white;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;color:var(--text);cursor:pointer}
+    .btn-secondary:hover{border-color:var(--gold)}
+    .action-bar{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
+
+    /* historial */
+    .hist-item{background:white;border:1px solid var(--border);border-radius:10px;padding:13px 15px;margin-bottom:8px}
+    .hist-header{display:flex;align-items:center;gap:10px;cursor:pointer}
+    .hist-rev{font-size:14px;font-weight:700;color:var(--dark)}
+    .hist-meta{font-size:11px;color:var(--muted);flex:1}
+    .hist-body{margin-top:10px;display:none}
+    .hist-body.open{display:block}
+    .hist-body .diff-item{font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)}
+    .diff-add{color:var(--green)}
+    .diff-del{color:var(--red);text-decoration:line-through}
+    .diff-mod{color:var(--orange)}
+
+    /* modal edición */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center}
+    .modal-overlay.open{display:flex}
+    @media(min-width:520px){.modal-overlay{align-items:center;padding:20px}}
+    .modal{background:white;border-radius:16px 16px 0 0;padding:22px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto}
+    @media(min-width:520px){.modal{border-radius:16px}}
+    .modal-title{font-size:15px;font-weight:700;color:var(--dark);margin-bottom:16px}
+    .field{margin-bottom:12px}
+    .field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+    .field input,.field textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:13px;color:var(--text);outline:none}
+    .field input:focus,.field textarea:focus{border-color:var(--gold)}
+    .field textarea{resize:vertical;min-height:80px}
+    .modal-actions{display:flex;gap:8px;margin-top:16px}
+    .btn-cancel{flex:1;padding:11px;border:1.5px solid var(--border);border-radius:9px;background:white;font-family:inherit;font-size:13px;font-weight:600;color:var(--text);cursor:pointer}
+    .btn-save{flex:2;padding:11px;border:none;border-radius:9px;background:var(--gold);color:white;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+
+    /* empty state borrador */
+    .empty-draft{text-align:center;padding:48px 20px;color:var(--muted)}
+    .empty-draft .ed-icon{font-size:36px;margin-bottom:12px}
+    .empty-draft .ed-title{font-size:14px;font-weight:600;color:var(--dark);margin-bottom:6px}
+    .empty-draft .ed-desc{font-size:12px;line-height:1.5;margin-bottom:20px}
+
+    /* diff preview */
+    .diff-preview{background:var(--surf);border-radius:10px;padding:12px;font-size:12px;margin:12px 0;max-height:200px;overflow-y:auto}
+    .diff-preview p{margin:4px 0}
+    .no-changes{color:var(--muted);font-style:italic}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="location.href='admin.html'">&#8592;</button>
+  <div class="hdr-mark">ARP</div>
+  <div class="hdr-title" id="hdrTitle">Formatos PAA</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" id="tabActivo"   onclick="goTab('activo',this)">Activo</button>
+  <button class="tab"        id="tabBorrador" onclick="goTab('borrador',this)">Borrador <span id="borradorDot" style="display:none;color:var(--orange)">●</span></button>
+  <button class="tab"        id="tabHistorial" onclick="goTab('historial',this)">Historial</button>
+</div>
+
+<div class="content" id="content"><div class="spinner"></div></div>
+
+<!-- MODAL EDITAR PREGUNTA -->
+<div class="modal-overlay" id="modalPregunta">
+  <div class="modal">
+    <div class="modal-title" id="mpTitulo">Pregunta</div>
+    <div class="field"><label>Referencia norma</label><input type="text" id="mpRef" placeholder="4.1"></div>
+    <div class="field"><label>Sección</label><input type="text" id="mpSec" placeholder="Selección de Lugar y Entorno"></div>
+    <div class="field"><label>Descripción</label><textarea id="mpDesc" rows="4" placeholder="Descripción detallada del criterio..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modalPregunta')">Cancelar</button>
+      <button class="btn-save" onclick="guardarPregunta()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR COLUMNA -->
+<div class="modal-overlay" id="modalColumna">
+  <div class="modal">
+    <div class="modal-title" id="mcTitulo">Columna</div>
+    <div class="field"><label>Código (2-4 letras, no cambiar si hay inspecciones)</label><input type="text" id="mcId" placeholder="ie" maxlength="4" style="text-transform:lowercase"></div>
+    <div class="field"><label>Abreviatura (para cabecera tabla)</label><input type="text" id="mcAbbrev" placeholder="Integ. est." maxlength="20"></div>
+    <div class="field"><label>Nombre completo</label><input type="text" id="mcLabel" placeholder="Integridad estructural"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modalColumna')">Cancelar</button>
+      <button class="btn-save" onclick="guardarColumna()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="utils.js"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey:'AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc',
+      authDomain:'arp-inspecciones.firebaseapp.com',
+      projectId:'arp-inspecciones',
+      storageBucket:'arp-inspecciones.firebasestorage.app',
+      messagingSenderId:'35880168451',
+      appId:'1:35880168451:web:090e3c250b4416ed0b3236'
+    });
+  }
+  var auth = firebase.auth();
+  var db   = firebase.firestore();
+
+  var formatoActivo  = null;  // {revision, fechaVigencia, checklist, columnas}
+  var borrador       = null;  // null si no existe
+  var tabActual      = 'activo';
+  var editandoPreguntaIdx = null;
+  var editandoColumnaIdx  = null;
+  var _sortableChk   = null;
+  var _sortableCols  = null;
+  var currentUserEmail = '';
+
+  function uid(){ return Math.random().toString(36).slice(2,8); }
+
+  initAuth({
+    roles: ['admin','director'],
+    onReady: function(user, ud) {
+      currentUserEmail = user.email;
+      cargar();
+    }
+  });
+
+  // ── CARGA ──
+  function cargar() {
+    Promise.all([
+      db.collection('config').doc('paa').get(),
+      db.collection('config').doc('paa_borrador').get()
+    ]).then(function(res) {
+      var paa = res[0].exists ? res[0].data() : {};
+      formatoActivo = {
+        revision:     paa.formatoRevision || 9,
+        fechaVigencia:paa.formatoFecha    || '26/02/2026',
+        checklist:    paa.checklist       || [],
+        columnas:     paa.columnas        || []
+      };
+      borrador = res[1].exists ? res[1].data() : null;
+      document.getElementById('borradorDot').style.display = borrador ? 'inline' : 'none';
+      renderTab();
+    }).catch(function(e){
+      document.getElementById('content').innerHTML = '<div class="empty-state">Error: '+escHtml(e.message)+'</div>';
+    });
+  }
+
+  // ── TABS ──
+  function goTab(tab, btn) {
+    tabActual = tab;
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    else document.getElementById('tab'+cap(tab)).classList.add('active');
+    renderTab();
+  }
+  function cap(s){ return s[0].toUpperCase()+s.slice(1); }
+
+  function renderTab() {
+    if (tabActual==='activo')    renderActivo();
+    else if (tabActual==='borrador') renderBorrador();
+    else renderHistorial();
+  }
+
+  // ── TAB ACTIVO ──
+  function renderActivo() {
+    if (!formatoActivo) return;
+    var f = formatoActivo;
+    var html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'
+      +'<span class="rev-badge">Rev '+f.revision+'</span>'
+      +'<span class="fecha-badge">Vigente desde '+escHtml(f.fechaVigencia)+'</span>'
+      +'</div>';
+
+    html += '<div class="sec-label" style="margin-top:16px">Preguntas generales ('+f.checklist.length+')</div>';
+    f.checklist.forEach(function(item,i){
+      html += renderItemReadonly(i+1, item);
+    });
+    if (!f.checklist.length) html += '<div class="empty-state" style="padding:16px">Sin preguntas definidas.</div>';
+
+    html += '<div class="sec-label">Columnas de inspección ('+f.columnas.length+')</div>';
+    f.columnas.forEach(function(col){
+      html += '<div class="col-item">'
+        +'<span class="col-id">'+escHtml(col.id)+'</span>'
+        +'<span class="col-abbrev">'+escHtml(col.abbrev)+'</span>'
+        +'<span class="col-label">'+escHtml(col.label)+'</span>'
+        +'</div>';
+    });
+    if (!f.columnas.length) html += '<div class="empty-state" style="padding:16px">Sin columnas definidas.</div>';
+
+    document.getElementById('content').innerHTML = html;
+  }
+
+  function renderItemReadonly(n, item) {
+    return '<div class="fmt-item">'
+      +'<div class="fmt-body">'
+      +'<div class="fmt-ref">'+n+'. '+escHtml(item.ref)+' &middot; '+escHtml(item.sec)+'</div>'
+      +'<div class="fmt-desc">'+escHtml(item.desc)+'</div>'
+      +'</div></div>';
+  }
+
+  // ── TAB BORRADOR ──
+  function renderBorrador() {
+    if (!borrador) {
+      document.getElementById('content').innerHTML =
+        '<div class="empty-draft">'
+        +'<div class="ed-icon">&#9998;</div>'
+        +'<div class="ed-title">Sin borrador activo</div>'
+        +'<div class="ed-desc">Crea un borrador basado en el formato activo (Rev '+formatoActivo.revision+').<br>Puedes editar durante varios días sin afectar las inspecciones en curso.</div>'
+        +'<button class="btn-primary" onclick="crearBorrador()">Crear borrador</button>'
+        +'</div>';
+      return;
+    }
+
+    var b = borrador;
+    var meta = b.fechaBorrador ? 'Borrador del '+escHtml(b.fechaBorrador) : 'Borrador en curso';
+    var html = '<div class="fecha-badge" style="margin-bottom:16px">'+meta+(b.editadoPor?' &middot; '+escHtml(b.editadoPor):'')+' &#9998;</div>';
+
+    // Preguntas
+    html += '<div class="sec-label">Preguntas generales'
+      +'<button class="btn-primary" style="font-size:11px;padding:4px 10px" onclick="nuevaPregunta()">+ Añadir</button>'
+      +'</div>'
+      +'<div id="listaPreguntas">';
+    b.checklist.forEach(function(item,i){
+      html += renderItemEditor(i, item);
+    });
+    if (!b.checklist.length) html += '<div class="empty-state" style="padding:12px">Sin preguntas. Pulsa + Añadir.</div>';
+    html += '</div>';
+
+    // Columnas
+    html += '<div class="sec-label" style="margin-top:20px">Columnas de inspección'
+      +'<button class="btn-primary" style="font-size:11px;padding:4px 10px" onclick="nuevaColumna()">+ Añadir</button>'
+      +'</div>'
+      +'<div id="listaColumnas">';
+    b.columnas.forEach(function(col,i){
+      html += renderColEditor(i, col);
+    });
+    if (!b.columnas.length) html += '<div class="empty-state" style="padding:12px">Sin columnas.</div>';
+    html += '</div>';
+
+    // Botones
+    html += '<div class="action-bar">'
+      +'<button class="btn-secondary" onclick="guardarBorrador(false)">Guardar borrador</button>'
+      +'<button class="btn-publish" onclick="previsualizarPublicacion()">&#9654; Publicar como Rev '+(formatoActivo.revision+1)+'</button>'
+      +'</div>'
+      +'<div style="margin-top:8px">'
+      +'<button style="background:none;border:none;color:var(--red);font-size:12px;cursor:pointer" onclick="descartarBorrador()">Descartar borrador</button>'
+      +'</div>';
+
+    document.getElementById('content').innerHTML = html;
+    initSortablesBorrador();
+  }
+
+  function renderItemEditor(i, item) {
+    return '<div class="fmt-item" data-idx="'+i+'">'
+      +'<span class="drag-handle">&#9776;</span>'
+      +'<div class="fmt-body">'
+      +'<div class="fmt-ref">'+escHtml(item.ref)+' &middot; '+escHtml(item.sec)+'</div>'
+      +'<div class="fmt-desc">'+escHtml(item.desc)+'</div>'
+      +'</div>'
+      +'<div class="fmt-actions">'
+      +'<button class="btn-icon" onclick="editarPregunta('+i+')" title="Editar">&#9998;</button>'
+      +'<button class="btn-icon danger" onclick="eliminarPregunta('+i+')" title="Eliminar">&#215;</button>'
+      +'</div></div>';
+  }
+
+  function renderColEditor(i, col) {
+    return '<div class="col-item" data-idx="'+i+'">'
+      +'<span class="drag-handle" style="color:var(--muted);cursor:grab">&#9776;</span>'
+      +'<span class="col-id">'+escHtml(col.id)+'</span>'
+      +'<span class="col-abbrev">'+escHtml(col.abbrev)+'</span>'
+      +'<span class="col-label">'+escHtml(col.label)+'</span>'
+      +'<div class="fmt-actions">'
+      +'<button class="btn-icon" onclick="editarColumna('+i+')" title="Editar">&#9998;</button>'
+      +'<button class="btn-icon danger" onclick="eliminarColumna('+i+')" title="Eliminar">&#215;</button>'
+      +'</div></div>';
+  }
+
+  function initSortablesBorrador() {
+    var elChk = document.getElementById('listaPreguntas');
+    var elCols = document.getElementById('listaColumnas');
+    if (!elChk || !elCols) return;
+    if (_sortableChk) _sortableChk.destroy();
+    if (_sortableCols) _sortableCols.destroy();
+    _sortableChk = new Sortable(elChk, {
+      handle:'.drag-handle', animation:150, ghostClass:'sortable-ghost',
+      onEnd: function(evt) {
+        var moved = borrador.checklist.splice(evt.oldIndex, 1)[0];
+        borrador.checklist.splice(evt.newIndex, 0, moved);
+      }
+    });
+    _sortableCols = new Sortable(elCols, {
+      handle:'.drag-handle', animation:150, ghostClass:'sortable-ghost',
+      onEnd: function(evt) {
+        var moved = borrador.columnas.splice(evt.oldIndex, 1)[0];
+        borrador.columnas.splice(evt.newIndex, 0, moved);
+      }
+    });
+  }
+
+  // ── ACCIONES BORRADOR ──
+  window.crearBorrador = function() {
+    borrador = {
+      checklist:    JSON.parse(JSON.stringify(formatoActivo.checklist)),
+      columnas:     JSON.parse(JSON.stringify(formatoActivo.columnas)),
+      fechaBorrador:new Date().toLocaleDateString('es-ES'),
+      editadoPor:   currentUserEmail
+    };
+    renderBorrador();
+  };
+
+  window.guardarBorrador = function(silent) {
+    borrador.fechaBorrador = new Date().toLocaleDateString('es-ES');
+    borrador.editadoPor    = currentUserEmail;
+    var btn = document.querySelector('.btn-secondary');
+    if (btn) { btn.disabled=true; btn.textContent='Guardando…'; }
+    db.collection('config').doc('paa_borrador').set(borrador)
+      .then(function(){
+        document.getElementById('borradorDot').style.display='inline';
+        if (!silent) {
+          if (btn) { btn.disabled=false; btn.textContent='Guardar borrador'; }
+          alert('Borrador guardado.');
+        }
+      })
+      .catch(function(e){ alert('Error: '+e.message); if(btn){btn.disabled=false;btn.textContent='Guardar borrador';} });
+  };
+
+  window.descartarBorrador = function() {
+    if (!confirm('¿Descartar el borrador? Perderás los cambios no publicados.')) return;
+    db.collection('config').doc('paa_borrador').delete()
+      .then(function(){
+        borrador = null;
+        document.getElementById('borradorDot').style.display='none';
+        renderBorrador();
+      })
+      .catch(function(e){ alert('Error: '+e.message); });
+  };
+
+  // ── PREGUNTA CRUD ──
+  window.nuevaPregunta = function() {
+    editandoPreguntaIdx = null;
+    document.getElementById('mpTitulo').textContent = 'Nueva pregunta';
+    document.getElementById('mpRef').value  = '';
+    document.getElementById('mpSec').value  = '';
+    document.getElementById('mpDesc').value = '';
+    document.getElementById('modalPregunta').classList.add('open');
+    setTimeout(function(){ document.getElementById('mpRef').focus(); }, 100);
+  };
+
+  window.editarPregunta = function(i) {
+    editandoPreguntaIdx = i;
+    var item = borrador.checklist[i];
+    document.getElementById('mpTitulo').textContent = 'Editar pregunta';
+    document.getElementById('mpRef').value  = item.ref  || '';
+    document.getElementById('mpSec').value  = item.sec  || '';
+    document.getElementById('mpDesc').value = item.desc || '';
+    document.getElementById('modalPregunta').classList.add('open');
+    setTimeout(function(){ document.getElementById('mpRef').focus(); }, 100);
+  };
+
+  window.guardarPregunta = function() {
+    var ref  = document.getElementById('mpRef').value.trim();
+    var sec  = document.getElementById('mpSec').value.trim();
+    var desc = document.getElementById('mpDesc').value.trim();
+    if (!sec || !desc) { alert('Sección y descripción son obligatorias.'); return; }
+    if (editandoPreguntaIdx === null) {
+      borrador.checklist.push({ id:'g'+uid(), ref:ref, sec:sec, desc:desc });
+    } else {
+      borrador.checklist[editandoPreguntaIdx] = Object.assign({}, borrador.checklist[editandoPreguntaIdx], { ref:ref, sec:sec, desc:desc });
+    }
+    cerrarModal('modalPregunta');
+    renderBorrador();
+  };
+
+  window.eliminarPregunta = function(i) {
+    var item = borrador.checklist[i];
+    if (!confirm('¿Eliminar "'+item.sec+'"?\nLas inspecciones existentes no se ven afectadas.')) return;
+    borrador.checklist.splice(i, 1);
+    renderBorrador();
+  };
+
+  // ── COLUMNA CRUD ──
+  window.nuevaColumna = function() {
+    editandoColumnaIdx = null;
+    document.getElementById('mcTitulo').textContent = 'Nueva columna';
+    document.getElementById('mcId').value     = '';
+    document.getElementById('mcAbbrev').value = '';
+    document.getElementById('mcLabel').value  = '';
+    document.getElementById('mcId').removeAttribute('readonly');
+    document.getElementById('modalColumna').classList.add('open');
+    setTimeout(function(){ document.getElementById('mcId').focus(); }, 100);
+  };
+
+  window.editarColumna = function(i) {
+    editandoColumnaIdx = i;
+    var col = borrador.columnas[i];
+    document.getElementById('mcTitulo').textContent = 'Editar columna';
+    document.getElementById('mcId').value     = col.id     || '';
+    document.getElementById('mcAbbrev').value = col.abbrev || '';
+    document.getElementById('mcLabel').value  = col.label  || '';
+    // El ID no debe cambiarse si hay inspecciones que lo usan
+    document.getElementById('mcId').setAttribute('readonly','readonly');
+    document.getElementById('modalColumna').classList.add('open');
+    setTimeout(function(){ document.getElementById('mcAbbrev').focus(); }, 100);
+  };
+
+  window.guardarColumna = function() {
+    var id     = document.getElementById('mcId').value.trim().toLowerCase().replace(/[^a-z]/g,'');
+    var abbrev = document.getElementById('mcAbbrev').value.trim();
+    var label  = document.getElementById('mcLabel').value.trim();
+    if (!id || !abbrev || !label) { alert('Todos los campos son obligatorios.'); return; }
+    if (editandoColumnaIdx === null) {
+      var existe = borrador.columnas.find(function(c){ return c.id===id; });
+      if (existe) { alert('Ya existe una columna con el código "'+id+'".'); return; }
+      borrador.columnas.push({ id:id, abbrev:abbrev, label:label });
+    } else {
+      borrador.columnas[editandoColumnaIdx] = Object.assign({}, borrador.columnas[editandoColumnaIdx], { abbrev:abbrev, label:label });
+    }
+    cerrarModal('modalColumna');
+    renderBorrador();
+  };
+
+  window.eliminarColumna = function(i) {
+    var col = borrador.columnas[i];
+    if (!confirm('¿Eliminar columna "'+col.label+'" ('+col.id+')?\nATENCIÓN: las inspecciones existentes tienen datos en esta columna.')) return;
+    borrador.columnas.splice(i, 1);
+    renderBorrador();
+  };
+
+  // ── PUBLICACIÓN ──
+  function calcularDiff(anterior, nuevo, keyField) {
+    var antMap = {}, newMap = {};
+    anterior.forEach(function(i){ antMap[i[keyField]] = i; });
+    nuevo.forEach(function(i){ newMap[i[keyField]] = i; });
+    var anadidos   = nuevo.filter(function(i){ return !antMap[i[keyField]]; });
+    var eliminados = anterior.filter(function(i){ return !newMap[i[keyField]]; });
+    var modificados = nuevo.filter(function(i){
+      return antMap[i[keyField]] && JSON.stringify(antMap[i[keyField]])!==JSON.stringify(i);
+    });
+    return { anadidos:anadidos, eliminados:eliminados, modificados:modificados };
+  }
+
+  window.previsualizarPublicacion = function() {
+    // Primero guardar el borrador con el orden actual de los sortables
+    guardarBorrador(true);
+
+    var diffChk  = calcularDiff(formatoActivo.checklist, borrador.checklist, 'id');
+    var diffCols = calcularDiff(formatoActivo.columnas,  borrador.columnas,  'id');
+    var totalCambios = diffChk.anadidos.length + diffChk.eliminados.length + diffChk.modificados.length
+                     + diffCols.anadidas.length + diffCols.eliminadas.length + diffCols.modificadas.length;
+
+    var resumen = '';
+    if (!totalCambios) {
+      resumen = 'Sin cambios respecto al formato activo.';
+    } else {
+      if (diffChk.anadidos.length)   resumen += '+ '+diffChk.anadidos.length+' pregunta(s) nueva(s)\n';
+      if (diffChk.eliminados.length) resumen += '- '+diffChk.eliminados.length+' pregunta(s) eliminada(s)\n';
+      if (diffChk.modificados.length) resumen += '~ '+diffChk.modificados.length+' pregunta(s) modificada(s)\n';
+      if (diffCols.anadidos.length)   resumen += '+ '+diffCols.anadidos.length+' columna(s) nueva(s)\n';
+      if (diffCols.eliminados.length) resumen += '- '+diffCols.eliminados.length+' columna(s) eliminada(s)\n';
+      if (diffCols.modificados.length) resumen += '~ '+diffCols.modificados.length+' columna(s) modificada(s)\n';
+    }
+
+    var nuevaRev = formatoActivo.revision + 1;
+    var hoy = new Date().toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'});
+
+    var msg = '¿Publicar Rev '+nuevaRev+' (vigente desde '+hoy+')?\n\n'+resumen
+      +'\nLas inspecciones EN CURSO no se ven afectadas.\nLas NUEVAS inspecciones usarán este formato.';
+
+    if (confirm(msg)) publicar(diffChk, diffCols);
+  };
+
+  function publicar(diffChk, diffCols) {
+    var nuevaRev  = formatoActivo.revision + 1;
+    var hoy = new Date().toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'});
+    var batch = db.batch();
+
+    // 1. Actualizar config/paa
+    var paaRef = db.collection('config').doc('paa');
+    batch.update(paaRef, {
+      checklist:       borrador.checklist,
+      columnas:        borrador.columnas,
+      formatoRevision: nuevaRev,
+      formatoFecha:    hoy
+    });
+
+    // 2. Guardar en historial
+    var histRef = db.collection('config').doc('paa').collection('historial').doc(String(nuevaRev));
+    batch.set(histRef, {
+      revision:     nuevaRev,
+      fechaVigencia:hoy,
+      publicadoPor: currentUserEmail,
+      checklist:    borrador.checklist,
+      columnas:     borrador.columnas,
+      cambios: {
+        checklist: { anadidos: diffChk.anadidos, eliminados: diffChk.eliminados, modificados: diffChk.modificados },
+        columnas:  { anadidas: diffCols.anadidos, eliminadas: diffCols.eliminados, modificadas: diffCols.modificados }
+      }
+    });
+
+    // 3. Borrar borrador
+    var borrRef = db.collection('config').doc('paa_borrador');
+    batch.delete(borrRef);
+
+    batch.commit().then(function() {
+      formatoActivo = {
+        revision:     nuevaRev,
+        fechaVigencia:hoy,
+        checklist:    borrador.checklist,
+        columnas:     borrador.columnas
+      };
+      borrador = null;
+      document.getElementById('borradorDot').style.display = 'none';
+      alert('✓ Rev '+nuevaRev+' publicada. Vigente desde '+hoy+'.');
+      goTab('activo', document.getElementById('tabActivo'));
+    }).catch(function(e){ alert('Error al publicar: '+e.message); });
+  }
+
+  // ── TAB HISTORIAL ──
+  function renderHistorial() {
+    document.getElementById('content').innerHTML = '<div class="spinner"></div>';
+    db.collection('config').doc('paa').collection('historial')
+      .orderBy(firebase.firestore.FieldPath.documentId(), 'desc').get()
+      .then(function(snap) {
+        if (snap.empty) {
+          document.getElementById('content').innerHTML = '<div class="empty-state">Sin historial. Ejecuta el script de migración.</div>';
+          return;
+        }
+        var html = '';
+        snap.forEach(function(d) {
+          var h = d.data();
+          var cambios = h.cambios || {};
+          var chk  = cambios.checklist || {};
+          var cols = cambios.columnas  || {};
+          var total = (chk.anadidos||[]).length + (chk.eliminados||[]).length + (chk.modificados||[]).length
+                    + (cols.anadidas||[]).length + (cols.eliminadas||[]).length + (cols.modificadas||[]).length;
+          var resumen = total ? total+' cambio'+(total!==1?'s':'') : (cambios.nota || 'Sin cambios registrados');
+
+          html += '<div class="hist-item">'
+            +'<div class="hist-header" onclick="toggleHist(this)">'
+            +'<span class="hist-rev">Rev '+h.revision+'</span>'
+            +'<span class="hist-meta">'+escHtml(h.fechaVigencia||'')+'&nbsp;&middot;&nbsp;'+escHtml(h.publicadoPor||'')+'&nbsp;&middot;&nbsp;'+escHtml(resumen)+'</span>'
+            +'<span>&#9660;</span>'
+            +'</div>'
+            +'<div class="hist-body">';
+
+          if (cambios.nota) html += '<p style="font-size:12px;color:var(--muted);margin:4px 0">'+escHtml(cambios.nota)+'</p>';
+
+          (chk.anadidos||[]).forEach(function(i){
+            html += '<div class="diff-item diff-add">+ ['+escHtml(i.ref)+'] '+escHtml(i.sec)+'</div>';
+          });
+          (chk.eliminados||[]).forEach(function(i){
+            html += '<div class="diff-item diff-del">- ['+escHtml(i.ref)+'] '+escHtml(i.sec)+'</div>';
+          });
+          (chk.modificados||[]).forEach(function(i){
+            html += '<div class="diff-item diff-mod">~ ['+escHtml(i.ref)+'] '+escHtml(i.sec)+'</div>';
+          });
+          (cols.anadidas||[]).forEach(function(c){
+            html += '<div class="diff-item diff-add">+ Columna: '+escHtml(c.label)+'</div>';
+          });
+          (cols.eliminadas||[]).forEach(function(c){
+            html += '<div class="diff-item diff-del">- Columna: '+escHtml(c.label)+'</div>';
+          });
+          (cols.modificadas||[]).forEach(function(c){
+            html += '<div class="diff-item diff-mod">~ Columna: '+escHtml(c.label)+'</div>';
+          });
+          if (!total && !cambios.nota) html += '<div class="diff-item" style="color:var(--muted)">Sin detalles de cambios.</div>';
+
+          html += '</div></div>';
+        });
+        document.getElementById('content').innerHTML = html;
+      })
+      .catch(function(e){
+        document.getElementById('content').innerHTML = '<div class="empty-state">Error: '+escHtml(e.message)+'</div>';
+      });
+  }
+
+  window.toggleHist = function(el) {
+    var body = el.nextElementSibling;
+    body.classList.toggle('open');
+  };
+
+  // ── HELPERS ──
+  window.cerrarModal = function(id) {
+    document.getElementById(id).classList.remove('open');
+  };
+
+  ['modalPregunta','modalColumna'].forEach(function(id){
+    document.getElementById(id).addEventListener('click', function(e){
+      if (e.target===this) cerrarModal(id);
+    });
+  });
+</script>
+</body>
+</html>
