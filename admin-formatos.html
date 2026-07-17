@@ -588,9 +588,12 @@
                     + (cols.anadidas||[]).length + (cols.eliminadas||[]).length + (cols.modificadas||[]).length;
           var resumen = total ? total+' cambio'+(total!==1?'s':'') : (cambios.nota || 'Sin cambios registrados');
 
+          var regTag = h.registroRevision
+            ? ' &nbsp;<span style="font-size:11px;font-weight:400;color:var(--muted)">· Registro Rev '+h.registroRevision+'</span>'
+            : '';
           html += '<div class="hist-item">'
             +'<div class="hist-header" onclick="toggleHist(this)">'
-            +'<span class="hist-rev">Rev '+h.revision+'</span>'
+            +'<span class="hist-rev">Informe Rev '+h.revision+regTag+'</span>'
             +'<span class="hist-meta">'+escHtml(h.fechaVigencia||'')+'&nbsp;&middot;&nbsp;'+escHtml(h.publicadoPor||'')+'&nbsp;&middot;&nbsp;'+escHtml(resumen)+'</span>'
             +'<span>&#9660;</span>'
             +'</div>'
