@@ -1645,8 +1645,8 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
       const ref = getNRegistro();
       const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
-      const fmtRev = D.formatoDocumento?.revision || 7;
-      const fmtFechaStr = D.formatoDocumento?.fechaVigencia || '25/10/2021';
+      const fmtRev = D.formatoDocumento?.revision || CONFIG?.paa?.formatoRevision || 9;
+      const fmtFechaStr = D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '26/02/2026';
 
       const totPag2 = [0];
       const nPag2 = [0];
