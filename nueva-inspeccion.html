@@ -428,8 +428,11 @@
       db.collection("inspecciones").doc(inst.ultimaInspeccionId).get().then(function(doc){
         if(doc.exists){
           var prev=doc.data();
-          if(prev.circuitos&&prev.circuitos.length){
-            circuitosHeredados=prev.circuitos.map(function(c){return{nombre:c.nombre,juegos:(c.juegos||[]).map(function(j){return{nombre:j.nombre,tipo:j.tipo||'R',rama:j.rama||'',ie:'',af:'',ej:'',ra:'',zs:'',obs:'',fotos:[]}})};});
+          var prevCircArr=Array.isArray(prev.circuitos)
+            ?prev.circuitos
+            :(prev.circuitos?Object.values(prev.circuitos).sort(function(a,b){return(a.orden||0)-(b.orden||0);}):[]);
+          if(prevCircArr.length){
+            circuitosHeredados=prevCircArr.map(function(c){return{nombre:c.nombre,juegos:(c.juegos||[]).map(function(j){return{nombre:j.nombre,tipo:j.tipo||'R',rama:j.rama||'',ie:'',af:'',ej:'',ra:'',zs:'',obs:'',fotos:[]}})};});
             txt+=" · "+circuitosHeredados.reduce(function(s,c){return s+c.juegos.length},0)+" elem. heredados";
             document.getElementById("acVincTxt").textContent=txt;
           }

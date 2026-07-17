@@ -780,13 +780,16 @@
       if(data.obsGral) S.obsGral=data.obsGral;
       if(data.circuitos){
         // Soporta formato antiguo (array) y nuevo (mapa {id: circData})
-        S.circuitos=Array.isArray(data.circuitos)
+        var _wasArray=Array.isArray(data.circuitos);
+        S.circuitos=_wasArray
           ? data.circuitos
           : Object.values(data.circuitos).sort(function(a,b){return (a.orden||0)-(b.orden||0);});
         // Garantizar IDs en todos los circuitos y juegos (docs legacy sin IDs)
+        // Si venía en formato array, marcar todos dirty → primer autosave migra a mapa
         S.circuitos.forEach(function(c){
           if(!c.id) c.id=uid();
           (c.juegos||[]).forEach(function(j){ if(!j.id) j.id=uid(); });
+          if(_wasArray) _dirtyCircuitIds.add(c.id);
         });
       }
       if(data.ncs) S.ncs=data.ncs;
@@ -858,8 +861,11 @@
         .orderBy("fechaCompletada","desc").limit(1).get();
       if(!q.empty){
         const prev=q.docs[0].data();
-        if(prev.circuitos&&prev.circuitos.length){
-          circuitosAnteriores=prev.circuitos;
+        const prevArr=Array.isArray(prev.circuitos)
+          ? prev.circuitos
+          : (prev.circuitos?Object.values(prev.circuitos).sort(function(a,b){return(a.orden||0)-(b.orden||0);}): []);
+        if(prevArr.length){
+          circuitosAnteriores=prevArr;
           document.getElementById('importBanner').classList.add('vis');
         }
       }
