@@ -151,7 +151,10 @@
     <div class="card-title">Propietario / Cliente</div>
     <div class="f">
       <label>Empresa propietaria</label>
-      <input type="text" id="propietario" placeholder="Raz&#243;n social S.L." list="clientesList" onchange="onPropietarioChange()">
+      <div class="ac-wrap">
+        <input type="text" id="propietario" placeholder="Raz&#243;n social S.L." oninput="onPropietarioInput()" autocomplete="off">
+        <div class="ac-dropdown" id="propDropdown"></div>
+      </div>
     </div>
     <div class="r2">
       <div class="f">
@@ -288,6 +291,7 @@
   // ── CLIENTES ──
 
   var clientesData = [];
+  var propietarioSeleccionadoId = null;
 
   function cargarClientes() {
     db.collection("clientes").where("activo", "==", true).get().then(function(snap) {
@@ -301,12 +305,33 @@
     }).catch(function() {});
   }
 
-  window.onPropietarioChange = function() {
-    var val = document.getElementById("propietario").value.trim();
-    var cliente = clientesData.find(function(c) { return c.nombre === val; });
-    if (cliente && cliente.cif) {
-      document.getElementById("cif").value = cliente.cif;
-    }
+  window.onPropietarioInput = function() {
+    propietarioSeleccionadoId = null;
+    var v = document.getElementById("propietario").value;
+    var dd = document.getElementById("propDropdown");
+    if (v.length < 2) { dd.style.display = "none"; return; }
+    var norm = function(s) { return (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase(); };
+    var q = norm(v);
+    var res = clientesData.filter(function(c) {
+      return norm(c.nombre||"").includes(q) || norm(c.cif||"").includes(q);
+    }).slice(0, 6);
+    if (!res.length) { dd.style.display = "none"; return; }
+    dd.innerHTML = res.map(function(c) {
+      return '<div class="ac-item" onclick="seleccionarCliente(\'' + c.id + '\')">' +
+        '<span class="ac-nombre">' + escHtml(c.nombre||"") + '</span>' +
+        (c.cif ? '<span class="ac-lugar">' + escHtml(c.cif) + '</span>' : '') +
+        '</div>';
+    }).join("");
+    dd.style.display = "block";
+  };
+
+  window.seleccionarCliente = function(id) {
+    var c = clientesData.find(function(x) { return x.id === id; });
+    if (!c) return;
+    propietarioSeleccionadoId = c.id;
+    document.getElementById("propietario").value = c.nombre || "";
+    if (c.cif) document.getElementById("cif").value = c.cif;
+    document.getElementById("propDropdown").style.display = "none";
   };
 
   // ── INSTALACIONES ──
@@ -413,9 +438,11 @@
       var clienteVinc = clientesData.find(function(c) { return c.id === inst.propietarioId; });
       fill("propietario", clienteVinc ? clienteVinc.nombre : inst.propietario);
       fill("cif", clienteVinc ? clienteVinc.cif : inst.cif);
+      propietarioSeleccionadoId = inst.propietarioId;
     } else {
       fill("propietario", inst.propietario);
       fill("cif", inst.cif);
+      propietarioSeleccionadoId = null;
     }
     fill("gestor", inst.gestorActual);
     fill("solicitante", inst.solicitanteActual);
@@ -451,6 +478,7 @@
   document.addEventListener("click", function(e) {
     if (!e.target.closest(".ac-wrap")) {
       document.getElementById("acDropdown").style.display = "none";
+      document.getElementById("propDropdown").style.display = "none";
     }
   });
 
@@ -617,6 +645,7 @@
         municipio: document.getElementById("municipio").value.trim(),
         provincia: document.getElementById("provincia").value.trim(),
         propietario: document.getElementById("propietario").value.trim(),
+        propietarioId: propietarioSeleccionadoId || "",
         cif: document.getElementById("cif").value.trim(),
         gestorActual: document.getElementById("gestor").value.trim(),
         solicitanteActual: document.getElementById("solicitante").value.trim(),
@@ -681,6 +710,7 @@
         revisaCampo("municipio", "municipio");
         revisaCampo("provincia", "provincia");
         revisaCampo("propietario", "propietario");
+        if (propietarioSeleccionadoId) actualizacion.propietarioId = propietarioSeleccionadoId;
         revisaCampo("cif", "cif");
         revisaCampo("gestorActual", "gestor");
         revisaCampo("solicitanteActual", "solicitante");
