@@ -455,15 +455,22 @@
   function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
   function markCircuitDirty(ci){ if(S.circuitos[ci]) _dirtyCircuitIds.add(S.circuitos[ci].id); }
   var tiposNCList=["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente","Riesgo de atrapamiento"];
-  db.collection("config").doc("paa").get().then(function(snap){if(snap.exists&&snap.data().tiposNC){tiposNCList=snap.data().tiposNC.filter(function(t){return t.activo!==false}).map(function(t){return t.label})}}).catch(function(){});
+  var tiposNCNormaMap={};
+  db.collection("config").doc("paa").get().then(function(snap){
+    if(snap.exists&&snap.data().tiposNC){
+      var tNC=snap.data().tiposNC.filter(function(t){return t.activo!==false});
+      tiposNCList=tNC.map(function(t){return t.label});
+      tNC.forEach(function(t){tiposNCNormaMap[t.label]=t.norma||'';});
+    }
+  }).catch(function(){});
 
   const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], ensayos:"", equiposMedicion:[], revision:0, historialRevisiones:[], nRegistro:"", codigoInstalacion:"", tipoAlcance:"", estado:"borrador", fechaInspeccion:"", horaInicio:"", horaFin:"", sesiones:[] };
 
   // Formato efectivo — se reemplaza con el snapshot D.formatoDocumento al cargar la inspección
   var GEN_ITEMS = [
     {id:"g1",ref:"4.1",sec:"Selección de Lugar y Entorno",desc:"Evacuación posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosión)."},
-    {id:"g2",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.3 Sistemas de soporte naturales – Árboles. Evaluación de resistencia e idoneidad por experto; diagnóstico actualizado; protección de raíces; medidas correctivas."},
-    {id:"g3",ref:"4.3.3",sec:"Sistemas de Soporte",desc:"4.3.3.2 Sistemas de soporte artificiales. Adecuación a cargas; vientos y anclajes protegidos; verificación de estructuras existentes si aplican; cálculos disponibles."},
+    {id:"g2",ref:"4.3.3.3",sec:"Sistemas de Soporte",desc:"Sistemas de soporte naturales – Árboles. Evaluación de resistencia e idoneidad por experto; diagnóstico actualizado; protección de raíces; medidas correctivas."},
+    {id:"g3",ref:"4.3.3.2",sec:"Sistemas de Soporte",desc:"Sistemas de soporte artificiales. Adecuación a cargas; vientos y anclajes protegidos; verificación de estructuras existentes si aplican; cálculos disponibles."},
     {id:"g4",ref:"4.2",sec:"Materiales y cables",desc:"Maderas, metales, compuestos; cables (galvanizado/inox); terminaciones conforme; criterio de desecho."},
     {id:"g5",ref:"6",sec:"Señalización general y control de acceso",desc:"Control de acceso. Codificación de recorridos y dificultad; pictogramas; ubicación y legibilidad."},
     {id:"g6",ref:"7",sec:"EPI y equipos de rescate",desc:"Identificación y marcados; revisión periódica vigente; prueba funcional si aplica; adecuación a morfología de usuarios; registros al día."},
@@ -1429,6 +1436,11 @@
   window.onTipoNCChange=()=>{
     const v=document.getElementById('modalNCTipo').value;
     document.getElementById('modalNCTipoLibreWrap').style.display=v==='__otro__'?'block':'none';
+    if(v&&v!=='__otro__'){
+      document.getElementById('modalNCNorma').value=tiposNCNormaMap[v]||'UNE-EN 15567-1:2015+A1:2021';
+    } else if(v==='__otro__'){
+      document.getElementById('modalNCNorma').value='UNE-EN 15567-1:2015+A1:2021';
+    }
   };
 
   window.setModalPrio=(p)=>{
