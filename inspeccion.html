@@ -1686,7 +1686,29 @@
   }
 
   function addNC(){ S.ncs.push({elem:"",tipo:"",desc:"",norma:"UNE-EN 15567-1:2015+A1:2021",prio:"",origen:"manual",fotosDefecto:[],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision}); markDirty(); renderNCs(); goTab(3); }
-  function delNC(i){ S.ncs.splice(i,1); markDirty(); renderNCs(); }
+  function delNC(i){
+    var nc=S.ncs[i];
+    if(nc&&nc.origen==='auto'&&nc.autoId){
+      var aid=nc.autoId;
+      var genItem=GEN_ITEMS.find(function(g){return g.id===aid;});
+      if(genItem){
+        S.gen[aid]=''; renderGen();
+      } else {
+        var mNew=aid.match(/^j_(.+)_([^_]+)$/);
+        var mLeg=aid.match(/^c(\d+)j(\d+)_(\w+)$/);
+        if(mNew){
+          var jId=mNew[1],col=mNew[2];
+          S.circuitos.forEach(function(c){(c.juegos||[]).forEach(function(j){if(j.id===jId)j[col]='';});});
+          renderCircuitos();
+        } else if(mLeg){
+          var ci2=parseInt(mLeg[1]),ji2=parseInt(mLeg[2]),col2=mLeg[3];
+          if(S.circuitos[ci2]&&S.circuitos[ci2].juegos[ji2])S.circuitos[ci2].juegos[ji2][col2]='';
+          renderCircuitos();
+        }
+      }
+    }
+    S.ncs.splice(i,1); markDirty(); renderNCs();
+  }
   function ncSelCircuito(i,v){
     var nc=S.ncs[i]; nc._ci=v==='g'?'g':parseInt(v);
     nc._ji=undefined; nc.elem=''; nc.autoId='';

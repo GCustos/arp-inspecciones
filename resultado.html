@@ -344,11 +344,15 @@
       var circs = Array.isArray(D.circuitos) ? D.circuitos : Object.values(D.circuitos);
       // Formato nuevo: buscar juego por ID estable
       if (nc.juegoId) {
+        var matches = [];
         for (var c of circs) {
           for (var j of (c.juegos||[])) {
-            if (j.id === nc.juegoId) return c.nombre + ' — ' + (j.nombre || 'Juego');
+            if (j.id === nc.juegoId) matches.push(c.nombre + ' — ' + (j.nombre || 'Juego'));
           }
         }
+        if (matches.length === 1) return matches[0];
+        // juegoId duplicado (datos corruptos): usar elem almacenado como referencia
+        if (matches.length > 1) return nc.elem || matches[0];
       }
       // Fallback legacy: índices posicionales _ci/_ji
       if (nc._ci !== undefined && nc._ci !== 'g' && nc._ji !== undefined) {
