@@ -827,7 +827,7 @@
       if (S.estado !== 'completada') {
         var _hoyISO = new Date().toISOString().split('T')[0];
         var _tieneHoy = S.sesiones.some(function(s){ return s.fecha === _hoyISO; });
-        if (!_tieneHoy && S.fechaInspeccion && _hoyISO !== S.fechaInspeccion) {
+        if (!_tieneHoy && S.fechaInspeccion && _hoyISO > S.fechaInspeccion) {
           var _sesFin = S.sesiones.length ? S.sesiones[S.sesiones.length-1] : null;
           // Mostrar banner si la sesión anterior no tiene horaFin
           if (_sesFin && !_sesFin.horaFin) {
