@@ -326,7 +326,7 @@
   <button class="btn-completar" onclick="completar()">Completar inspección &#8594;</button>
 </div>
 <div class="offline-badge" id="offlineBadge">Sin conexión &#8212; modo offline</div>
-<div class="foto-pending-badge" id="fotoPendingBadge"></div>
+<div class="foto-pending-badge" id="fotoPendingBadge" onclick="sincronizarFotosPendientes()" style="cursor:pointer" title="Toca para reintentar"></div>
 <div class="autosave-badge" id="autosaveBadge">&#10003; Guardado</div>
 
 <!-- MODAL FIN CIRCUITO -->
@@ -728,25 +728,33 @@
     });
     var badge = document.getElementById('fotoPendingBadge');
     if (!badge) return;
-    if (n > 0) {
+    if (_sincronizando) {
+      badge.textContent = '⏳ Subiendo fotos…';
+      badge.style.background = '#1565C0';
+      badge.style.display = 'block';
+    } else if (n > 0) {
       badge.textContent = '⚠️ ' + n + ' foto' + (n > 1 ? 's' : '') + ' sin subir';
+      badge.style.background = '';
       badge.style.display = 'block';
     } else {
       badge.style.display = 'none';
     }
+    return n;
   }
 
   async function sincronizarFotosPendientes() {
     if (!navigator.onLine || !inspeccionId || _sincronizando) return;
     _sincronizando = true;
+    actualizarBadgeFotosPendientes(); // muestra "⏳ Subiendo…"
     var cambios = false;
+    var subidas = 0;
     try {
       for (var ci = 0; ci < S.circuitos.length; ci++) {
         for (var ji = 0; ji < (S.circuitos[ci].juegos || []).length; ji++) {
           var fotos = S.circuitos[ci].juegos[ji].fotos || [];
           for (var fi = 0; fi < fotos.length; fi++) {
             var r = await subirFotoPendiente(fotos[fi], 'inspecciones/' + inspeccionId + '/juegos/' + ci + '_' + ji + '/' + Date.now() + '_' + fi + '.jpg');
-            if (r) { S.circuitos[ci].juegos[ji].fotos[fi] = r; cambios = true; }
+            if (r) { S.circuitos[ci].juegos[ji].fotos[fi] = r; cambios = true; subidas++; }
           }
         }
       }
@@ -754,12 +762,12 @@
         var fotsD = S.ncs[ni].fotosDefecto || [];
         for (var fi = 0; fi < fotsD.length; fi++) {
           var r = await subirFotoPendiente(fotsD[fi], 'inspecciones/' + inspeccionId + '/ncs/' + ni + '/defecto_' + Date.now() + '_' + fi + '.jpg');
-          if (r) { S.ncs[ni].fotosDefecto[fi] = r; cambios = true; }
+          if (r) { S.ncs[ni].fotosDefecto[fi] = r; cambios = true; subidas++; }
         }
         var fotsC = S.ncs[ni].fotosCorreccion || [];
         for (var fi2 = 0; fi2 < fotsC.length; fi2++) {
           var r = await subirFotoPendiente(fotsC[fi2], 'inspecciones/' + inspeccionId + '/ncs/' + ni + '/correccion_' + Date.now() + '_' + fi2 + '.jpg');
-          if (r) { S.ncs[ni].fotosCorreccion[fi2] = r; cambios = true; }
+          if (r) { S.ncs[ni].fotosCorreccion[fi2] = r; cambios = true; subidas++; }
         }
       }
     } finally {
@@ -767,6 +775,7 @@
     }
     if (cambios) { markDirty(); guardarSilencioso(); renderCircuitos(); renderNCs(); }
     actualizarBadgeFotosPendientes();
+    if (subidas > 0) showToast('✓ ' + subidas + ' foto' + (subidas > 1 ? 's subidas' : ' subida') + ' correctamente');
   }
 
   // Intentar sincronizar al recuperar conexión
@@ -1808,8 +1817,11 @@
     } catch(e){ console.warn('Autoguardado falló:',e.message); }
   }
 
-  // FIX: autoguardado cada 30s
-  setInterval(()=>{ if(isDirty) guardarSilencioso(); }, 30000);
+  // FIX: autoguardado cada 30s + reintento subida fotos pendientes
+  setInterval(()=>{
+    if(isDirty) guardarSilencioso();
+    if(navigator.onLine) sincronizarFotosPendientes();
+  }, 30000);
 
   async function guardar(){
     try {
