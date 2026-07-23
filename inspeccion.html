@@ -1820,7 +1820,7 @@
   // FIX: autoguardado cada 30s + reintento subida fotos pendientes
   setInterval(()=>{
     if(isDirty) guardarSilencioso();
-    if(navigator.onLine) sincronizarFotosPendientes();
+    if(navigator.onLine && actualizarBadgeFotosPendientes() > 0) sincronizarFotosPendientes();
   }, 30000);
 
   async function guardar(){
