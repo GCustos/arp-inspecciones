@@ -837,7 +837,10 @@
         var _hoyISO = new Date().toISOString().split('T')[0];
         var _tieneHoy = S.sesiones.some(function(s){ return s.fecha === _hoyISO; });
         if (!_tieneHoy && S.fechaInspeccion && _hoyISO > S.fechaInspeccion) {
-          var _sesFin = S.sesiones.length ? S.sesiones[S.sesiones.length-1] : null;
+          var _sesFin = S.sesiones.reduce(function(prev,s){
+            if (s.fecha >= _hoyISO) return prev;
+            return (!prev || s.fecha > prev.fecha) ? s : prev;
+          }, null);
           // Mostrar banner si la sesión anterior no tiene horaFin
           if (_sesFin && !_sesFin.horaFin) {
             document.getElementById('bannerSesionFecha').textContent = typeof fmtFecha==='function' ? fmtFecha(_sesFin.fecha) : _sesFin.fecha;
