@@ -773,33 +773,62 @@
     actualizarBadgeFotosPendientes();
     var cambios = false, subidas = 0, perdidas = 0;
     try {
-      // Refrescar token antes de subir — evita fallos por token expirado tras horas offline
       if (firebase.auth().currentUser) {
         await firebase.auth().currentUser.getIdToken(true).catch(function() {});
       }
+      // Recopilar todas las fotos pendientes con su ubicación en S
+      var pendientes = [];
+      var ts = Date.now();
       for (var ci = 0; ci < S.circuitos.length; ci++) {
         for (var ji = 0; ji < (S.circuitos[ci].juegos || []).length; ji++) {
           var fotos = S.circuitos[ci].juegos[ji].fotos || [];
           for (var fi = 0; fi < fotos.length; fi++) {
-            var r = await subirFotoPendiente(fotos[fi], 'inspecciones/' + inspeccionId + '/juegos/' + ci + '_' + ji + '/' + Date.now() + '_' + fi + '.jpg');
-            if (r && r.perdida) { S.circuitos[ci].juegos[ji].fotos[fi] = Object.assign({}, fotos[fi], { pendiente: false, perdida: true }); cambios = true; perdidas++; }
-            else if (r) { S.circuitos[ci].juegos[ji].fotos[fi] = r; cambios = true; subidas++; }
+            if (fotos[fi].pendiente) pendientes.push({ tipo:'j', ci:ci, ji:ji, fi:fi, foto:fotos[fi],
+              path:'inspecciones/'+inspeccionId+'/juegos/'+ci+'_'+ji+'/'+ts+'_'+ci+'_'+ji+'_'+fi+'.jpg' });
           }
         }
       }
       for (var ni = 0; ni < S.ncs.length; ni++) {
         var fotsD = S.ncs[ni].fotosDefecto || [];
         for (var fi = 0; fi < fotsD.length; fi++) {
-          var r = await subirFotoPendiente(fotsD[fi], 'inspecciones/' + inspeccionId + '/ncs/' + ni + '/defecto_' + Date.now() + '_' + fi + '.jpg');
-          if (r && r.perdida) { S.ncs[ni].fotosDefecto[fi] = Object.assign({}, fotsD[fi], { pendiente: false, perdida: true }); cambios = true; perdidas++; }
-          else if (r) { S.ncs[ni].fotosDefecto[fi] = r; cambios = true; subidas++; }
+          if (fotsD[fi].pendiente) pendientes.push({ tipo:'d', ni:ni, fi:fi, foto:fotsD[fi],
+            path:'inspecciones/'+inspeccionId+'/ncs/'+ni+'/def_'+ts+'_'+fi+'.jpg' });
         }
         var fotsC = S.ncs[ni].fotosCorreccion || [];
         for (var fi2 = 0; fi2 < fotsC.length; fi2++) {
-          var r = await subirFotoPendiente(fotsC[fi2], 'inspecciones/' + inspeccionId + '/ncs/' + ni + '/correccion_' + Date.now() + '_' + fi2 + '.jpg');
-          if (r && r.perdida) { S.ncs[ni].fotosCorreccion[fi2] = Object.assign({}, fotsC[fi2], { pendiente: false, perdida: true }); cambios = true; perdidas++; }
-          else if (r) { S.ncs[ni].fotosCorreccion[fi2] = r; cambios = true; subidas++; }
+          if (fotsC[fi2].pendiente) pendientes.push({ tipo:'c', ni:ni, fi:fi2, foto:fotsC[fi2],
+            path:'inspecciones/'+inspeccionId+'/ncs/'+ni+'/corr_'+ts+'_'+fi2+'.jpg' });
         }
+      }
+
+      // Subir en lotes de 5 en paralelo; abortar si todo el lote falla (sin cobertura)
+      var LOTE = 5;
+      for (var b = 0; b < pendientes.length; b += LOTE) {
+        var grupo = pendientes.slice(b, b + LOTE);
+        var ress = await Promise.allSettled(grupo.map(function(item) {
+          return subirFotoPendiente(item.foto, item.path);
+        }));
+        var exitosGrupo = 0;
+        ress.forEach(function(res, idx) {
+          var r = res.status === 'fulfilled' ? res.value : null;
+          var item = grupo[idx];
+          if (r && r.perdida) {
+            var nuevo = Object.assign({}, item.foto, { pendiente:false, perdida:true });
+            if (item.tipo==='j') S.circuitos[item.ci].juegos[item.ji].fotos[item.fi]=nuevo;
+            else if (item.tipo==='d') S.ncs[item.ni].fotosDefecto[item.fi]=nuevo;
+            else S.ncs[item.ni].fotosCorreccion[item.fi]=nuevo;
+            cambios=true; perdidas++;
+          } else if (r) {
+            if (item.tipo==='j') S.circuitos[item.ci].juegos[item.ji].fotos[item.fi]=r;
+            else if (item.tipo==='d') S.ncs[item.ni].fotosDefecto[item.fi]=r;
+            else S.ncs[item.ni].fotosCorreccion[item.fi]=r;
+            cambios=true; subidas++; exitosGrupo++;
+          }
+        });
+        // Si todo el lote falló sin resolución → sin cobertura, no seguir drenando batería
+        if (exitosGrupo === 0 && ress.every(function(res) {
+          return res.status === 'fulfilled' && res.value === null;
+        })) break;
       }
     } finally {
       _sincronizando = false;
@@ -1251,8 +1280,8 @@
                 <button class="snb-s ${j[col.key]==="NA"?"s-NA":""}" onclick="setJuego(${ci},${ji},'${col.key}','NA')">NA</button>
               </div></td>`).join("")}
               <td><input class="jt-inp" style="font-size:10px;color:var(--muted)" type="text" value="${(j.obs||'').replace(/"/g,'&quot;')}" placeholder="obs..." onchange="setJuego(${ci},${ji},'obs',this.value)"></td>
-              <td><button class="foto-juego-btn" onclick="abrirModalFotos(${ci},${ji})" title="Fotos de este juego">
-                &#128247;${(j.fotos&&j.fotos.length)?`<span class="foto-count">${j.fotos.length}</span>`:''}
+              <td><button class="foto-juego-btn" onclick="abrirModalFotos(${ci},${ji})" title="Fotos de este juego" ${(j.fotos||[]).some(function(f){return f.perdida;})?' style="color:#c62828"':''}>
+                &#128247;${(j.fotos||[]).some(function(f){return f.perdida;})?'<span class="foto-count" style="background:#c62828">!</span>':(j.fotos&&j.fotos.length)?`<span class="foto-count">${j.fotos.length}</span>`:''}
               </button></td>
               <td><button class="del-btn" onclick="delJuego(${ci},${ji})">&#215;</button></td>
             </tr>`).join("")}
@@ -1266,6 +1295,7 @@
         const hayNj=COLS.some(col=>j[col.key]==="N");
         const dotCls=hayNj?'dot-n':todoOk?'dot-ok':'dot-empty';
         const nFotos=j.fotos&&j.fotos.length||0;
+        const nPerdidas=(j.fotos||[]).filter(function(f){return f.perdida;}).length;
         const isOpen=jAb===ji;
         const esUltimo=ji===circ.juegos.length-1;
         const cuerpo=isOpen?`
@@ -1317,7 +1347,7 @@
               <div class="juego-dot ${dotCls}"></div>
               <div class="juego-hdr-name">${j.nombre||`Juego ${ji+1}`}</div>
               <span class="juego-hdr-meta">${j.tipo}${j.rama?' · '+j.rama:''}</span>
-              ${nFotos?`<span class="foto-juego-hdr">&#128247;${nFotos}</span>`:''}
+              ${nPerdidas?`<span class="foto-juego-hdr" style="color:#c62828">&#128247;&#10060;</span>`:nFotos?`<span class="foto-juego-hdr">&#128247;${nFotos}</span>`:''}
               <span class="juego-toggle ${isOpen?'open':''}">&#9654;</span>
             </div>
             ${cuerpo}
@@ -1412,11 +1442,10 @@
     const j=S.circuitos[ci].juegos[ji];
     if(!j.fotos) j.fotos=[];
     const g=document.getElementById('modalFotosGrid');
-    g.innerHTML=j.fotos.map((f,i)=>`
-      <div class="foto-thumb">
-        <img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="foto ${i+1}">
-        <button class="foto-del" onclick="delFotoJuego(${i})">&#215;</button>
-      </div>`).join("");
+    g.innerHTML=j.fotos.map((f,i)=>f.perdida
+      ? `<div class="foto-thumb" style="background:rgba(198,40,40,.08);border:1px dashed #c62828;display:flex;align-items:center;justify-content:center;font-size:22px" title="Foto perdida — vuelve a añadirla">❌<button class="foto-del" onclick="delFotoJuego(${i})">&#215;</button></div>`
+      : `<div class="foto-thumb"><img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="foto ${i+1}"><button class="foto-del" onclick="delFotoJuego(${i})">&#215;</button></div>`
+    ).join("");
   }
   // FIX: comprimir fotos de juego antes de guardar
   function handleFotosJuego(inp){
@@ -1612,11 +1641,10 @@
           <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)">
             <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px">Fotos del defecto</label>
             <div class="foto-grid">
-              ${(nc.fotosDefecto||[]).map((f,fi)=>`
-                <div class="foto-thumb">
-                  <img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="defecto ${fi+1}">
-                  <button class="foto-del" onclick="S.ncs[${i}].fotosDefecto.splice(${fi},1);renderNCs();markDirty()">&#215;</button>
-                </div>`).join('')}
+              ${(nc.fotosDefecto||[]).map((f,fi)=>f.perdida
+                ? `<div class="foto-thumb" style="background:rgba(198,40,40,.08);border:1px dashed #c62828;display:flex;align-items:center;justify-content:center;font-size:22px" title="Foto perdida — vuelve a añadirla">❌<button class="foto-del" onclick="S.ncs[${i}].fotosDefecto.splice(${fi},1);renderNCs();markDirty()">&#215;</button></div>`
+                : `<div class="foto-thumb"><img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="defecto ${fi+1}"><button class="foto-del" onclick="S.ncs[${i}].fotosDefecto.splice(${fi},1);renderNCs();markDirty()">&#215;</button></div>`
+              ).join('')}
             </div>
             <div class="foto-add-row">
               <button class="btn-foto" onclick="document.getElementById('ncDefCam${i}').click()">&#128247; Cámara</button>
@@ -1636,11 +1664,10 @@
             <input type="date" value="${nc.fechaCorreccion||''}" onchange="S.ncs[${i}].fechaCorreccion=this.value;markDirty()">
             <label style="margin-top:8px">Fotos de corrección</label>
             <div class="foto-grid">
-              ${(nc.fotosCorreccion||[]).map((f,fi)=>`
-                <div class="foto-thumb">
-                  <img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="corrección ${fi+1}">
-                  <button class="foto-del" onclick="S.ncs[${i}].fotosCorreccion.splice(${fi},1);renderNCs();markDirty()">&#215;</button>
-                </div>`).join('')}
+              ${(nc.fotosCorreccion||[]).map((f,fi)=>f.perdida
+                ? `<div class="foto-thumb" style="background:rgba(198,40,40,.08);border:1px dashed #c62828;display:flex;align-items:center;justify-content:center;font-size:22px" title="Foto perdida — vuelve a añadirla">❌<button class="foto-del" onclick="S.ncs[${i}].fotosCorreccion.splice(${fi},1);renderNCs();markDirty()">&#215;</button></div>`
+                : `<div class="foto-thumb"><img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="corrección ${fi+1}"><button class="foto-del" onclick="S.ncs[${i}].fotosCorreccion.splice(${fi},1);renderNCs();markDirty()">&#215;</button></div>`
+              ).join('')}
             </div>
             <div class="foto-add-row">
               <button class="btn-foto" onclick="document.getElementById('ncCorrCam${i}').click()">&#128247; Cámara</button>
@@ -1859,10 +1886,7 @@
   }
 
   // FIX: autoguardado cada 30s + reintento subida fotos pendientes
-  setInterval(()=>{
-    if(isDirty) guardarSilencioso();
-    if(navigator.onLine && actualizarBadgeFotosPendientes() > 0) sincronizarFotosPendientes();
-  }, 30000);
+  setInterval(()=>{ if(isDirty) guardarSilencioso(); }, 30000);
 
   async function guardar(){
     try {
