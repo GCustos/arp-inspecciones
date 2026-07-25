@@ -12,12 +12,12 @@ function escHtml(s) {
  * Muestra un toast de notificación breve (2,5 s).
  * Requiere <div id="toast"> en el DOM con clase CSS .show para visibilidad.
  */
-function showToast(msg) {
+function showToast(msg, ms) {
   var t = document.getElementById('toast');
   if (!t) return;
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 2500);
+  setTimeout(function() { t.classList.remove('show'); }, ms || 2500);
 }
 
 /**

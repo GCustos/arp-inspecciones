@@ -662,7 +662,18 @@
   }
 
   // ── FIREBASE STORAGE — subir foto ──
-  // Guarda base64 en IndexedDB (Firestore) offline, sube a Storage cuando conecta
+  var _UPLOAD_TIMEOUT_MS = 45000;
+
+  function _putConTimeout(ref, dataUrl) {
+    return Promise.race([
+      ref.putString(dataUrl, 'data_url'),
+      new Promise(function(_, reject) {
+        setTimeout(function() { reject(new Error('upload-timeout')); }, _UPLOAD_TIMEOUT_MS);
+      })
+    ]);
+  }
+
+  // Guarda base64 en IndexedDB offline, sube a Storage cuando conecta
   async function uploadFotoToStorage(dataUrl, path) {
     if (!navigator.onLine) {
       var key = generarLocalKey();
@@ -676,11 +687,11 @@
     }
     try {
       const ref = storage.ref(path);
-      await ref.putString(dataUrl, 'data_url');
+      await _putConTimeout(ref, dataUrl);
       const url = await ref.getDownloadURL();
       return { url, pendiente: false };
     } catch(e) {
-      console.warn('Storage upload failed, saving to IndexedDB:', e.message);
+      console.warn('Storage upload failed (' + e.message + '), saving to IndexedDB');
       var key = generarLocalKey();
       try {
         await guardarFotoLocal(key, dataUrl, path);
@@ -691,44 +702,58 @@
     }
   }
 
+  // Retorna {url,pendiente:false} si subió, {perdida:true} si no hay datos, null si falló (reintentable)
   async function subirFotoPendiente(f, fallbackPath) {
     if (!f.pendiente) return null;
     var dataUrl = null;
     var path = fallbackPath;
     if (f.localKey) {
       var local = await leerFotoLocal(f.localKey).catch(function() { return null; });
-      if (!local || !local.dataUrl) return null;
+      if (!local || !local.dataUrl) {
+        console.warn('Foto perdida — IndexedDB vacío para localKey:', f.localKey);
+        return { perdida: true };
+      }
       dataUrl = local.dataUrl;
       path = local.storagePath || fallbackPath;
     } else if (f.url && f.url.startsWith('data:')) {
       dataUrl = f.url;
     }
-    if (!dataUrl) return null;
+    if (!dataUrl) return { perdida: true };
     try {
       var ref = storage.ref(path);
-      await ref.putString(dataUrl, 'data_url');
+      await _putConTimeout(ref, dataUrl);
       var url = await ref.getDownloadURL();
       if (f.localKey) await borrarFotoLocal(f.localKey).catch(function() {});
       return { url: url, name: f.name || 'foto.jpg', pendiente: false };
-    } catch(e) { return null; }
+    } catch(e) {
+      console.warn('subirFotoPendiente error:', e.message);
+      return null;
+    }
   }
 
   let _sincronizando = false;
 
   function actualizarBadgeFotosPendientes() {
-    var n = 0;
+    var n = 0, perdidas = 0;
     S.circuitos.forEach(function(c) {
       (c.juegos || []).forEach(function(j) {
-        (j.fotos || []).forEach(function(f) { if (f.pendiente) n++; });
+        (j.fotos || []).forEach(function(f) {
+          if (f.pendiente) n++;
+          if (f.perdida) perdidas++;
+        });
       });
     });
     S.ncs.forEach(function(nc) {
-      (nc.fotosDefecto || []).forEach(function(f) { if (f.pendiente) n++; });
-      (nc.fotosCorreccion || []).forEach(function(f) { if (f.pendiente) n++; });
+      (nc.fotosDefecto || []).forEach(function(f) { if (f.pendiente) n++; if (f.perdida) perdidas++; });
+      (nc.fotosCorreccion || []).forEach(function(f) { if (f.pendiente) n++; if (f.perdida) perdidas++; });
     });
     var badge = document.getElementById('fotoPendingBadge');
-    if (!badge) return;
-    if (_sincronizando) {
+    if (!badge) return n;
+    if (perdidas > 0) {
+      badge.textContent = '❌ ' + perdidas + ' foto' + (perdidas > 1 ? 's' : '') + ' perdida' + (perdidas > 1 ? 's' : '') + ' — vuélve' + (perdidas > 1 ? 'las' : 'la') + ' a añadir';
+      badge.style.background = '#c62828';
+      badge.style.display = 'block';
+    } else if (_sincronizando) {
       badge.textContent = '⏳ Subiendo fotos…';
       badge.style.background = '#1565C0';
       badge.style.display = 'block';
@@ -745,16 +770,20 @@
   async function sincronizarFotosPendientes() {
     if (!navigator.onLine || !inspeccionId || _sincronizando) return;
     _sincronizando = true;
-    actualizarBadgeFotosPendientes(); // muestra "⏳ Subiendo…"
-    var cambios = false;
-    var subidas = 0;
+    actualizarBadgeFotosPendientes();
+    var cambios = false, subidas = 0, perdidas = 0;
     try {
+      // Refrescar token antes de subir — evita fallos por token expirado tras horas offline
+      if (firebase.auth().currentUser) {
+        await firebase.auth().currentUser.getIdToken(true).catch(function() {});
+      }
       for (var ci = 0; ci < S.circuitos.length; ci++) {
         for (var ji = 0; ji < (S.circuitos[ci].juegos || []).length; ji++) {
           var fotos = S.circuitos[ci].juegos[ji].fotos || [];
           for (var fi = 0; fi < fotos.length; fi++) {
             var r = await subirFotoPendiente(fotos[fi], 'inspecciones/' + inspeccionId + '/juegos/' + ci + '_' + ji + '/' + Date.now() + '_' + fi + '.jpg');
-            if (r) { S.circuitos[ci].juegos[ji].fotos[fi] = r; cambios = true; subidas++; }
+            if (r && r.perdida) { S.circuitos[ci].juegos[ji].fotos[fi] = Object.assign({}, fotos[fi], { pendiente: false, perdida: true }); cambios = true; perdidas++; }
+            else if (r) { S.circuitos[ci].juegos[ji].fotos[fi] = r; cambios = true; subidas++; }
           }
         }
       }
@@ -762,12 +791,14 @@
         var fotsD = S.ncs[ni].fotosDefecto || [];
         for (var fi = 0; fi < fotsD.length; fi++) {
           var r = await subirFotoPendiente(fotsD[fi], 'inspecciones/' + inspeccionId + '/ncs/' + ni + '/defecto_' + Date.now() + '_' + fi + '.jpg');
-          if (r) { S.ncs[ni].fotosDefecto[fi] = r; cambios = true; subidas++; }
+          if (r && r.perdida) { S.ncs[ni].fotosDefecto[fi] = Object.assign({}, fotsD[fi], { pendiente: false, perdida: true }); cambios = true; perdidas++; }
+          else if (r) { S.ncs[ni].fotosDefecto[fi] = r; cambios = true; subidas++; }
         }
         var fotsC = S.ncs[ni].fotosCorreccion || [];
         for (var fi2 = 0; fi2 < fotsC.length; fi2++) {
           var r = await subirFotoPendiente(fotsC[fi2], 'inspecciones/' + inspeccionId + '/ncs/' + ni + '/correccion_' + Date.now() + '_' + fi2 + '.jpg');
-          if (r) { S.ncs[ni].fotosCorreccion[fi2] = r; cambios = true; subidas++; }
+          if (r && r.perdida) { S.ncs[ni].fotosCorreccion[fi2] = Object.assign({}, fotsC[fi2], { pendiente: false, perdida: true }); cambios = true; perdidas++; }
+          else if (r) { S.ncs[ni].fotosCorreccion[fi2] = r; cambios = true; subidas++; }
         }
       }
     } finally {
@@ -776,6 +807,7 @@
     if (cambios) { markDirty(); guardarSilencioso(); renderCircuitos(); renderNCs(); }
     actualizarBadgeFotosPendientes();
     if (subidas > 0) showToast('✓ ' + subidas + ' foto' + (subidas > 1 ? 's subidas' : ' subida') + ' correctamente');
+    if (perdidas > 0) showToast('❌ ' + perdidas + ' foto' + (perdidas > 1 ? 's perdidas' : ' perdida') + ' — vuelve a añadirla' + (perdidas > 1 ? 's' : ''), 6000);
   }
 
   // Intentar sincronizar al recuperar conexión
@@ -793,6 +825,12 @@
     cargaIniciada=true;
     currentUser=user;
     miRol = ud ? ud.rol : null;
+    // Solicitar almacenamiento persistente — impide que el OS borre IndexedDB automáticamente
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().then(function(granted) {
+        if (!granted) console.warn('Almacenamiento persistente no concedido — instalar PWA en pantalla de inicio');
+      });
+    }
     try {
       const snap = await db.collection("inspecciones").doc(inspeccionId).get();
       if(!snap.exists){ showError('Inspección no encontrada. ID: '+inspeccionId); return; }
