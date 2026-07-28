@@ -20,6 +20,12 @@
     .badge-2a{background:#FFEBEE;color:var(--red)}
     .empty-state{text-align:center;color:var(--muted);font-size:13px;padding:24px}
     .contador{font-size:12px;color:var(--muted);margin-bottom:10px}
+    .search-wrap{position:relative;margin-bottom:12px}
+    .search-wrap input{width:100%;box-sizing:border-box;padding:9px 12px 9px 34px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;outline:none}
+    .search-wrap input:focus{border-color:var(--gold)}
+    .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+    .link-cliente{font-size:11px;color:var(--gold);text-decoration:none;font-weight:600}
+    .link-cliente:hover{text-decoration:underline}
   </style>
 </head>
 <body>
@@ -53,6 +59,7 @@
   var db = firebase.firestore();
   var instData = [];
   var filtroActivo = '12m';
+  var textoBusqueda = '';
 
   function fechaHace(meses) { var d = new Date(); d.setMonth(d.getMonth()-meses); return d.toISOString().slice(0,10); }
 
@@ -76,7 +83,11 @@
   }
 
   function renderFiltros() {
-    var filtrosHtml = '<div class="filtros">' +
+    var filtrosHtml =
+      '<div class="search-wrap"><span class="search-icon">&#128269;</span>' +
+      '<input type="search" placeholder="Buscar instalación, código o propietario…" value="' + escHtml(textoBusqueda) + '" oninput="textoBusqueda=this.value;render()">' +
+      '</div>' +
+      '<div class="filtros">' +
       '<span class="filtro-label">Sin inspección en</span>' +
       '<button class="filtro-btn' + (filtroActivo==='12m'?' active':'') + '" onclick="setFiltro(\'12m\',this)">12 meses</button>' +
       '<button class="filtro-btn' + (filtroActivo==='24m'?' active':'') + '" onclick="setFiltro(\'24m\',this)">2 años</button>' +
@@ -88,37 +99,54 @@
   function render() {
     var PEND = '__PENDIENTE__';
     var umbral = filtroActivo === '12m' ? fechaHace(12) : filtroActivo === '24m' ? fechaHace(24) : null;
+    var q = textoBusqueda.trim().toLowerCase();
     var relevantes = instData.filter(function(i) {
+      if (q) {
+        var hayMatch = (i.nombre||'').toLowerCase().includes(q) ||
+                       (i.codigo||'').toLowerCase().includes(q) ||
+                       (i.propietario||'').toLowerCase().includes(q) ||
+                       (i.localidad||'').toLowerCase().includes(q) ||
+                       (i.provincia||'').toLowerCase().includes(q);
+        if (!hayMatch) return false;
+      }
+      if (!umbral) return true;
       var u = i.ultimaInspeccion;
       if (!u || u === PEND) return true;
-      if (!umbral) return true;
       return u <= umbral;
     }).sort(function(a,b) {
+      if (q) return (a.nombre||'').localeCompare(b.nombre||'');
       var ua = (!a.ultimaInspeccion || a.ultimaInspeccion===PEND) ? '0000' : a.ultimaInspeccion;
       var ub = (!b.ultimaInspeccion || b.ultimaInspeccion===PEND) ? '0000' : b.ultimaInspeccion;
       return ua < ub ? -1 : ua > ub ? 1 : 0;
     });
 
+    var limite = q ? relevantes.length : 50;
     var html = '<div class="contador">' + relevantes.length + ' instalación' + (relevantes.length!==1?'es':'') + '</div>';
     if (!relevantes.length) {
-      html += '<div class="card"><div class="empty-state">Todas las instalaciones están al día.</div></div>';
+      html += '<div class="empty-state">' + (q ? 'Sin resultados para "' + escHtml(q) + '".' : 'Todas las instalaciones están al día.') + '</div>';
     } else {
-      relevantes.slice(0,50).forEach(function(i) {
+      relevantes.slice(0, limite).forEach(function(i) {
         var u = i.ultimaInspeccion;
         var sinFecha = !u || u === PEND;
         var hace24m = fechaHace(24);
         var badgeClass = sinFecha ? 'badge-sinf' : u <= hace24m ? 'badge-2a' : 'badge-12m';
         var badgeTxt  = sinFecha ? 'Sin dato' : u <= hace24m ? '+2 años' : '+12 m';
+        var propietarioHtml = '';
+        if (i.propietario && i.propietario !== PEND) {
+          propietarioHtml = i.propietarioId
+            ? ' &middot; <a class="link-cliente" href="admin-clientes.html?id=' + escHtml(i.propietarioId) + '">' + escHtml(i.propietario) + ' &#8599;</a>'
+            : ' &middot; ' + escHtml(i.propietario);
+        }
         html += '<div class="card">' +
           '<div class="row-info">' +
           '<div class="row-title">' + escHtml(i.nombre || i.id) + (i.codigo ? ' &middot; ' + escHtml(i.codigo) : '') + '</div>' +
-          '<div class="row-sub">Última: ' + (sinFecha ? 'sin fecha' : escHtml(u)) + (i.provincia ? ' &middot; ' + escHtml(i.provincia) : '') + '</div>' +
+          '<div class="row-sub">Última: ' + (sinFecha ? 'sin fecha' : escHtml(u)) + (i.provincia ? ' &middot; ' + escHtml(i.provincia) : '') + propietarioHtml + '</div>' +
           '</div>' +
           '<span class="badge ' + badgeClass + '">' + badgeTxt + '</span>' +
           '</div>';
       });
-      if (relevantes.length > 50) {
-        html += '<div class="empty-state">Mostrando las 50 más antiguas de ' + relevantes.length + '.</div>';
+      if (!q && relevantes.length > 50) {
+        html += '<div class="empty-state">Mostrando las 50 más antiguas de ' + relevantes.length + '. Usa el buscador para encontrar una en concreto.</div>';
       }
     }
     document.getElementById('lista').innerHTML = html;

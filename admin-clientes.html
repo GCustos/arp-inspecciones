@@ -252,6 +252,10 @@
 
   function iniciales(n){ return (n||'?').trim().split(/\s+/).map(function(p){return p[0]||'';}).join('').slice(0,2).toUpperCase(); }
 
+  // Si viene con ?id=XXX, abrir ese cliente directamente al cargar
+  var _idParam = new URLSearchParams(location.search).get('id');
+  if (_idParam) clienteActual = { id: _idParam };
+
   // ── AUTH ──
   initAuth({
     roles: ['admin', 'director', 'proyecto', 'oficina'],
