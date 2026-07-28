@@ -780,14 +780,16 @@
 
       return actualizarInstalacionPromise.then(function() {
         return db.collection("inspecciones").add(inspeccion);
+      }).then(function(ref) {
+        if (instalacionId) {
+          db.collection("instalaciones").doc(instalacionId).update({
+            inspeccionActivaId: ref.id,
+            inspeccionActivaEstado: 'pendiente'
+          }).catch(function(){});
+        }
+        return ref;
       });
     }).then(function(ref) {
-      if (instalacionId) {
-        db.collection("instalaciones").doc(instalacionId).update({
-          inspeccionActivaId: ref.id,
-          inspeccionActivaEstado: 'pendiente'
-        }).catch(function(){});
-      }
       location.href = "inspeccion.html?id=" + ref.id;
     }).catch(function(e) {
       console.error(e);
