@@ -922,6 +922,11 @@
         }
       }
       cargaCompleta = true;
+      if(data.instalacionId && data.estado !== 'completada'){
+        db.collection('instalaciones').doc(data.instalacionId).update({
+          inspeccionActivaEstado:'en_curso'
+        }).catch(function(){});
+      }
       if(data.equiposMedicion&&data.equiposMedicion.length) {
         S.equiposMedicion=data.equiposMedicion;
       } else {
@@ -2028,7 +2033,17 @@
         completadoPor:currentUser.email
       });
       if(docDataFull.instalacionId){
-        db.collection("instalaciones").doc(docDataFull.instalacionId).update({ultimaInspeccionId:inspeccionId}).catch(function(){});
+        var _fParts=S.fechaInspeccion.split('-');
+        var _certD=new Date(parseInt(_fParts[0])+1,parseInt(_fParts[1])-1,parseInt(_fParts[2]));
+        var _certHasta=_certD.toISOString().slice(0,10);
+        db.collection("instalaciones").doc(docDataFull.instalacionId).update({
+          ultimaInspeccion:S.fechaInspeccion,
+          ultimaInspeccionId:inspeccionId,
+          ultimaInspeccionResultado:resultado==='FAVORABLE'?'conforme':'no_conforme',
+          certificadoHasta:_certHasta,
+          inspeccionActivaId:null,
+          inspeccionActivaEstado:null
+        }).catch(function(){});
       }
       // Esperar confirmación del servidor (evita pérdida si se limpian datos del sitio antes de sincronizar)
       try { await db.waitForPendingWrites(); } catch(we) { console.warn('waitForPendingWrites:', we.message); }

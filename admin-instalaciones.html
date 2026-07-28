@@ -10,22 +10,25 @@
     .filtros{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
     .filtro-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
     .filtro-btn{padding:5px 12px;border:1.5px solid var(--border);border-radius:20px;background:white;font-family:inherit;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;transition:all 0.15s}
-    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;display:flex}
+    .card[href]:hover{border-color:var(--gold);box-shadow:0 4px 12px rgba(0,0,0,0.07);transform:translateY(-1px);transition:all 0.15s}
     .row-info{flex:1;min-width:0}
     .row-title{font-size:13px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .row-sub{font-size:11px;color:var(--muted);margin-top:2px}
     .badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;text-transform:uppercase;flex-shrink:0}
     .badge-sinf{background:#F5F5F5;color:var(--muted)}
-    .badge-12m{background:#FFF8E1;color:var(--orange)}
-    .badge-2a{background:#FFEBEE;color:var(--red)}
+    .badge-conforme{background:#E8F5E9;color:#2E7D32}
+    .badge-no_conforme{background:#FFEBEE;color:#C62828}
+    .badge-en_curso{background:#E3F2FD;color:#1565C0}
+    .badge-pendiente{background:#FFF3E0;color:#E65100}
+    .cert-hasta{font-size:10px;color:var(--muted);margin-top:2px}
+    .cert-caducado{color:#C62828}
     .empty-state{text-align:center;color:var(--muted);font-size:13px;padding:24px}
     .contador{font-size:12px;color:var(--muted);margin-bottom:10px}
     .search-wrap{position:relative;margin-bottom:12px}
     .search-wrap input{width:100%;box-sizing:border-box;padding:9px 12px 9px 34px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;outline:none}
     .search-wrap input:focus{border-color:var(--gold)}
     .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
-    .link-cliente{font-size:11px;color:var(--gold);text-decoration:none;font-weight:600}
-    .link-cliente:hover{text-decoration:underline}
   </style>
 </head>
 <body>
@@ -128,22 +131,31 @@
       relevantes.slice(0, limite).forEach(function(i) {
         var u = i.ultimaInspeccion;
         var sinFecha = !u || u === PEND;
-        var hace24m = fechaHace(24);
-        var badgeClass = sinFecha ? 'badge-sinf' : u <= hace24m ? 'badge-2a' : 'badge-12m';
-        var badgeTxt  = sinFecha ? 'Sin dato' : u <= hace24m ? '+2 años' : '+12 m';
-        var propietarioHtml = '';
-        if (i.propietario && i.propietario !== PEND) {
-          propietarioHtml = i.propietarioId
-            ? ' &middot; <a class="link-cliente" href="admin-clientes.html?id=' + escHtml(i.propietarioId) + '">' + escHtml(i.propietario) + ' &#8599;</a>'
-            : ' &middot; ' + escHtml(i.propietario);
+        var propietarioTxt = (i.propietario && i.propietario !== PEND) ? escHtml(i.propietario) : '';
+        var tag = i.propietarioId ? 'a' : 'div';
+        var href = i.propietarioId ? ' href="admin-clientes.html?id=' + escHtml(i.propietarioId) + '"' : '';
+        var badgeClass, badgeTxt;
+        if (i.inspeccionActivaId) {
+          if (i.inspeccionActivaEstado === 'en_curso') { badgeClass='badge-en_curso'; badgeTxt='En Curso'; }
+          else { badgeClass='badge-pendiente'; badgeTxt='Pendiente'; }
+        } else if (i.ultimaInspeccionResultado === 'conforme') { badgeClass='badge-conforme'; badgeTxt='Conforme'; }
+        else if (i.ultimaInspeccionResultado === 'no_conforme') { badgeClass='badge-no_conforme'; badgeTxt='No Conforme'; }
+        else { badgeClass='badge-sinf'; badgeTxt='Sin dato'; }
+        var certLine = '';
+        if (i.certificadoHasta) {
+          var cp = i.certificadoHasta.split('-');
+          var hoy = new Date().toISOString().slice(0,10);
+          var caducado = i.certificadoHasta < hoy;
+          certLine = '<div class="cert-hasta' + (caducado ? ' cert-caducado' : '') + '">Cert. ' + (caducado ? 'caducó' : 'hasta') + ' ' + cp[2] + '/' + cp[1] + '/' + cp[0] + '</div>';
         }
-        html += '<div class="card">' +
+        html += '<' + tag + ' class="card"' + href + '>' +
           '<div class="row-info">' +
-          '<div class="row-title">' + escHtml(i.nombre || i.id) + (i.codigo ? ' &middot; ' + escHtml(i.codigo) : '') + '</div>' +
-          '<div class="row-sub">Última: ' + (sinFecha ? 'sin fecha' : escHtml(u)) + (i.provincia ? ' &middot; ' + escHtml(i.provincia) : '') + propietarioHtml + '</div>' +
+          '<div class="row-title">' + escHtml(i.nombre || i.id) + (i.codigo ? ' <span style="font-weight:400;color:var(--muted)">' + escHtml(i.codigo) + '</span>' : '') + '</div>' +
+          '<div class="row-sub">Última: ' + (sinFecha ? 'sin fecha' : escHtml(u)) + (i.provincia ? ' &middot; ' + escHtml(i.provincia) : '') + (propietarioTxt ? ' &middot; ' + propietarioTxt : '') + '</div>' +
+          certLine +
           '</div>' +
           '<span class="badge ' + badgeClass + '">' + badgeTxt + '</span>' +
-          '</div>';
+          '</' + tag + '>';
       });
       if (!q && relevantes.length > 50) {
         html += '<div class="empty-state">Mostrando las 50 más antiguas de ' + relevantes.length + '. Usa el buscador para encontrar una en concreto.</div>';
