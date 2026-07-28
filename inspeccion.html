@@ -662,7 +662,7 @@
   }
 
   // ── FIREBASE STORAGE — subir foto ──
-  var _UPLOAD_TIMEOUT_MS = 45000;
+  var _UPLOAD_TIMEOUT_MS = 90000;
 
   function _putConTimeout(ref, dataUrl) {
     return Promise.race([
@@ -710,8 +710,8 @@
     if (f.localKey) {
       var local = await leerFotoLocal(f.localKey).catch(function() { return null; });
       if (!local || !local.dataUrl) {
-        console.warn('Foto perdida — IndexedDB vacío para localKey:', f.localKey);
-        return { perdida: true };
+        console.warn('Foto no disponible en este dispositivo — localKey:', f.localKey);
+        return null; // null = no marcar perdida, puede estar en otro dispositivo
       }
       dataUrl = local.dataUrl;
       path = local.storagePath || fallbackPath;
@@ -727,7 +727,7 @@
       return { url: url, name: f.name || 'foto.jpg', pendiente: false };
     } catch(e) {
       console.warn('subirFotoPendiente error:', e.message);
-      return null;
+      return e.message === 'upload-timeout' ? { timeout: true } : null;
     }
   }
 
@@ -812,23 +812,15 @@
         ress.forEach(function(res, idx) {
           var r = res.status === 'fulfilled' ? res.value : null;
           var item = grupo[idx];
-          if (r && r.perdida) {
-            var nuevo = Object.assign({}, item.foto, { pendiente:false, perdida:true });
-            if (item.tipo==='j') S.circuitos[item.ci].juegos[item.ji].fotos[item.fi]=nuevo;
-            else if (item.tipo==='d') S.ncs[item.ni].fotosDefecto[item.fi]=nuevo;
-            else S.ncs[item.ni].fotosCorreccion[item.fi]=nuevo;
-            cambios=true; perdidas++;
-          } else if (r) {
-            if (item.tipo==='j') S.circuitos[item.ci].juegos[item.ji].fotos[item.fi]=r;
-            else if (item.tipo==='d') S.ncs[item.ni].fotosDefecto[item.fi]=r;
-            else S.ncs[item.ni].fotosCorreccion[item.fi]=r;
-            cambios=true; subidas++; exitosGrupo++;
-          }
+          if (!r || r.timeout) return; // null=sin datos/red, timeout=lento — dejar como pendiente
+          if (item.tipo==='j') S.circuitos[item.ci].juegos[item.ji].fotos[item.fi]=r;
+          else if (item.tipo==='d') S.ncs[item.ni].fotosDefecto[item.fi]=r;
+          else S.ncs[item.ni].fotosCorreccion[item.fi]=r;
+          cambios=true; subidas++; exitosGrupo++;
         });
-        // Si todo el lote falló sin resolución → sin cobertura, no seguir drenando batería
-        if (exitosGrupo === 0 && ress.every(function(res) {
-          return res.status === 'fulfilled' && res.value === null;
-        })) break;
+        // Abortar solo si hay 0 éxitos Y 0 timeouts (red genuinamente cortada)
+        var hayTimeout = ress.some(function(res) { return res.status==='fulfilled' && res.value && res.value.timeout; });
+        if (exitosGrupo === 0 && !hayTimeout) break;
       }
     } finally {
       _sincronizando = false;
@@ -878,10 +870,13 @@
           ? data.circuitos
           : Object.values(data.circuitos).sort(function(a,b){return (a.orden||0)-(b.orden||0);});
         // Garantizar IDs en todos los circuitos y juegos (docs legacy sin IDs)
-        // Si venía en formato array, marcar todos dirty → primer autosave migra a mapa
-        S.circuitos.forEach(function(c){
-          if(!c.id) c.id=uid();
-          (c.juegos||[]).forEach(function(j){ if(!j.id) j.id=uid(); });
+        // Si venía en formato array, marcar todos dirty → primer autosave migra a mapa.
+        // En migración array→mapa se usan IDs de posición (circ_N/juego_N_M) para que
+        // si dos dispositivos migran simultáneamente generen los mismos IDs y las
+        // escrituras dot-notation sean idempotentes (sin duplicados).
+        S.circuitos.forEach(function(c, ci){
+          if(!c.id) c.id = _wasArray ? ('circ_'+ci) : uid();
+          (c.juegos||[]).forEach(function(j, ji){ if(!j.id) j.id = _wasArray ? ('juego_'+ci+'_'+ji) : uid(); });
           if(_wasArray) _dirtyCircuitIds.add(c.id);
         });
       }
