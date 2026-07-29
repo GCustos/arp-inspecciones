@@ -1194,7 +1194,10 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         // CRÍTICO: setFont antes de splitTextToSize
         doc.setFontSize(8); doc.setFont('helvetica','normal');
         const descLinesCol = doc.splitTextToSize(col.desc, descW - 5);
-        const notaLinesCol = notaCol ? doc.splitTextToSize(notaCol, notasW - 3) : [];
+        const notaLinesRaw = notaCol ? doc.splitTextToSize(notaCol, notasW - 4) : [];
+        const MAX_NOTA_LINES = 10;
+        const notaLinesCol = notaLinesRaw.slice(0, MAX_NOTA_LINES);
+        if (notaLinesRaw.length > MAX_NOTA_LINES) notaLinesCol[MAX_NOTA_LINES - 1] += '…';
         const rowHcol = Math.max(14, Math.max(descLinesCol.length, notaLinesCol.length) * 4.5 + 6);
 
         if (y + 7 + rowHcol + 8 > PH-18) {
@@ -1312,7 +1315,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           const hasFotoC = nc.fotosCorreccion.length > 0;
 
           // Estimar alto total de esta NC para no partirla
-          let estAlto = 8 + (nc.elem?7:0) + 10 + (hasFotoD?48:0) + 15 + 12 + 7 + (hasFotoC?44:28) + 14 + 10;
+          let estAlto = 8 + (nc.elems&&nc.elems.length?Math.min(nc.elems.length+1,9)*5:0) + 15 + (hasFotoD?48:0) + 15 + 12 + 20 + (hasFotoC?44:28) + 14 + 10;
           if (y + estAlto > PH-18) {
             doc.addPage(); nPag[0]++;
             addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
@@ -1396,18 +1399,28 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           doc.text('Prioridad: ' + nc.prio, ML+bannerW+2, y+5.5);
           y += 12;
 
-          // Modificación: texto resolución a la derecha + foto debajo
+          // Modificación: texto resolución a la derecha — altura dinámica, máx 3 líneas
           var resTxt = nc.resoluciones.filter(Boolean).join('. ');
+          doc.setFontSize(8); doc.setFont('helvetica','normal');
+          var resLinesAll = resTxt ? doc.splitTextToSize(resTxt, CW * 2/3 - 4) : [];
+          var resLines = resLinesAll.slice(0, 3);
+          if (resLinesAll.length > 3) resLines[2] = '… ver Listado de Observaciones';
+          var modH = Math.max(7, resLines.length * 4.5 + 4);
+          if (y + modH + (hasFotoC ? 44 : 28) + 14 > PH - MB) {
+            doc.addPage(); nPag[0]++;
+            addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+            y = MT + 8;
+          }
           doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
           doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
-          doc.rect(ML, y, CW/3, 7, 'D');
-          doc.rect(ML+CW/3, y, CW*2/3, 7, 'D');
+          doc.rect(ML, y, CW/3, modH, 'D');
+          doc.rect(ML+CW/3, y, CW*2/3, modH, 'D');
           doc.text('Modificación', ML+2, y+4.5);
-          if (resTxt) {
-            doc.setFont('helvetica','normal'); doc.setFontSize(8);
-            doc.text(resTxt, ML+CW/3+2, y+4.5, {maxWidth:CW*2/3-4});
+          if (resLines.length) {
+            doc.setFont('helvetica','normal');
+            resLines.forEach(function(l, li) { doc.text(l, ML+CW/3+2, y+4.5+li*4.5); });
           }
-          y += 7;
+          y += modH;
 
           if (hasFotoC) {
             var fotosC = nc.fotosCorreccion.slice(0,3);
@@ -2011,13 +2024,19 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
 
     showGenerating('Generando Plan de Correcciones...', 'Cargando fotos...');
 
-    // Preload TODAS las fotos defecto de todas las NCs
+    // Preload TODAS las fotos defecto y corrección de todas las NCs
     for (var _i = 0; _i < todasNCs.length; _i++) {
       var _nc2 = todasNCs[_i];
       for (var _j = 0; _j < (_nc2.fotosDefecto||[]).length; _j++) {
         var _f2 = _nc2.fotosDefecto[_j];
         if (!_f2.dataUrl) {
           try { _f2.dataUrl = await loadImageAsBase64(_f2.url, _f2.localKey); } catch(e){}
+        }
+      }
+      for (var _k = 0; _k < (_nc2.fotosCorreccion||[]).length; _k++) {
+        var _fc2 = _nc2.fotosCorreccion[_k];
+        if (!_fc2.dataUrl) {
+          try { _fc2.dataUrl = await loadImageAsBase64(_fc2.url, _fc2.localKey); } catch(e){}
         }
       }
     }
@@ -2073,6 +2092,8 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
         var descTrunc = descLnsAll.length > 4;
         var fotosD = (nc.fotosDefecto||[]).filter(function(f){ return f && (f.dataUrl || f.url); });
         var nFotos = Math.min(fotosD.length, 3);
+        var fotosC = (nc.fotosCorreccion||[]).filter(function(f){ return f && (f.dataUrl || f.url); });
+        var nFotosC = Math.min(fotosC.length, 3);
 
         // Estimación altura bloque (defecto + corrección ahora en la misma fila)
         var descH = descLns.length ? 4.5 + descLns.length*4.5 + (descTrunc ? 6 : 3) : 0;
@@ -2148,13 +2169,30 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
           doc.text('Sin fotografía', ML + halfW/2, y+fH/2, {align:'center'});
         }
 
-        // Derecha: caja corrección vacía (borde discontinuo)
-        doc.setDrawColor(...MUTED); doc.setLineWidth(0.5);
-        doc.setLineDashPattern([2, 1.5], 0);
-        doc.rect(corrX, y, halfW, fH, 'D');
-        doc.setLineDashPattern([], 0);
-        doc.setFontSize(9); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
-        doc.text('Foto corrección', corrX + halfW/2, y+fH/2, {align:'center'});
+        // Derecha: fotos de corrección o caja vacía si no hay
+        if (nFotosC > 0) {
+          var fwC = nFotosC > 1 ? (halfW / nFotosC - 1) : halfW;
+          fotosC.slice(0, 3).forEach(function(fc, fi) {
+            var fotoSrc = fc.dataUrl || fc.url;
+            var fxC = corrX + fi * (fwC + 1);
+            try {
+              var fmtC = fotoSrc.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+              var fitC = fitImage(doc, fotoSrc, fwC, fH);
+              var oxC = (fwC - fitC.w) / 2;
+              var oyC = (fH - fitC.h) / 2;
+              doc.addImage(fotoSrc, fmtC, fxC+oxC, y+oyC, fitC.w, fitC.h);
+            } catch(e) {}
+            doc.setDrawColor(...BORDER); doc.setLineWidth(0.2);
+            doc.rect(fxC, y, fwC, fH, 'D');
+          });
+        } else {
+          doc.setDrawColor(...MUTED); doc.setLineWidth(0.5);
+          doc.setLineDashPattern([2, 1.5], 0);
+          doc.rect(corrX, y, halfW, fH, 'D');
+          doc.setLineDashPattern([], 0);
+          doc.setFontSize(9); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
+          doc.text('Foto corrección', corrX + halfW/2, y+fH/2, {align:'center'});
+        }
 
         y += fH + 5;
 
