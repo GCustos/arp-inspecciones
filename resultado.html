@@ -1090,11 +1090,13 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           : prioFila === 'DOCUMENTAL'? [227,242,253]
           : WHITE;
 
-        // CRÍTICO: setFont antes de splitTextToSize para que el cálculo sea correcto
+        // Split desc a 8pt (render) y obs a 7pt (render) para métricas exactas
         doc.setFontSize(8); doc.setFont('helvetica','normal');
         const descLines = doc.splitTextToSize(item.desc, descW - 5);
+        doc.setFontSize(7); doc.setFont('helvetica','normal');
         const obsLines = obs ? doc.splitTextToSize(obs, notasW - 3) : [];
-        const rowH2 = Math.max(14, Math.max(descLines.length, obsLines.length) * 4.5 + 6);
+        doc.setFontSize(8);
+        const rowH2 = Math.max(14, Math.max(descLines.length * 4.5 + 6, obsLines.length * 4.5 + 9));
 
         if (y + 7 + rowH2 + 8 > PH-18) {
           doc.addPage(); nPag[0]++;
@@ -1188,7 +1190,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         }
         var ncsAbiertas = ncsDelCol.filter(function(n){ return !n.cerrada; });
         var todasCerradas = ncsDelCol.length > 0 && ncsAbiertas.length === 0;
-        var _ncItemsFull = ncsDelCol.map(function(n){ ncNumGlobal++; return (n.cerrada?'(✓) ':'')+ncNumGlobal+'. '+(getNcElem(n)+(n.desc?' — '+n.desc:'')); });
+        var _ncItemsFull = ncsDelCol.map(function(n){ ncNumGlobal++; return (n.cerrada?'(C) ':'')+ncNumGlobal+'. '+(getNcElem(n)+(n.desc?' — '+n.desc:'')); });
         var notaCol = _ncItemsFull.slice(0,5).join(' ') + (_ncItemsFull.length > 5 ? ' ... y '+(_ncItemsFull.length-5)+' más (ver Listado)' : '');
 
         // Color fila según NC más grave ABIERTA del criterio
@@ -1202,14 +1204,16 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
           : prioCol === 'DOCUMENTAL' ? [227,242,253]
           : WHITE;
 
-        // CRÍTICO: setFont antes de splitTextToSize
+        // Calcular líneas con el mismo tamaño de fuente que se usará al renderizar
         doc.setFontSize(8); doc.setFont('helvetica','normal');
         const descLinesCol = doc.splitTextToSize(col.desc, descW - 5);
+        doc.setFontSize(7); doc.setFont('helvetica','normal');
         const notaLinesRaw = notaCol ? doc.splitTextToSize(notaCol, notasW - 4) : [];
         const MAX_NOTA_LINES = 10;
         const notaLinesCol = notaLinesRaw.slice(0, MAX_NOTA_LINES);
         if (notaLinesRaw.length > MAX_NOTA_LINES) notaLinesCol[MAX_NOTA_LINES - 1] += '…';
-        const rowHcol = Math.max(14, Math.max(descLinesCol.length, notaLinesCol.length) * 4.5 + 6);
+        doc.setFontSize(8);
+        const rowHcol = Math.max(14, Math.max(descLinesCol.length * 4.5 + 6, notaLinesCol.length * 4.5 + 9));
 
         if (y + 7 + rowHcol + 8 > PH-18) {
           doc.addPage(); nPag[0]++;
@@ -1431,7 +1435,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
             doc.setFont('helvetica','normal');
             resLines.forEach(function(l, li) { doc.text(l, ML+CW/3+2, y+4.5+li*4.5); });
           }
-          y += modH;
+          y += modH + 3;
 
           if (hasFotoC) {
             var fotosC = nc.fotosCorreccion.slice(0,3);
