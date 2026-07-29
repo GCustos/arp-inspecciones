@@ -245,18 +245,29 @@
       ncGrupos[key].items.push(getNcElem(nc));
     });
 
-    const allNcsDisplay = (D.ncs||[]).filter(n=>n.prio).map(nc => {
+    const _ncItems = (D.ncs||[]).filter(n=>n.prio).map(nc => {
       const cerrada = nc.cerrada;
       return `<div class="nc-item" style="${cerrada?'opacity:.5':''}">
         <span class="nc-badge p-${nc.prio}">${nc.prio}</span>
         <div style="flex:1">
           <div style="font-weight:600;font-size:12px;${cerrada?'text-decoration:line-through':''}">${nc.tipo||'Sin tipo'}</div>
           <div style="font-size:11px;color:var(--muted)">${getNcElem(nc)}${nc.desc?' — '+nc.desc:''}</div>
-          ${cerrada?'<div style="font-size:10px;color:var(--green);font-weight:600">✓ CERRADA — '+( nc.resolucion||'Resuelta')+'</div>':''}
+          ${cerrada?'<div style="font-size:10px;color:var(--green);font-weight:600">✓ CERRADA — '+(nc.resolucion||'Resuelta')+'</div>':''}
         </div>
       </div>`;
-    }).join('') || '<div style="font-size:13px;color:var(--muted);padding:8px 0">Sin no conformidades.</div>';
-    const ncHtml = allNcsDisplay;
+    });
+    const NC_VISIBLE = 5;
+    let ncHtml;
+    if (!_ncItems.length) {
+      ncHtml = '<div style="font-size:13px;color:var(--muted);padding:8px 0">Sin no conformidades.</div>';
+    } else if (_ncItems.length <= NC_VISIBLE) {
+      ncHtml = _ncItems.join('');
+    } else {
+      const _extra = _ncItems.length - NC_VISIBLE;
+      ncHtml = _ncItems.slice(0, NC_VISIBLE).join('')
+        + '<div id="nc-extra" style="display:none">' + _ncItems.slice(NC_VISIBLE).join('') + '</div>'
+        + '<button onclick="toggleNcList(this,' + _extra + ')" style="margin-top:6px;width:100%;padding:6px;font-size:12px;font-weight:600;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--muted)">Ver ' + _extra + ' más ▼</button>';
+    }
 
     document.getElementById('mainContent').innerHTML = `
       <div class="res-header ${favorable?'favorable':'desfavorable'}">
@@ -2211,6 +2222,13 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       alert('Error generando plan de correcciones: ' + e.message);
       console.error(e);
     }
+  }
+
+  function toggleNcList(btn, extraCount) {
+    var el = document.getElementById('nc-extra');
+    var expand = el.style.display === 'none';
+    el.style.display = expand ? 'block' : 'none';
+    btn.textContent = expand ? 'Ver menos ▲' : 'Ver ' + extraCount + ' más ▼';
   }
 
   function updateOnline() {
