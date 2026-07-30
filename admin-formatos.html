@@ -90,7 +90,13 @@
 <div class="app-header">
   <button class="btn-back" onclick="location.href='admin.html'">&#8592;</button>
   <div class="hdr-mark">ARP</div>
-  <div class="hdr-title" id="hdrTitle">Formatos PAA</div>
+  <div class="hdr-title" id="hdrTitle">Formatos</div>
+</div>
+
+<div style="display:flex;background:var(--surf);border-bottom:1px solid var(--border);padding:0 16px;gap:4px">
+  <button id="alcTab_paa" onclick="setAlcance('paa')"  style="flex:1;padding:8px 4px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--gold);color:var(--gold)">PAA</button>
+  <button id="alcTab_sae" onclick="setAlcance('sae')"  style="flex:1;padding:8px 4px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted)">SAE</button>
+  <button id="alcTab_fer" onclick="setAlcance('fer')"  style="flex:1;padding:8px 4px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted)">FER</button>
 </div>
 
 <div class="tabs">
@@ -151,6 +157,7 @@
   var formatoActivo  = null;  // {revision, fechaVigencia, checklist, columnas}
   var borrador       = null;  // null si no existe
   var tabActual      = 'activo';
+  var alcanceActual  = 'paa'; // 'paa' | 'sae' | 'fer'
   var editandoPreguntaIdx = null;
   var editandoColumnaIdx  = null;
   var _sortableChk   = null;
@@ -159,26 +166,42 @@
 
   function uid(){ return Math.random().toString(36).slice(2,8); }
 
+  function setAlcance(a) {
+    alcanceActual = a;
+    ['paa','sae','fer'].forEach(function(k) {
+      var btn = document.getElementById('alcTab_'+k);
+      btn.style.borderBottomColor = (k===a ? 'var(--gold)' : 'transparent');
+      btn.style.color = (k===a ? 'var(--gold)' : 'var(--muted)');
+    });
+    document.getElementById('hdrTitle').textContent = 'Formatos ' + a.toUpperCase();
+    formatoActivo = null; borrador = null;
+    document.getElementById('borradorDot').style.display = 'none';
+    goTab('activo', document.getElementById('tabActivo'));
+    cargar();
+  }
+
   initAuth({
     roles: ['admin','director'],
     onReady: function(user, ud) {
       currentUserEmail = user.email;
+      document.getElementById('hdrTitle').textContent = 'Formatos PAA';
       cargar();
     }
   });
 
   // ── CARGA ──
   function cargar() {
+    var alc = alcanceActual;
     Promise.all([
-      db.collection('config').doc('paa').get(),
-      db.collection('config').doc('paa_borrador').get()
+      db.collection('config').doc(alc).get(),
+      db.collection('config').doc(alc+'_borrador').get()
     ]).then(function(res) {
       var paa = res[0].exists ? res[0].data() : {};
       formatoActivo = {
-        revision:         paa.formatoRevision  || 9,
-        fechaVigencia:    paa.formatoFecha      || '26/02/2026',
-        registroRevision: paa.registroRevision  || 7,
-        registroFecha:    paa.registroFecha     || '10/02/2026',
+        revision:         paa.formatoRevision  || (alc==='paa' ? 9  : 0),
+        fechaVigencia:    paa.formatoFecha      || (alc==='paa' ? '26/02/2026' : '—'),
+        registroRevision: paa.registroRevision  || (alc==='paa' ? 7  : 0),
+        registroFecha:    paa.registroFecha     || (alc==='paa' ? '10/02/2026' : '—'),
         checklist:        paa.checklist         || [],
         columnas:         paa.columnas          || []
       };
@@ -365,7 +388,7 @@
     borrador.editadoPor    = currentUserEmail;
     var btn = document.querySelector('.btn-secondary');
     if (btn) { btn.disabled=true; btn.textContent='Guardando…'; }
-    db.collection('config').doc('paa_borrador').set(borrador)
+    db.collection('config').doc(alcanceActual+'_borrador').set(borrador)
       .then(function(){
         document.getElementById('borradorDot').style.display='inline';
         if (!silent) {
@@ -378,7 +401,7 @@
 
   window.descartarBorrador = function() {
     if (!confirm('¿Descartar el borrador? Perderás los cambios no publicados.')) return;
-    db.collection('config').doc('paa_borrador').delete()
+    db.collection('config').doc(alcanceActual+'_borrador').delete()
       .then(function(){
         borrador = null;
         document.getElementById('borradorDot').style.display='none';
@@ -526,17 +549,17 @@
     var hoy = new Date().toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'});
     var batch = db.batch();
 
-    // 1. Actualizar config/paa
-    var paaRef = db.collection('config').doc('paa');
-    batch.update(paaRef, {
+    // 1. Actualizar config/paa|sae|fer
+    var paaRef = db.collection('config').doc(alcanceActual);
+    batch.set(paaRef, {
       checklist:       borrador.checklist,
       columnas:        borrador.columnas,
       formatoRevision: nuevaRev,
       formatoFecha:    hoy
-    });
+    }, {merge: true});
 
     // 2. Guardar en historial
-    var histRef = db.collection('config').doc('paa').collection('historial').doc(String(nuevaRev));
+    var histRef = db.collection('config').doc(alcanceActual).collection('historial').doc(String(nuevaRev));
     batch.set(histRef, {
       revision:     nuevaRev,
       fechaVigencia:hoy,
@@ -550,7 +573,7 @@
     });
 
     // 3. Borrar borrador
-    var borrRef = db.collection('config').doc('paa_borrador');
+    var borrRef = db.collection('config').doc(alcanceActual+'_borrador');
     batch.delete(borrRef);
 
     batch.commit().then(function() {
@@ -570,7 +593,7 @@
   // ── TAB HISTORIAL ──
   function renderHistorial() {
     document.getElementById('content').innerHTML = '<div class="spinner"></div>';
-    db.collection('config').doc('paa').collection('historial').get()
+    db.collection('config').doc(alcanceActual).collection('historial').get()
       .then(function(snap) {
         if (snap.empty) {
           document.getElementById('content').innerHTML = '<div class="empty-state">Sin historial. Ejecuta el script de migración.</div>';

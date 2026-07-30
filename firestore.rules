@@ -70,8 +70,8 @@ service cloud.firestore {
       allow write: if isAuth() && isAdmin();
     }
 
-    // historial de formato PAA (subcollección de config/paa)
-    match /config/paa/historial/{rev} {
+    // historial de formatos (subcollección de config/{alcance})
+    match /config/{alcance}/historial/{rev} {
       allow read:  if isAuth();
       allow write: if isAuth() && isAdminLike();
     }

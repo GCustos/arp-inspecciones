@@ -182,6 +182,14 @@
         D.circuitos = Object.values(D.circuitos).sort(function(a,b){ return (a.orden||0)-(b.orden||0); });
       D_actual = D;
 
+      // Aplicar formato del snapshot guardado en la inspección
+      if (D.formatoDocumento) {
+        if (D.formatoDocumento.checklist && D.formatoDocumento.checklist.length)
+          GEN_ITEMS_PDF = D.formatoDocumento.checklist;
+        if (D.formatoDocumento.columnas && D.formatoDocumento.columnas.length)
+          COLS_PDF = D.formatoDocumento.columnas.map(function(c){ return {key:c.id, label:c.label, abbrev:c.abbrev, ref:'', desc:''}; });
+      }
+
       // Guardar snapshot en localStorage (triple backup)
       try { localStorage.setItem('insp_' + inspeccionId, JSON.stringify(D)); } catch(e) {}
 
@@ -196,6 +204,12 @@
           if (D.circuitos && !Array.isArray(D.circuitos))
             D.circuitos = Object.values(D.circuitos).sort(function(a,b){ return (a.orden||0)-(b.orden||0); });
           D_actual = D;
+          if (D.formatoDocumento) {
+            if (D.formatoDocumento.checklist && D.formatoDocumento.checklist.length)
+              GEN_ITEMS_PDF = D.formatoDocumento.checklist;
+            if (D.formatoDocumento.columnas && D.formatoDocumento.columnas.length)
+              COLS_PDF = D.formatoDocumento.columnas.map(function(c){ return {key:c.id, label:c.label, abbrev:c.abbrev, ref:'', desc:''}; });
+          }
           CONFIG = CONFIG_DEFAULT;
           document.getElementById('alertOffline').classList.add('vis');
           renderResultado();
@@ -620,7 +634,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
 — Una declaración indicando que el informe de la inspección no se debería reproducir salvo en su integridad
 — El presente documento se debe incluir en la documentación de utilización del recorrido acrobático en altura.`;
 
-  const GEN_ITEMS_PDF = [
+  var GEN_ITEMS_PDF = [
     {ref:"4.1",sec:"Selección de Lugar y Entorno",desc:"Evacuación posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosión).",id:"g1"},
     {ref:"4.3.3",sec:"Sistemas de Soporte – Árboles",desc:"Evaluación de resistencia e idoneidad por experto; diagnóstico actualizado; protección de raíces; medidas correctivas.",id:"g2"},
     {ref:"4.3.3",sec:"Sistemas de Soporte – Artificiales",desc:"Adecuación a cargas; vientos y anclajes protegidos; verificación de estructuras existentes; cálculos disponibles.",id:"g3"},
@@ -630,7 +644,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
     {ref:"8",sec:"Documentación",desc:"Manual del constructor, mantenimiento, evaluación arbórea, identificación en planos, marcados.",id:"g7"},
   ];
 
-  const COLS_PDF = [
+  var COLS_PDF = [
     {key:"ie",label:"Integridad estructural",ref:"4.3",desc:"Verificación del estado resistente del Juego: soportes, plataformas, cables portantes y elementos estructurales."},
     {key:"af",label:"Anclajes y fijaciones",ref:"4.3.3",desc:"Comprobación de anclajes, uniones, grapas, prensados y tensado de cables."},
     {key:"ej",label:"Elementos de juego/Progresión",ref:"4.2",desc:"Verificación del estado y funcionalidad de los elementos de progresión."},

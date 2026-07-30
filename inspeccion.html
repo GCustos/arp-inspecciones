@@ -456,13 +456,15 @@
   function markCircuitDirty(ci){ if(S.circuitos[ci]) _dirtyCircuitIds.add(S.circuitos[ci].id); }
   var tiposNCList=["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente","Riesgo de atrapamiento"];
   var tiposNCNormaMap={};
-  db.collection("config").doc("paa").get().then(function(snap){
-    if(snap.exists&&snap.data().tiposNC){
-      var tNC=snap.data().tiposNC.filter(function(t){return t.activo!==false});
-      tiposNCList=tNC.map(function(t){return t.label});
-      tNC.forEach(function(t){tiposNCNormaMap[t.label]=t.norma||'';});
-    }
-  }).catch(function(){});
+  function _cargarTiposNC(alcance){
+    db.collection("config").doc((alcance||"paa").toLowerCase()).get().then(function(snap){
+      if(snap.exists&&snap.data().tiposNC){
+        var tNC=snap.data().tiposNC.filter(function(t){return t.activo!==false});
+        tiposNCList=tNC.map(function(t){return t.label});
+        tNC.forEach(function(t){tiposNCNormaMap[t.label]=t.norma||'';});
+      }
+    }).catch(function(){});
+  }
 
   const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], ensayos:"", equiposMedicion:[], revision:0, historialRevisiones:[], nRegistro:"", codigoInstalacion:"", tipoAlcance:"", estado:"borrador", fechaInspeccion:"", horaInicio:"", horaFin:"", sesiones:[] };
 
@@ -889,6 +891,7 @@
       S.nRegistro=data.nRegistro||"";
       S.codigoInstalacion=data.codigoInstalacion||"";
       S.tipoAlcance=data.tipoAlcance||"PAA";
+      _cargarTiposNC(S.tipoAlcance);
       S.estado=data.estado||"borrador";
       S.fechaInspeccion=data.fechaInspeccion||"";
       S.horaInicio=data.horaInicio||"";
