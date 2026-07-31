@@ -459,7 +459,13 @@
             ?prev.circuitos
             :(prev.circuitos?Object.values(prev.circuitos).sort(function(a,b){return(a.orden||0)-(b.orden||0);}):[]);
           if(prevCircArr.length){
-            circuitosHeredados=prevCircArr.map(function(c){return{nombre:c.nombre,juegos:(c.juegos||[]).map(function(j){return{nombre:j.nombre,tipo:j.tipo||'R',rama:j.rama||'',ie:'',af:'',ej:'',ra:'',zs:'',obs:'',fotos:[]}})};});
+            // Construir como MAPA {id: circData} desde el primer momento (evita formato array legacy)
+            var _mapHer={};
+            prevCircArr.forEach(function(c,ci){
+              var cId='circ_'+ci;
+              _mapHer[cId]={id:cId,nombre:c.nombre,orden:ci,juegos:(c.juegos||[]).map(function(j,ji){return{id:'juego_'+ci+'_'+ji,nombre:j.nombre,tipo:j.tipo||'R',rama:j.rama||'',ie:'',af:'',ej:'',ra:'',zs:'',obs:'',fotos:[]};})};
+            });
+            circuitosHeredados=_mapHer;
             txt+=" · "+circuitosHeredados.reduce(function(s,c){return s+c.juegos.length},0)+" elem. heredados";
             document.getElementById("acVincTxt").textContent=txt;
           }
