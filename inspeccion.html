@@ -452,6 +452,7 @@
   let _sortableCC=null;
   let _dirtyCircuitIds=new Set();   // IDs de circuitos modificados desde el último save
   let _deletedCircuitIds=new Set(); // IDs de circuitos borrados — se eliminan de Firestore con FieldValue.delete()
+  let _legacyArrayFormat=false;     // true cuando la inspección cargó circuitos en formato array (antiguo)
   function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
   function markCircuitDirty(ci){ if(S.circuitos[ci]) _dirtyCircuitIds.add(S.circuitos[ci].id); }
   var tiposNCList=["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente","Riesgo de atrapamiento"];
@@ -876,6 +877,7 @@
         // En migración array→mapa se usan IDs de posición (circ_N/juego_N_M) para que
         // si dos dispositivos migran simultáneamente generen los mismos IDs y las
         // escrituras dot-notation sean idempotentes (sin duplicados).
+        if(_wasArray) _legacyArrayFormat = true;
         S.circuitos.forEach(function(c, ci){
           if(!c.id) c.id = _wasArray ? ('circ_'+ci) : uid();
           (c.juegos||[]).forEach(function(j, ji){ if(!j.id) j.id = _wasArray ? ('juego_'+ci+'_'+ji) : uid(); });
@@ -1879,7 +1881,16 @@
     if (!cargaCompleta) return;
     autoCapturarHoraInicio();
     try {
-      await db.collection("inspecciones").doc(inspeccionId).update(Object.assign(buildPayload("en_curso"),buildCircuitUpdates()));
+      var circUpd = _legacyArrayFormat
+        ? { circuitos: buildCircuitosMap() }  // Formato antiguo: reemplazar array completo por mapa
+        : buildCircuitUpdates();              // Formato nuevo: dot-notation por circuito
+      await db.collection("inspecciones").doc(inspeccionId).update(Object.assign(buildPayload("en_curso"), circUpd));
+      if (_legacyArrayFormat) {
+        _legacyArrayFormat = false;
+        _dirtyCircuitIds.clear();
+        _deletedCircuitIds.clear();
+        showToast('✓ Formato de circuitos actualizado automáticamente');
+      }
       isDirty=false;
       actualizarEstado("en_curso");
       const badge=document.getElementById('autosaveBadge');
@@ -1893,7 +1904,11 @@
 
   async function guardar(){
     try {
-      await db.collection("inspecciones").doc(inspeccionId).update(Object.assign(buildPayload("en_curso"),buildCircuitUpdates()));
+      var circUpd = _legacyArrayFormat
+        ? { circuitos: buildCircuitosMap() }
+        : buildCircuitUpdates();
+      await db.collection("inspecciones").doc(inspeccionId).update(Object.assign(buildPayload("en_curso"), circUpd));
+      if (_legacyArrayFormat) { _legacyArrayFormat=false; _dirtyCircuitIds.clear(); _deletedCircuitIds.clear(); }
       isDirty=false; actualizarEstado("en_curso");
       const btn=document.querySelector(".btn-guardar");
       btn.textContent="✓ Guardado";
