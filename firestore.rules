@@ -106,6 +106,14 @@ service cloud.firestore {
       allow write: if isAuth() && isAdminLike();
     }
 
+    // ── certificados-publicos ──────────────────────────────────────────────
+    // Lectura pública — solo nombre, lugar (municipio/provincia), lat/lng,
+    // fechaValidez y tipo. Sin datos de clientes, inspectores ni NCs.
+    match /certificados-publicos/{docId} {
+      allow read:  if true;
+      allow write: if isAuth() && myRole() != 'oficina';
+    }
+
     // ── cambiosPropuestos ──────────────────────────────────────────────────
     // Cualquier usuario puede proponer un cambio (create)
     // Solo admin/director/proyecto leen el listado y gestionan (update/delete)

@@ -598,6 +598,24 @@
 
   // ── CREAR INSPECCIÓN ──
 
+  function geocodificarInstalacion(instalId, dir, cp, localidad, municipio, provincia) {
+    var parts = [dir, cp, localidad, municipio, provincia, 'España']
+      .filter(function(s){ return s && s !== '__PENDIENTE__'; });
+    if (!parts.length) return;
+    var q = encodeURIComponent(parts.join(', '));
+    fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + q,
+      { headers: { 'User-Agent': 'ARP-Inspecciones/1.0 (arpprevencion.com)' } })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data && data[0]) {
+        db.collection('instalaciones').doc(instalId).update({
+          lat: parseFloat(data[0].lat),
+          lng: parseFloat(data[0].lon)
+        }).catch(function(){});
+      }
+    }).catch(function(){});
+  }
+
   function generarNRegistro(codigo, alcance, fecha) {
     var partes = fecha.split("-");
     if (partes.length !== 3) return "";
@@ -661,6 +679,14 @@
         creadoPor: currentUser.email,
         fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
       });
+      // Geocodificar dirección en background para el mapa público
+      geocodificarInstalacion(instalacionIdNueva,
+        document.getElementById("direccion").value.trim(),
+        document.getElementById("cp").value.trim(),
+        document.getElementById("localidad").value.trim(),
+        document.getElementById("municipio").value.trim(),
+        document.getElementById("provincia").value.trim()
+      );
     }
 
     crearInstalacionPromise.then(function() {
@@ -722,6 +748,18 @@
         revisaCampo("solicitanteActual", "solicitante");
         if (Object.keys(actualizacion).length) {
           actualizarInstalacionPromise = db.collection("instalaciones").doc(instalacionId).set(actualizacion, { merge: true });
+          // Re-geocodificar si cambió algún campo de dirección
+          var addrFields = ['direccion', 'cp', 'localidad', 'municipio', 'provincia'];
+          if (addrFields.some(function(f){ return f in actualizacion; })) {
+            var inst = instalacionSeleccionada;
+            geocodificarInstalacion(instalacionId,
+              actualizacion.direccion || inst.direccion || '',
+              actualizacion.cp       || inst.cp       || '',
+              actualizacion.localidad|| inst.localidad|| '',
+              actualizacion.municipio|| inst.municipio|| '',
+              actualizacion.provincia|| inst.provincia|| ''
+            );
+          }
         }
         if (cambiosPropuestos.length) {
           var propuestasPromise = Promise.all(cambiosPropuestos.map(function(c) {

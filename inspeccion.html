@@ -2057,6 +2057,22 @@
           inspeccionActivaId:null,
           inspeccionActivaEstado:null
         }).catch(function(){});
+        if(resultado==='FAVORABLE'){
+          var _instalId=docDataFull.instalacionId, _cert=_certHasta;
+          var _nombre=docDataFull.nombreInstalacion||'', _tipo=docDataFull.tipoAlcance||'PAA';
+          db.collection('instalaciones').doc(_instalId).get().then(function(snap){
+            var inst=snap.exists?snap.data():{};
+            return db.collection('certificados-publicos').doc(_instalId).set({
+              nombre:_nombre,
+              lugar:[inst.municipio,inst.provincia].filter(Boolean).join(', '),
+              lat:inst.lat||null,
+              lng:inst.lng||null,
+              fechaValidez:_cert,
+              tipo:_tipo,
+              actualizadoEn:firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }).catch(function(e){console.warn('certificados-publicos:',e.message);});
+        }
       }
       // Esperar confirmación del servidor (evita pérdida si se limpian datos del sitio antes de sincronizar)
       try { await db.waitForPendingWrites(); } catch(we) { console.warn('waitForPendingWrites:', we.message); }
