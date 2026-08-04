@@ -93,11 +93,7 @@
   <div class="hdr-title" id="hdrTitle">Formatos</div>
 </div>
 
-<div style="display:flex;background:var(--surf);border-bottom:1px solid var(--border);padding:0 16px;gap:4px">
-  <button id="alcTab_paa" onclick="setAlcance('paa')"  style="flex:1;padding:8px 4px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--gold);color:var(--gold)">PAA</button>
-  <button id="alcTab_sae" onclick="setAlcance('sae')"  style="flex:1;padding:8px 4px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted)">SAE</button>
-  <button id="alcTab_fer" onclick="setAlcance('fer')"  style="flex:1;padding:8px 4px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted)">FER</button>
-</div>
+<div id="alcTabs" style="display:flex;background:var(--surf);border-bottom:1px solid var(--border);padding:0 16px;gap:4px"></div>
 
 <div class="tabs">
   <button class="tab active" id="tabActivo"   onclick="goTab('activo',this)">Activo</button>
@@ -135,6 +131,22 @@
   </div>
 </div>
 
+<!-- MODAL PUBLICAR -->
+<div class="modal-overlay" id="modalPublicar">
+  <div class="modal">
+    <div class="modal-title" id="mpubTitulo">Publicar formato</div>
+    <div id="mpubResumen" style="font-size:12px;color:var(--muted);white-space:pre-wrap;background:var(--surf);padding:10px;border-radius:8px;margin-bottom:14px"></div>
+    <div class="field">
+      <label>Motivo del cambio <span style="color:var(--red)">*</span> (requerido para trazabilidad ENAC)</label>
+      <textarea id="mpubMotivo" rows="3" placeholder="Ej: Actualización por cambio normativa UNE 2025. Comunicado a ENAC el 04/08/2026."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modalPublicar')">Cancelar</button>
+      <button class="btn-save" onclick="confirmarPublicacion()">Publicar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -154,10 +166,11 @@
   var auth = firebase.auth();
   var db   = firebase.firestore();
 
-  var formatoActivo  = null;  // {revision, fechaVigencia, checklist, columnas}
-  var borrador       = null;  // null si no existe
+  var formatoActivo  = null;
+  var borrador       = null;
   var tabActual      = 'activo';
-  var alcanceActual  = 'paa'; // 'paa' | 'sae' | 'fer'
+  var alcanceActual  = '';
+  var alcancesConfig = [];
   var editandoPreguntaIdx = null;
   var editandoColumnaIdx  = null;
   var _sortableChk   = null;
@@ -166,14 +179,29 @@
 
   function uid(){ return Math.random().toString(36).slice(2,8); }
 
+  function renderAlcTabs() {
+    var container = document.getElementById('alcTabs');
+    if (!container) return;
+    container.innerHTML = alcancesConfig.map(function(a) {
+      var active = a.id === alcanceActual;
+      return '<button id="alcTab_' + a.id + '" onclick="setAlcance(\'' + a.id + '\')" ' +
+        'style="flex:1;padding:8px 4px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;' +
+        'border-bottom:2px solid ' + (active ? 'var(--gold)' : 'transparent') + ';' +
+        'color:' + (active ? 'var(--gold)' : 'var(--muted)') + '">' +
+        escHtml(a.label || a.id.toUpperCase()) + '</button>';
+    }).join('');
+  }
+
   function setAlcance(a) {
     alcanceActual = a;
-    ['paa','sae','fer'].forEach(function(k) {
-      var btn = document.getElementById('alcTab_'+k);
-      btn.style.borderBottomColor = (k===a ? 'var(--gold)' : 'transparent');
-      btn.style.color = (k===a ? 'var(--gold)' : 'var(--muted)');
+    alcancesConfig.forEach(function(k) {
+      var btn = document.getElementById('alcTab_' + k.id);
+      if (!btn) return;
+      btn.style.borderBottomColor = (k.id === a ? 'var(--gold)' : 'transparent');
+      btn.style.color = (k.id === a ? 'var(--gold)' : 'var(--muted)');
     });
-    document.getElementById('hdrTitle').textContent = 'Formatos ' + a.toUpperCase();
+    var alc = alcancesConfig.find(function(k) { return k.id === a; });
+    document.getElementById('hdrTitle').textContent = 'Formatos ' + ((alc && alc.label) || a.toUpperCase());
     formatoActivo = null; borrador = null;
     document.getElementById('borradorDot').style.display = 'none';
     goTab('activo', document.getElementById('tabActivo'));
@@ -184,8 +212,23 @@
     roles: ['admin','director'],
     onReady: function(user, ud) {
       currentUserEmail = user.email;
-      document.getElementById('hdrTitle').textContent = 'Formatos PAA';
-      cargar();
+      db.collection('config').doc('empresa').get().then(function(snap) {
+        var data = snap.exists ? snap.data() : {};
+        alcancesConfig = (data.alcances || []).filter(function(a) { return a.id; });
+        if (!alcancesConfig.length) {
+          document.getElementById('content').innerHTML =
+            '<div class="empty-state">No hay alcances configurados.<br>' +
+            '<a href="admin-empresa.html">Añade alcances en Empresa y Director</a></div>';
+          return;
+        }
+        alcanceActual = alcancesConfig[0].id;
+        renderAlcTabs();
+        document.getElementById('hdrTitle').textContent = 'Formatos ' + ((alcancesConfig[0].label) || alcancesConfig[0].id.toUpperCase());
+        cargar();
+      }).catch(function() {
+        document.getElementById('content').innerHTML =
+          '<div class="empty-state">Error cargando alcances. Comprueba la conexión.</div>';
+      });
     }
   });
 
@@ -514,37 +557,47 @@
     return { anadidos:anadidos, eliminados:eliminados, modificados:modificados };
   }
 
+  var _pendingDiff = null;
+
   window.previsualizarPublicacion = function() {
-    // Primero guardar el borrador con el orden actual de los sortables
     guardarBorrador(true);
 
     var diffChk  = calcularDiff(formatoActivo.checklist, borrador.checklist, 'id');
     var diffCols = calcularDiff(formatoActivo.columnas,  borrador.columnas,  'id');
     var totalCambios = diffChk.anadidos.length + diffChk.eliminados.length + diffChk.modificados.length
-                     + diffCols.anadidas.length + diffCols.eliminadas.length + diffCols.modificadas.length;
+                     + diffCols.anadidos.length + diffCols.eliminados.length + diffCols.modificados.length;
 
     var resumen = '';
     if (!totalCambios) {
-      resumen = 'Sin cambios respecto al formato activo.';
+      resumen = 'Sin cambios en checklist ni columnas.';
     } else {
-      if (diffChk.anadidos.length)   resumen += '+ '+diffChk.anadidos.length+' pregunta(s) nueva(s)\n';
-      if (diffChk.eliminados.length) resumen += '- '+diffChk.eliminados.length+' pregunta(s) eliminada(s)\n';
-      if (diffChk.modificados.length) resumen += '~ '+diffChk.modificados.length+' pregunta(s) modificada(s)\n';
-      if (diffCols.anadidos.length)   resumen += '+ '+diffCols.anadidos.length+' columna(s) nueva(s)\n';
-      if (diffCols.eliminados.length) resumen += '- '+diffCols.eliminados.length+' columna(s) eliminada(s)\n';
-      if (diffCols.modificados.length) resumen += '~ '+diffCols.modificados.length+' columna(s) modificada(s)\n';
+      if (diffChk.anadidos.length)    resumen += '+ ' + diffChk.anadidos.length    + ' pregunta(s) nueva(s)\n';
+      if (diffChk.eliminados.length)  resumen += '- ' + diffChk.eliminados.length  + ' pregunta(s) eliminada(s)\n';
+      if (diffChk.modificados.length) resumen += '~ ' + diffChk.modificados.length + ' pregunta(s) modificada(s)\n';
+      if (diffCols.anadidos.length)   resumen += '+ ' + diffCols.anadidos.length   + ' columna(s) nueva(s)\n';
+      if (diffCols.eliminados.length) resumen += '- ' + diffCols.eliminados.length + ' columna(s) eliminada(s)\n';
+      if (diffCols.modificados.length)resumen += '~ ' + diffCols.modificados.length+ ' columna(s) modificada(s)\n';
     }
 
     var nuevaRev = formatoActivo.revision + 1;
     var hoy = new Date().toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'});
 
-    var msg = '¿Publicar Rev '+nuevaRev+' (vigente desde '+hoy+')?\n\n'+resumen
-      +'\nLas inspecciones EN CURSO no se ven afectadas.\nLas NUEVAS inspecciones usarán este formato.';
-
-    if (confirm(msg)) publicar(diffChk, diffCols);
+    _pendingDiff = { diffChk: diffChk, diffCols: diffCols };
+    document.getElementById('mpubTitulo').textContent  = 'Publicar Rev ' + nuevaRev + ' — ' + alcanceActual.toUpperCase();
+    document.getElementById('mpubResumen').textContent = 'Vigente desde: ' + hoy + '\n\n' + resumen +
+      '\nLas inspecciones EN CURSO no se ven afectadas.\nLas NUEVAS usarán este formato.';
+    document.getElementById('mpubMotivo').value = '';
+    document.getElementById('modalPublicar').classList.add('open');
   };
 
-  function publicar(diffChk, diffCols) {
+  window.confirmarPublicacion = function() {
+    var motivo = document.getElementById('mpubMotivo').value.trim();
+    if (!motivo) { alert('El motivo es requerido para la trazabilidad ENAC.'); return; }
+    cerrarModal('modalPublicar');
+    publicar(_pendingDiff.diffChk, _pendingDiff.diffCols, motivo);
+  };
+
+  function publicar(diffChk, diffCols, motivo) {
     var nuevaRev  = formatoActivo.revision + 1;
     var hoy = new Date().toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'});
     var batch = db.batch();
@@ -564,11 +617,12 @@
       revision:     nuevaRev,
       fechaVigencia:hoy,
       publicadoPor: currentUserEmail,
+      motivo:       motivo,
       checklist:    borrador.checklist,
       columnas:     borrador.columnas,
       cambios: {
         checklist: { anadidos: diffChk.anadidos, eliminados: diffChk.eliminados, modificados: diffChk.modificados },
-        columnas:  { anadidas: diffCols.anadidos, eliminadas: diffCols.eliminados, modificadas: diffCols.modificados }
+        columnas:  { anadidos: diffCols.anadidos, eliminados: diffCols.eliminados, modificados: diffCols.modificados }
       }
     });
 
@@ -623,6 +677,7 @@
             +(regLine?'<span style="color:var(--border)">|</span>'+regLine:'')
             +'</div>'
             +'<div class="hist-meta" style="margin-top:2px">'+escHtml(h.publicadoPor||'')+'&nbsp;&middot;&nbsp;'+escHtml(resumen)+'</div>'
+            +(h.motivo?'<div style="font-size:11px;color:var(--text);margin-top:3px;font-style:italic">'+escHtml(h.motivo)+'</div>':'')
             +'</div>'
             +'<span>&#9660;</span>'
             +'</div>'

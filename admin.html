@@ -122,6 +122,7 @@
       card('oficina',  '&#128197;', 'Oficina',       'Control de expedientes, seguimiento y facturación',             'oficina.html') +
       card('clientes', '&#128101;', 'Clientes',      'Gestión de empresas propietarias y solicitantes',               'admin-clientes.html') +
       card('ofertas',  '&#128203;', 'Ofertas',       'Presupuestos y propuestas económicas para clientes',            'ofertas.html') +
+      card('empresa',  '&#127970;', 'Empresa y Director', 'Datos de empresa, director técnico y alcances disponibles', 'admin-empresa.html') +
       card('config',   '&#9881;',   'Configuración', 'ENAC por alcance, número de acreditación y parámetros globales', null);
     if (esAdmin) {
       html +=
@@ -143,12 +144,6 @@
 
   var rolActual = null;
   var configData = {};
-  var ALCANCES = [
-    { id:'PAA', desc:'Parques acrobáticos en altura' },
-    { id:'FER', desc:'Vías ferratas' },
-    { id:'SAE', desc:'Sistemas de acceso por escalada' },
-    { id:'AJN', desc:'Áreas de juego en naturaleza' }
-  ];
 
   function mostrarMenu() {
     vistaActual = 'menu';
@@ -168,14 +163,18 @@
 
   function renderConfig() {
     var enacAlc  = configData.enacAlcances || {};
-    var toggles  = ALCANCES.map(function(a) {
-      var chk = enacAlc[a.id] ? 'checked' : '';
-      return '<div class="cfg-row">' +
-        '<div class="cfg-info"><div class="cfg-label"><span class="alcance-badge">' + a.id + '</span>' + a.desc + '</div>' +
-        '<div class="cfg-sub" id="csub-' + a.id + '">' + (enacAlc[a.id] ? 'Acreditado ENAC' : 'Sin acreditación ENAC') + '</div></div>' +
-        '<label class="tgl-wrap"><input type="checkbox" id="cenac-' + a.id + '" ' + chk + ' onchange="onTgl(\'' + a.id + '\')"><span class="tgl-track"></span></label>' +
-        '</div>';
-    }).join('');
+    var alcances = configData.alcances || [];
+    var toggles  = alcances.length
+      ? alcances.map(function(a) {
+          var chk = enacAlc[a.id] ? 'checked' : '';
+          return '<div class="cfg-row">' +
+            '<div class="cfg-info"><div class="cfg-label"><span class="alcance-badge">' + escHtml(a.label||a.id) + '</span>' + escHtml(a.desc||'') + '</div>' +
+            '<div class="cfg-sub" id="csub-' + a.id + '">' + (enacAlc[a.id] ? 'Acreditado ENAC' : 'Sin acreditación ENAC') + '</div></div>' +
+            '<label class="tgl-wrap"><input type="checkbox" id="cenac-' + a.id + '" ' + chk + ' onchange="onTgl(\'' + a.id + '\')"><span class="tgl-track"></span></label>' +
+            '</div>';
+        }).join('')
+      : '<div class="cfg-row"><div class="cfg-info" style="color:var(--muted);font-size:13px">No hay alcances configurados. Añádelos en <a href="admin-empresa.html">Empresa y Director</a>.</div></div>';
+
     document.getElementById('content').innerHTML =
       '<div class="cfg-sec">Acreditación ENAC por tipo</div>' +
       '<div class="cfg-card">' + toggles + '</div>' +
@@ -189,10 +188,10 @@
       '<div class="cfg-sec">Revisión del certificado</div>' +
       '<div class="cfg-card">' +
         '<div class="cfg-field"><label>Sin ENAC</label>' +
-          '<input id="cinput-rev-sin" value="' + escHtml(configData.revCertificadoDoc||'19/05/2023 Rev 3.') + '">' +
+          '<input id="cinput-rev-sin" value="' + escHtml(configData.revCertificadoDoc||'') + '" placeholder="ej: 04/08/2026 Rev 4.">' +
           '<p class="cfg-note">Pie del certificado cuando el alcance no tiene ENAC.</p></div>' +
         '<div class="cfg-field"><label>Con ENAC</label>' +
-          '<input id="cinput-rev-con" value="' + escHtml(configData.revCertificadoDocEnac||'08/01/2025 Rev 5.') + '">' +
+          '<input id="cinput-rev-con" value="' + escHtml(configData.revCertificadoDocEnac||'') + '" placeholder="ej: 04/08/2026 Rev 6.">' +
           '<p class="cfg-note">Pie del certificado cuando el alcance sí tiene ENAC.</p></div>' +
       '</div>' +
       '<button class="btn-save-cfg" id="btnSaveCfg" onclick="guardarConfig()">Guardar cambios</button>';
@@ -208,7 +207,10 @@
     var btn = document.getElementById('btnSaveCfg');
     btn.disabled = true; btn.textContent = 'Guardando…';
     var enacAlcances = {};
-    ALCANCES.forEach(function(a) { enacAlcances[a.id] = !!document.getElementById('cenac-' + a.id).checked; });
+    (configData.alcances || []).forEach(function(a) {
+      var chk = document.getElementById('cenac-' + a.id);
+      if (chk) enacAlcances[a.id] = chk.checked;
+    });
     db.collection('config').doc('empresa').set({
       enacAlcances: enacAlcances,
       acreditacion:          document.getElementById('cinput-acred').value.trim(),

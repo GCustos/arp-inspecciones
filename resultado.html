@@ -105,32 +105,7 @@
   let CONFIG = null; // config empresa + formato
 
   // ── CONFIG POR DEFECTO (si Firestore falla offline) ──
-  const CONFIG_DEFAULT = {
-    empresa: {
-      nombre: "Adell Riesgos y Prevención S.L.",
-      nombreCorto: "Arp Prevención S.L.",
-      sedeSocial: "C/ Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4, 41704 Dos Hermanas, Sevilla",
-      telefono: "93 377 67 95",
-      email: "info@arpprevencion.com",
-      web: "www.arpprevencion.com",
-      acreditacion: "Nº 489 / EI 558",
-      enacAlcances: { PAA: false, FER: false, SAE: false, AJN: false },
-      revCertificadoDoc:     '19/05/2023 Rev 3.',
-      revCertificadoDocEnac: '08/01/2025 Rev 5.'
-    },
-    paa: {
-      formatoRevision: 9,
-      formatoFecha: "26/02/2026",
-      registroRevision: 7,
-      registroFecha: "10/02/2026"
-    },
-    director: {
-      nombre:     'José Manuel Moreno Vélez',
-      cargo:      'Director Técnico',
-      titulacion: 'Ing. Civil e Ing. de Edificación',
-      colegiado:  'colegiado 7.780',
-    }
-  };
+  const CONFIG_DEFAULT = { empresa: {}, paa: {}, director: {} };
 
   // ── CARGA ──
   initAuth({
@@ -164,9 +139,9 @@
           db.collection('config').doc('director').get()
         ]);
         CONFIG = {
-          empresa:  ceSnap.exists  ? ceSnap.data()  : CONFIG_DEFAULT.empresa,
-          paa:      paaSnap.exists ? paaSnap.data() : CONFIG_DEFAULT.paa,
-          director: dirSnap.exists ? dirSnap.data() : CONFIG_DEFAULT.director
+          empresa:  ceSnap.exists  ? ceSnap.data()  : {},
+          paa:      paaSnap.exists ? paaSnap.data() : {},
+          director: dirSnap.exists ? dirSnap.data() : {}
         };
       } catch(e) {
         CONFIG = CONFIG_DEFAULT;
@@ -421,10 +396,10 @@
     doc.setLineWidth(0.3);
     doc.line(ML, 10, PW-MR, 10);
     doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-    const emp = CONFIG?.empresa?.nombreCorto || 'Arp Prevención S.L.';
+    const emp = CONFIG?.empresa?.nombreCorto || '';
     doc.text(emp, ML, 8);
     doc.text('INFORME DE INSPECCIÓN — INSTALACIONES PAA', PW/2, 8, {align:'center'});
-    doc.text(`Rev. ${fmtRev||9}   Fecha: ${fmtFecha||'26/02/2026'}`, PW-MR, 8, {align:'right'});
+    doc.text(`Rev. ${fmtRev||''}   Fecha: ${fmtFecha||''}`, PW-MR, 8, {align:'right'});
     // Pie
     doc.line(ML, PH-10, PW-MR, PH-10);
     doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
@@ -457,7 +432,7 @@
     doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
     const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
     doc.text(`${c.sedeSocial}`, PW/2, PH-13, {align:'center'});
-    if (c.sedeFiscal) doc.text(`${c.sedeFiscal}`, PW/2, PH-9, {align:'center'});
+    if (c.sedeFiscal && c.sedeFiscal !== c.sedeSocial) doc.text(`${c.sedeFiscal}`, PW/2, PH-9, {align:'center'});
     doc.setFont('helvetica','normal');
     doc.text(`${c.web}   ${c.email}`, PW/2, PH-5, {align:'center'});
     // "Arp Prevención S.L" izquierda + "Página X de Y" derecha — igual que Harriartean
@@ -744,8 +719,8 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
     try {
       const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
       const ref = getNRegistro();
-      const fmtRev = D.formatoDocumento?.informeRevision || D.formatoDocumento?.revision || CONFIG?.paa?.formatoRevision || 9;
-      const fmtFechaStr = D.formatoDocumento?.informeFecha || D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '26/02/2026';
+      const fmtRev = D.formatoDocumento?.informeRevision || D.formatoDocumento?.revision || CONFIG?.paa?.formatoRevision || '';
+      const fmtFechaStr = D.formatoDocumento?.informeFecha || D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '';
 
       const totPag = [0];
       const nPag = [0];
@@ -809,7 +784,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       // Pie portada (sin ref duplicada)
       addPiePagina(doc);
       doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
-      doc.text(CONFIG?.empresa?.nombreCorto||'Arp Prevención S.L.', ML, PH-3);
+      doc.text(CONFIG?.empresa?.nombreCorto||'', ML, PH-3);
       doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
 
       // ═══ PÁGINA 2: ÍNDICE ═══
@@ -903,7 +878,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.setFont('helvetica','normal'); doc.setFontSize(9);
       doc.text(c.sedeSocial, PW-MR-3, y+19, {align:'right'});
       var _yOff = 19;
-      if (c.sedeFiscal) { doc.text(c.sedeFiscal, PW-MR-3, y+25, {align:'right'}); _yOff = 25; }
+      if (c.sedeFiscal && c.sedeFiscal !== c.sedeSocial) { doc.text(c.sedeFiscal, PW-MR-3, y+25, {align:'right'}); _yOff = 25; }
       doc.text('Teléfono: ' + c.telefono, PW-MR-3, y+_yOff+6, {align:'right'});
       doc.text('E-mail: ' + c.email, PW-MR-3, y+_yOff+11, {align:'right'});
 
@@ -1662,11 +1637,11 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
       doc.line(ML, PH-16, PW-MR, PH-16);
       doc.text(`${c.sedeSocial}`, PW/2, PH-12, {align:'center'});
-      if (c.sedeFiscal) doc.text(`${c.sedeFiscal}`, PW/2, PH-8, {align:'center'});
+      if (c.sedeFiscal && c.sedeFiscal !== c.sedeSocial) doc.text(`${c.sedeFiscal}`, PW/2, PH-8, {align:'center'});
       doc.setFont('helvetica','normal');
       const revDoc = enacActivo
-        ? (c.revCertificadoDocEnac || '08/01/2025 Rev 5.')
-        : (c.revCertificadoDoc    || '19/05/2023 Rev 3.');
+        ? (c.revCertificadoDocEnac || '')
+        : (c.revCertificadoDoc    || '');
       doc.text(revDoc, PW/2, PH-4, {align:'center'});
 
       // Guarda
@@ -1693,15 +1668,15 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
       const ref = getNRegistro();
       const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
-      const fmtRev = D.formatoDocumento?.registroRevision || CONFIG?.paa?.registroRevision || 7;
-      const fmtFechaStr = D.formatoDocumento?.registroFecha || CONFIG?.paa?.registroFecha || '10/02/2026';
+      const fmtRev = D.formatoDocumento?.registroRevision || CONFIG?.paa?.registroRevision || '';
+      const fmtFechaStr = D.formatoDocumento?.registroFecha || CONFIG?.paa?.registroFecha || '';
 
       const totPag2 = [0];
       const nPag2 = [0];
 
       function addCabReg(pg, tot) {
         doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-        doc.text('ARPPREVENCION S.L', ML, 7);
+        doc.text(CONFIG?.empresa?.nombreCorto || '', ML, 7);
         doc.text('FICHA REGISTRO RECORRIDOS ACROBATICOS EN ALTURA', PW/2, 7, {align:'center'});
         doc.text(`Rev ${fmtRev}  Fecha ${fmtFechaStr}`, PW-MR, 7, {align:'right'});
         doc.text(`${pg} de ${tot}`, PW-MR, 12, {align:'right'});
@@ -2093,7 +2068,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       // Cabecera primera página
       try { doc.addImage('data:image/jpeg;base64,'+LOGO_B64,'JPEG', ML, y-2, 28, 20); } catch(e){}
       doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-      var empPC = (CONFIG && CONFIG.empresa && CONFIG.empresa.nombreCorto) || 'Arp Prevención S.L.';
+      var empPC = (CONFIG && CONFIG.empresa && CONFIG.empresa.nombreCorto) || '';
       doc.text(empPC, PW-MR, y+4, {align:'right'});
       doc.text(ref, PW-MR, y+9, {align:'right'});
       doc.text(fmtFecha(D.fechaInspeccion||''), PW-MR, y+14, {align:'right'});
