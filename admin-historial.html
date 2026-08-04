@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Historial de documentos — ARP</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .doc-select-wrap{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px}
+    .doc-select-wrap label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+    .doc-select-wrap select{width:100%;padding:10px 11px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;font-weight:600;color:var(--text);background:white;box-sizing:border-box}
+    .doc-select-wrap select:focus{border-color:var(--gold);outline:none}
+
+    .hist-item{background:white;border:1px solid var(--border);border-radius:10px;padding:13px 15px;margin-bottom:8px}
+    .hist-header{display:flex;align-items:center;gap:10px;cursor:pointer;flex-wrap:wrap}
+    .hist-rev{font-size:14px;font-weight:700;color:var(--dark)}
+    .hist-meta{font-size:11px;color:var(--muted);flex:1;min-width:120px}
+    .hist-motivo{font-size:11px;color:var(--text);margin-top:3px;font-style:italic}
+    .hist-body{margin-top:10px;display:none}
+    .hist-body.open{display:block}
+    .btn-hist-pdf{padding:3px 8px;font-size:10px;font-weight:700;border:1.5px solid var(--border);border-radius:6px;background:white;color:var(--muted);cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0}
+    .btn-hist-pdf:hover{border-color:var(--gold);color:var(--gold)}
+
+    .diff-item{font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)}
+    .diff-item:last-child{border-bottom:none}
+    .diff-add{color:var(--green)}
+    .diff-del{color:var(--red);text-decoration:line-through}
+    .diff-mod{color:var(--orange)}
+
+    .hist-field-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+    .hist-field-row:last-child{border-bottom:none}
+    .hist-field-campo{color:var(--muted);font-size:12px;min-width:110px;flex-shrink:0}
+    .hist-field-ant{font-size:12px;text-decoration:line-through;color:var(--red);flex:1;min-width:80px}
+    .hist-field-nvo{font-size:12px;color:var(--green);flex:1;min-width:80px}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="location.href='admin.html'">&#8592;</button>
+  <div class="hdr-mark">ARP</div>
+  <div class="hdr-title">Historial de documentos</div>
+</div>
+
+<div class="content" id="mainContent">
+  <div class="spinner-wrap"><div class="spinner"></div></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="utils.js"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey:'AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc',
+      authDomain:'arp-inspecciones.firebaseapp.com',
+      projectId:'arp-inspecciones',
+      storageBucket:'arp-inspecciones.firebasestorage.app',
+      messagingSenderId:'35880168451',
+      appId:'1:35880168451:web:090e3c250b4416ed0b3236'
+    });
+  }
+  var auth = firebase.auth();
+  var db   = firebase.firestore();
+
+  var empresaData    = {};
+  var alcancesConfig  = [];
+  var _histDocsEmp    = [];   // último dataset cargado — sección config/empresa/historial
+  var _histDocsFmt    = [];   // último dataset cargado — config/{alcance}/historial
+
+  var SECC_TITULOS = {
+    certificados: 'Certificado',
+    empresa:      'Datos de Empresa',
+    director:     'Director Técnico',
+    alcances:     'Alcances Disponibles'
+  };
+
+  initAuth({
+    roles: ['admin','director'],
+    onReady: function() {
+      db.collection('config').doc('empresa').get().then(function(snap) {
+        empresaData   = snap.exists ? snap.data() : {};
+        alcancesConfig = (empresaData.alcances || []).filter(function(a) { return a.id; });
+        renderShell();
+        onDocChange();
+      }).catch(function(e) {
+        document.getElementById('mainContent').innerHTML =
+          '<p style="color:var(--red);padding:20px">Error cargando configuración: ' + escHtml(e.message) + '</p>';
+      });
+    }
+  });
+
+  function renderShell() {
+    var opts =
+      '<optgroup label="General">' +
+        '<option value="emp:certificados">Certificado</option>' +
+        '<option value="emp:empresa">Datos de empresa</option>' +
+        '<option value="emp:director">Director técnico</option>' +
+        '<option value="emp:alcances">Alcances disponibles</option>' +
+      '</optgroup>';
+    if (alcancesConfig.length) {
+      opts += '<optgroup label="Formatos de inspección">' +
+        alcancesConfig.map(function(a) {
+          return '<option value="fmt:' + a.id + '">' + escHtml(a.label || a.id.toUpperCase()) + '</option>';
+        }).join('') +
+      '</optgroup>';
+    }
+    document.getElementById('mainContent').innerHTML =
+      '<div class="doc-select-wrap">' +
+        '<label>Documento</label>' +
+        '<select id="selDoc" onchange="onDocChange()">' + opts + '</select>' +
+      '</div>' +
+      '<div id="histBody"><div class="spinner"></div></div>';
+  }
+
+  window.onDocChange = function() {
+    var val = document.getElementById('selDoc').value;
+    var tipo = val.split(':')[0];
+    var key  = val.slice(tipo.length + 1);
+    if (tipo === 'emp') cargarHistorialEmpresa(key);
+    else cargarHistorialFormato(key);
+  };
+
+  // ── SECCIONES DE EMPRESA (certificado / empresa / director / alcances) ─────
+
+  function cargarHistorialEmpresa(seccion) {
+    var body = document.getElementById('histBody');
+    body.innerHTML = '<div class="spinner"></div>';
+    db.collection('config').doc('empresa').collection('historial')
+      .orderBy('fecha', 'desc').limit(50).get()
+      .then(function(snap) {
+        var docs = [];
+        snap.forEach(function(d) { var h = d.data(); if (h.seccion === seccion) docs.push(h); });
+        _histDocsEmp = docs;
+        if (!docs.length) {
+          body.innerHTML = '<div class="empty-state">Sin cambios registrados aún.</div>';
+          return;
+        }
+        var html = '';
+        docs.forEach(function(h, idx) {
+          var fd = h.fecha && h.fecha.toDate ? h.fecha.toDate() : null;
+          var fecha = fd
+            ? fd.toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + fd.toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'})
+            : '—';
+          html +=
+            '<div class="hist-item">' +
+              '<div class="hist-header" onclick="toggleHist(this)">' +
+                '<span class="hist-rev">' + escHtml(fecha) + '</span>' +
+                '<span class="hist-meta">' + escHtml(h.usuario||'') + '</span>' +
+                '<button class="btn-hist-pdf" onclick="event.stopPropagation();generarPdfEmpresa(' + idx + ')">PDF</button>' +
+              '</div>' +
+              (h.motivo ? '<div class="hist-motivo">' + escHtml(h.motivo) + '</div>' : '') +
+              '<div class="hist-body open">' +
+                (h.cambios||[]).map(function(c) {
+                  return '<div class="hist-field-row">' +
+                    '<span class="hist-field-campo">' + escHtml(c.etiqueta||c.campo) + '</span>' +
+                    '<span class="hist-field-ant">' + escHtml(c.anterior||'—') + '</span>' +
+                    '<span style="color:var(--muted)">&#8594;</span>' +
+                    '<span class="hist-field-nvo">' + escHtml(c.nuevo||'—') + '</span>' +
+                  '</div>';
+                }).join('') +
+              '</div>' +
+            '</div>';
+        });
+        body.innerHTML = html;
+      })
+      .catch(function(e) {
+        body.innerHTML = '<div class="empty-state">Error: ' + escHtml(e.message) + '</div>';
+      });
+  }
+
+  window.generarPdfEmpresa = function(idx) {
+    var h = _histDocsEmp[idx];
+    if (!h) return;
+    var fd = h.fecha && h.fecha.toDate ? h.fecha.toDate() : null;
+    var fecha = fd
+      ? fd.toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + fd.toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'})
+      : '—';
+    var titulo = SECC_TITULOS[h.seccion] || h.seccion || '';
+    var empresa = escHtml(empresaData.nombre || empresaData.nombreCorto || '');
+    var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>' + escHtml(titulo) + '</title><style>' +
+      'body{font-family:Arial,sans-serif;font-size:13px;color:#111;margin:32px}' +
+      'h1{font-size:18px;font-weight:700;border-bottom:2px solid #C8993A;padding-bottom:8px;margin-bottom:2px}' +
+      'h2{font-size:12px;font-weight:400;color:#8A8278;margin:0 0 16px}' +
+      '.meta{background:#f5f5f5;border-radius:6px;padding:12px 16px;margin-bottom:20px;font-size:12px;line-height:1.8}' +
+      'table{width:100%;border-collapse:collapse;font-size:13px}' +
+      'th{background:#222;color:#fff;text-align:left;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.05em}' +
+      'td{padding:8px 12px;border-bottom:1px solid #e0e0e0}' +
+      'tr:last-child td{border-bottom:none}' +
+      '.ant{color:#c62828;text-decoration:line-through}' +
+      '.nvo{color:#2e7d32;font-weight:600}' +
+      '@media print{body{margin:0}@page{margin:16mm 20mm}}' +
+      '</style></head><body>' +
+      '<h1>Registro de cambio — ' + escHtml(titulo) + '</h1>' +
+      '<h2>' + empresa + '</h2>' +
+      '<div class="meta">' +
+        '<b>Fecha:</b> ' + escHtml(fecha) + '<br>' +
+        '<b>Registrado por:</b> ' + escHtml(h.usuario||'—') + '<br>' +
+        (h.motivo ? '<b>Motivo:</b> ' + escHtml(h.motivo) + '<br>' : '') +
+      '</div>' +
+      '<table><thead><tr><th>Campo</th><th>Anterior</th><th>Nuevo</th></tr></thead><tbody>' +
+      (h.cambios||[]).map(function(c) {
+        return '<tr><td>' + escHtml(c.etiqueta||c.campo) + '</td>' +
+          '<td class="ant">' + escHtml(c.anterior||'—') + '</td>' +
+          '<td class="nvo">' + escHtml(c.nuevo||'—') + '</td></tr>';
+      }).join('') +
+      '</tbody></table>' +
+      '<div style="margin-top:16px;font-size:10px;color:#8A8278">Generado ' + new Date().toLocaleDateString('es-ES') + '</div>' +
+      '</body></html>';
+    abrirVentanaImpresion(html);
+  };
+
+  // ── FORMATOS DE INSPECCIÓN (config/{alcance}/historial) ─────────────────────
+
+  function calcularDiff(anterior, nuevo, keyField) {
+    var antMap = {}, newMap = {};
+    (anterior||[]).forEach(function(i){ antMap[i[keyField]] = i; });
+    (nuevo||[]).forEach(function(i){ newMap[i[keyField]] = i; });
+    var anadidos    = (nuevo||[]).filter(function(i){ return !antMap[i[keyField]]; });
+    var eliminados  = (anterior||[]).filter(function(i){ return !newMap[i[keyField]]; });
+    var modificados = (nuevo||[]).filter(function(i){
+      return antMap[i[keyField]] && JSON.stringify(antMap[i[keyField]])!==JSON.stringify(i);
+    });
+    return { anadidos:anadidos, eliminados:eliminados, modificados:modificados };
+  }
+
+  var alcanceActualFmt = '';
+
+  function cargarHistorialFormato(alcanceId) {
+    alcanceActualFmt = alcanceId;
+    var body = document.getElementById('histBody');
+    body.innerHTML = '<div class="spinner"></div>';
+    db.collection('config').doc(alcanceId).collection('historial').get()
+      .then(function(snap) {
+        if (snap.empty) {
+          body.innerHTML = '<div class="empty-state">Sin revisiones registradas aún.</div>';
+          return;
+        }
+        var docs = [];
+        snap.forEach(function(d){ docs.push(d.data()); });
+        docs.sort(function(a,b){ return (b.revision||0)-(a.revision||0); });
+        _histDocsFmt = docs;
+        var html = '';
+        docs.forEach(function(h, idx) {
+          var cambios = h.cambios || {};
+          var chk  = cambios.checklist || {};
+          var cols = cambios.columnas  || {};
+          var chkA = chk.anadidos   || [];
+          var chkE = chk.eliminados || [];
+          var chkM = chk.modificados|| [];
+          var colsA = cols.anadidos  || cols.anadidas  || [];
+          var colsE = cols.eliminados|| cols.eliminadas|| [];
+          var colsM = cols.modificados||cols.modificadas||[];
+          var total = chkA.length + chkE.length + chkM.length + colsA.length + colsE.length + colsM.length;
+
+          if (!total && h.checklist && idx < docs.length - 1) {
+            var prev = docs[idx + 1];
+            if (prev && prev.checklist) {
+              var d2 = calcularDiff(prev.checklist, h.checklist, 'id');
+              chkA = d2.anadidos; chkE = d2.eliminados; chkM = d2.modificados;
+              total = chkA.length + chkE.length + chkM.length;
+            }
+          }
+          var resumen = total ? total+' cambio'+(total!==1?'s':'') : (cambios.nota || 'Sin cambios registrados');
+          var regLine = h.registroRevision
+            ? '<span style="font-size:11px;color:var(--muted)">Registro Rev '+h.registroRevision+' &middot; '+escHtml(h.registroFecha||'')+'</span>'
+            : '';
+
+          html +=
+            '<div class="hist-item">' +
+              '<div class="hist-header" onclick="toggleHist(this)">' +
+                '<div style="flex:1;min-width:0">' +
+                  '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
+                    '<span class="hist-rev">Informe Rev '+h.revision+'</span>' +
+                    '<span style="font-size:11px;color:var(--muted)">'+escHtml(h.fechaVigencia||'')+'</span>' +
+                    (regLine?'<span style="color:var(--border)">|</span>'+regLine:'') +
+                  '</div>' +
+                  '<div class="hist-meta" style="margin-top:2px">'+escHtml(h.publicadoPor||'')+'&nbsp;&middot;&nbsp;'+escHtml(resumen)+'</div>' +
+                '</div>' +
+                '<div style="display:flex;gap:4px;align-items:center;flex-shrink:0">' +
+                  (h.checklist?'<button class="btn-hist-pdf" onclick="event.stopPropagation();generarPdfFormato('+idx+')">PDF</button>':'') +
+                  (h.checklist&&idx<docs.length-1?'<button class="btn-hist-pdf" onclick="event.stopPropagation();generarPdfCambios('+idx+')" title="PDF de cambios vs Rev anterior">&#8597; Cambios</button>':'') +
+                '</div>' +
+              '</div>' +
+              (h.motivo?'<div class="hist-motivo">'+escHtml(h.motivo)+'</div>':'') +
+              '<div class="hist-body">';
+
+          if (cambios.nota) html += '<p style="font-size:12px;color:var(--muted);margin:4px 0">'+escHtml(cambios.nota)+'</p>';
+          chkA.forEach(function(i){ html += '<div class="diff-item diff-add">+ ['+escHtml(i.ref)+'] '+escHtml(i.sec)+'</div>'; });
+          chkE.forEach(function(i){ html += '<div class="diff-item diff-del">- ['+escHtml(i.ref)+'] '+escHtml(i.sec)+'</div>'; });
+          chkM.forEach(function(i){ html += '<div class="diff-item diff-mod">~ ['+escHtml(i.ref)+'] '+escHtml(i.sec)+'</div>'; });
+          colsA.forEach(function(c){ html += '<div class="diff-item diff-add">+ Columna: '+escHtml(c.label)+'</div>'; });
+          colsE.forEach(function(c){ html += '<div class="diff-item diff-del">- Columna: '+escHtml(c.label)+'</div>'; });
+          colsM.forEach(function(c){ html += '<div class="diff-item diff-mod">~ Columna: '+escHtml(c.label)+'</div>'; });
+          if (!total && !cambios.nota) html += '<div class="diff-item" style="color:var(--muted)">Sin detalles de cambios.</div>';
+
+          html += '</div></div>';
+        });
+        body.innerHTML = html;
+      })
+      .catch(function(e){
+        body.innerHTML = '<div class="empty-state">Error: '+escHtml(e.message)+'</div>';
+      });
+  }
+
+  window.toggleHist = function(el) {
+    var body = el.parentElement.querySelector('.hist-body');
+    if (body) body.classList.toggle('open');
+  };
+
+  function abrirVentanaImpresion(html) {
+    var w = window.open('', '_blank', 'width=960,height=720');
+    if (!w) { alert('Permite ventanas emergentes para generar el PDF.'); return; }
+    w.document.write(html);
+    w.document.close();
+  }
+
+  function alcLabelFmt() {
+    var a = alcancesConfig.find(function(k) { return k.id === alcanceActualFmt; });
+    return a ? a.label + (a.desc ? ' — ' + a.desc : '') : alcanceActualFmt.toUpperCase();
+  }
+
+  window.generarPdfFormato = function(idx) {
+    var h = _histDocsFmt[idx];
+    if (!h || !h.checklist) { alert('No hay snapshot del checklist para esta revisión.'); return; }
+    abrirVentanaImpresion(buildFormatoHtml(h, null));
+  };
+
+  window.generarPdfCambios = function(idx) {
+    var h    = _histDocsFmt[idx];
+    var prev = _histDocsFmt[idx + 1] || null;
+    if (!h || !h.checklist) { alert('No hay snapshot del checklist para esta revisión.'); return; }
+    abrirVentanaImpresion(buildFormatoHtml(h, prev));
+  };
+
+  function buildFormatoHtml(h, prev) {
+    var isDiff  = !!prev;
+    var empresa = escHtml(empresaData.nombre || empresaData.nombreCorto || '');
+    var alc     = alcLabelFmt();
+    var title   = isDiff
+      ? 'Rev ' + prev.revision + ' → Rev ' + h.revision + ' — ' + alc
+      : 'Formato de inspección Rev ' + h.revision + ' — ' + alc;
+
+    var currItems = h.checklist || [];
+    var prevMap = {}, currMap = {};
+    if (prev && prev.checklist) prev.checklist.forEach(function(i){ prevMap[i.id] = i; });
+    currItems.forEach(function(i){ currMap[i.id] = i; });
+
+    var rows = '';
+    currItems.forEach(function(item) {
+      var cls = '', marker = '';
+      if (isDiff) {
+        if (!prevMap[item.id])                                        { cls = 'row-add'; marker = '+'; }
+        else if (JSON.stringify(prevMap[item.id]) !== JSON.stringify(item)) { cls = 'row-mod'; marker = '~'; }
+      }
+      rows += '<tr class="' + cls + '">'
+        + '<td class="col-m">' + (marker ? '<b>' + marker + '</b>' : '') + '</td>'
+        + '<td class="col-ref">' + escHtml(item.ref||'') + '</td>'
+        + '<td class="col-sec">' + escHtml(item.sec||'') + '</td>'
+        + '<td>' + escHtml(item.desc||'') + '</td>'
+        + '</tr>';
+    });
+    if (isDiff && prev && prev.checklist) {
+      prev.checklist.forEach(function(item) {
+        if (!currMap[item.id]) {
+          rows += '<tr class="row-del">'
+            + '<td class="col-m"><b>−</b></td>'
+            + '<td class="col-ref">' + escHtml(item.ref||'') + '</td>'
+            + '<td class="col-sec">' + escHtml(item.sec||'') + '</td>'
+            + '<td>' + escHtml(item.desc||'') + '</td>'
+            + '</tr>';
+        }
+      });
+    }
+
+    var legend = isDiff
+      ? '<div class="legend">'
+        + '<span class="lg-add">+ Añadido</span>'
+        + '<span class="lg-del">− Eliminado</span>'
+        + '<span class="lg-mod">~ Modificado</span>'
+        + '</div>'
+      : '';
+
+    return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+      + '<title>' + escHtml(title) + '</title><style>'
+      + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;padding:24px;color:#2C2C2C;font-size:12px}'
+      + 'h1{font-size:17px;color:#C8993A;margin:0 0 2px;font-weight:700}'
+      + 'h2{font-size:12px;color:#8A8278;font-weight:400;margin:0 0 14px}'
+      + '.meta{background:#F5F3EF;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:grid;grid-template-columns:110px 1fr;gap:3px 8px;font-size:11px}'
+      + '.mk{color:#8A8278;font-weight:600}'
+      + '.motivo{font-style:italic}'
+      + '.legend{display:flex;gap:12px;margin-bottom:10px;font-size:10px;font-weight:600}'
+      + '.lg-add{background:#e8f5e9;padding:2px 8px;border-radius:4px;color:#27AE60}'
+      + '.lg-del{background:#ffebee;padding:2px 8px;border-radius:4px;color:#C0392B}'
+      + '.lg-mod{background:#fff8e1;padding:2px 8px;border-radius:4px;color:#E67E22}'
+      + 'table{width:100%;border-collapse:collapse;font-size:11px}'
+      + 'th{background:#C8993A;color:white;padding:6px 8px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.03em}'
+      + 'td{padding:5px 8px;border-bottom:1px solid #E2DDD5;vertical-align:top}'
+      + '.col-m{width:16px;text-align:center;color:#8A8278;font-size:10px}'
+      + '.col-ref{width:50px;font-family:monospace;color:#8A8278;font-size:10px}'
+      + '.col-sec{width:150px;font-weight:500}'
+      + '.row-add td{background:#e8f5e9}'
+      + '.row-del td{background:#ffebee;color:#C0392B;text-decoration:line-through}'
+      + '.row-mod td{background:#fff8e1}'
+      + '.footer{margin-top:16px;font-size:9px;color:#8A8278;border-top:1px solid #E2DDD5;padding-top:6px;display:flex;justify-content:space-between}'
+      + '@media print{@page{margin:12mm}body{padding:0}}'
+      + '</style></head><body>'
+      + '<h1>' + escHtml(title) + '</h1>'
+      + '<h2>' + empresa + '</h2>'
+      + '<div class="meta">'
+      + (isDiff ? '<span class="mk">Revisión</span><span>Rev ' + prev.revision + ' → Rev ' + h.revision + '</span>' : '<span class="mk">Revisión</span><span>Rev ' + h.revision + '</span>')
+      + '<span class="mk">Vigente desde</span><span>' + escHtml(h.fechaVigencia||'') + '</span>'
+      + '<span class="mk">Publicado por</span><span>' + escHtml(h.publicadoPor||'') + '</span>'
+      + (h.motivo ? '<span class="mk">Motivo</span><span class="motivo">' + escHtml(h.motivo) + '</span>' : '')
+      + (isDiff ? '<span class="mk">Rev anterior</span><span>Rev ' + prev.revision + ' (' + escHtml(prev.fechaVigencia||'') + ')</span>' : '')
+      + '</div>'
+      + legend
+      + '<table><thead><tr>'
+      + '<th class="col-m"></th><th class="col-ref">Ref.</th><th class="col-sec">Sección</th><th>Descripción</th>'
+      + '</tr></thead><tbody>' + rows + '</tbody></table>'
+      + '<div class="footer">'
+      + '<span>' + empresa + ' · ' + escHtml(alc) + ' · Rev ' + h.revision + '</span>'
+      + '<span>Generado ' + new Date().toLocaleDateString('es-ES') + '</span>'
+      + '</div>'
+      + '</body></html>';
+  }
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 // ── ARP Inspecciones Service Worker v2026-08-04c ──
-const CACHE_NAME = 'arp-v5.44';
+const CACHE_NAME = 'arp-v5.45';
 
 const PRECACHE = [
   '/arp-inspecciones/',
@@ -16,6 +16,7 @@ const PRECACHE = [
   '/arp-inspecciones/admin-clientes.html',
   '/arp-inspecciones/admin-config.html',
   '/arp-inspecciones/admin-empresa.html',
+  '/arp-inspecciones/admin-historial.html',
   '/arp-inspecciones/ofertas.html',
   '/arp-inspecciones/oficina.html',
   '/arp-inspecciones/admin-usuarios.html',
