@@ -110,7 +110,6 @@
       nombre: "Adell Riesgos y Prevención S.L.",
       nombreCorto: "Arp Prevención S.L.",
       sedeSocial: "C/ Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4, 41704 Dos Hermanas, Sevilla",
-      sedeFiscal: "Calle Collblanc, nº 150, 08028 Barcelona",
       telefono: "93 377 67 95",
       email: "info@arpprevencion.com",
       web: "www.arpprevencion.com",
@@ -458,7 +457,7 @@
     doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
     const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
     doc.text(`${c.sedeSocial}`, PW/2, PH-13, {align:'center'});
-    doc.text(`${c.sedeFiscal}`, PW/2, PH-9, {align:'center'});
+    if (c.sedeFiscal) doc.text(`${c.sedeFiscal}`, PW/2, PH-9, {align:'center'});
     doc.setFont('helvetica','normal');
     doc.text(`${c.web}   ${c.email}`, PW/2, PH-5, {align:'center'});
     // "Arp Prevención S.L" izquierda + "Página X de Y" derecha — igual que Harriartean
@@ -903,9 +902,10 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.text(c.nombre.toUpperCase(), PW-MR-3, y+13, {align:'right'});
       doc.setFont('helvetica','normal'); doc.setFontSize(9);
       doc.text(c.sedeSocial, PW-MR-3, y+19, {align:'right'});
-      doc.text(c.sedeFiscal, PW-MR-3, y+25, {align:'right'});
-      doc.text('Teléfono: ' + c.telefono, PW-MR-3, y+31, {align:'right'});
-      doc.text('E-mail: ' + c.email, PW-MR-3, y+36, {align:'right'});
+      var _yOff = 19;
+      if (c.sedeFiscal) { doc.text(c.sedeFiscal, PW-MR-3, y+25, {align:'right'}); _yOff = 25; }
+      doc.text('Teléfono: ' + c.telefono, PW-MR-3, y+_yOff+6, {align:'right'});
+      doc.text('E-mail: ' + c.email, PW-MR-3, y+_yOff+11, {align:'right'});
 
 
       // ═══ PÁGINAS 4-5: METODOLOGÍA ═══
@@ -1662,7 +1662,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
       doc.line(ML, PH-16, PW-MR, PH-16);
       doc.text(`${c.sedeSocial}`, PW/2, PH-12, {align:'center'});
-      doc.text(`${c.sedeFiscal}`, PW/2, PH-8, {align:'center'});
+      if (c.sedeFiscal) doc.text(`${c.sedeFiscal}`, PW/2, PH-8, {align:'center'});
       doc.setFont('helvetica','normal');
       const revDoc = enacActivo
         ? (c.revCertificadoDocEnac || '08/01/2025 Rev 5.')
