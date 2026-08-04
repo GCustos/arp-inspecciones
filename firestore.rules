@@ -31,6 +31,25 @@ service cloud.firestore {
       return myRole() in ['admin', 'director', 'proyecto', 'oficina'];
     }
 
+    // Editores de la web pública (arp-web-preview) — no depende de rol,
+    // son personas concretas autorizadas independientemente de su rol en la app interna
+    function isConfigEditor() {
+      // config/empresa y config/tarifas de la web pública: Guillermo y José Manuel
+      return isAuth() && myEmail() in [
+        'guimarcon.arp@gmail.com',
+        'josmorvel.arp@gmail.com'
+      ];
+    }
+
+    function isBlogEditor() {
+      // posts de la web pública: Guillermo, José Manuel y Natalia
+      return isAuth() && myEmail() in [
+        'guimarcon.arp@gmail.com',
+        'josmorvel.arp@gmail.com',
+        'natcrualb.arp@gmail.com'
+      ];
+    }
+
     // ── usuarios ───────────────────────────────────────────────────────────
     // Cualquier autenticado lee (necesario para cargarInspectores en nueva-inspeccion.html)
     // Solo admin escribe
@@ -68,6 +87,17 @@ service cloud.firestore {
     match /config/{docId} {
       allow read:  if isAuth();
       allow write: if isAuth() && isAdmin();
+    }
+
+    // config/empresa y config/tarifas también los lee la web pública
+    // (arp-web-preview, sin login) — se suma a la regla genérica de arriba
+    match /config/empresa {
+      allow read:  if true;
+      allow write: if isConfigEditor();
+    }
+    match /config/tarifas {
+      allow read:  if true;
+      allow write: if isConfigEditor();
     }
 
     // historial de formatos (subcollección de config/{alcance})
@@ -112,6 +142,13 @@ service cloud.firestore {
     match /certificados-publicos/{docId} {
       allow read:  if true;
       allow write: if isAuth() && myRole() != 'oficina';
+    }
+
+    // ── posts (blog de la web pública, arp-web-preview) ────────────────────
+    // Público lee solo publicados; los 3 editores leen y escriben todo (drafts incluidos)
+    match /posts/{docId} {
+      allow read:  if (resource != null && resource.data.publicado == true) || isBlogEditor();
+      allow write: if isBlogEditor();
     }
 
     // ── cambiosPropuestos ──────────────────────────────────────────────────
