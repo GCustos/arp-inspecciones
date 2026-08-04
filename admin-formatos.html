@@ -657,12 +657,27 @@
         snap.forEach(function(d){ docs.push(d.data()); });
         docs.sort(function(a,b){ return (b.revision||0)-(a.revision||0); });
         var html = '';
-        docs.forEach(function(h) {
+        docs.forEach(function(h, idx) {
           var cambios = h.cambios || {};
           var chk  = cambios.checklist || {};
           var cols = cambios.columnas  || {};
-          var total = (chk.anadidos||[]).length + (chk.eliminados||[]).length + (chk.modificados||[]).length
-                    + (cols.anadidas||[]).length + (cols.eliminadas||[]).length + (cols.modificadas||[]).length;
+          var chkA = chk.anadidos   || [];
+          var chkE = chk.eliminados || [];
+          var chkM = chk.modificados|| [];
+          var colsA = cols.anadidos  || cols.anadidas  || [];
+          var colsE = cols.eliminados|| cols.eliminadas|| [];
+          var colsM = cols.modificados||cols.modificadas||[];
+          var total = chkA.length + chkE.length + chkM.length + colsA.length + colsE.length + colsM.length;
+
+          // Entradas sin diff pre-computado: calcular desde snapshots consecutivos
+          if (!total && h.checklist && idx < docs.length - 1) {
+            var prev = docs[idx + 1];
+            if (prev && prev.checklist) {
+              var d2 = calcularDiff(prev.checklist, h.checklist, 'id');
+              chkA = d2.anadidos; chkE = d2.eliminados; chkM = d2.modificados;
+              total = chkA.length + chkE.length + chkM.length;
+            }
+          }
           var resumen = total ? total+' cambio'+(total!==1?'s':'') : (cambios.nota || 'Sin cambios registrados');
 
           var regLine = h.registroRevision
@@ -685,22 +700,22 @@
 
           if (cambios.nota) html += '<p style="font-size:12px;color:var(--muted);margin:4px 0">'+escHtml(cambios.nota)+'</p>';
 
-          (chk.anadidos||[]).forEach(function(i){
+          chkA.forEach(function(i){
             html += '<div class="diff-item diff-add">+ ['+escHtml(i.ref)+'] '+escHtml(i.sec)+'</div>';
           });
-          (chk.eliminados||[]).forEach(function(i){
+          chkE.forEach(function(i){
             html += '<div class="diff-item diff-del">- ['+escHtml(i.ref)+'] '+escHtml(i.sec)+'</div>';
           });
-          (chk.modificados||[]).forEach(function(i){
+          chkM.forEach(function(i){
             html += '<div class="diff-item diff-mod">~ ['+escHtml(i.ref)+'] '+escHtml(i.sec)+'</div>';
           });
-          (cols.anadidas||[]).forEach(function(c){
+          colsA.forEach(function(c){
             html += '<div class="diff-item diff-add">+ Columna: '+escHtml(c.label)+'</div>';
           });
-          (cols.eliminadas||[]).forEach(function(c){
+          colsE.forEach(function(c){
             html += '<div class="diff-item diff-del">- Columna: '+escHtml(c.label)+'</div>';
           });
-          (cols.modificadas||[]).forEach(function(c){
+          colsM.forEach(function(c){
             html += '<div class="diff-item diff-mod">~ Columna: '+escHtml(c.label)+'</div>';
           });
           if (!total && !cambios.nota) html += '<div class="diff-item" style="color:var(--muted)">Sin detalles de cambios.</div>';
