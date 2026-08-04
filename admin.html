@@ -44,6 +44,15 @@
     .btn-save-cfg:disabled{opacity:.5;cursor:not-allowed}
     .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999}
     .toast.show{opacity:1}
+    .cfg-field textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text);background:white;resize:vertical;min-height:60px;box-sizing:border-box}
+    .cfg-field textarea:focus{border-color:var(--gold);outline:none}
+    .btn-hist-pdf{font-size:11px;font-weight:700;padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:white;cursor:pointer;color:var(--dark)}
+    .btn-hist-pdf:hover{border-color:var(--gold);color:var(--gold)}
+    .hist-cert-entry{background:white;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden}
+    .hist-cert-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surf);flex-wrap:wrap}
+    .hist-cert-body{padding:10px 14px}
+    .hist-cert-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)}
+    .hist-cert-row:last-child{border-bottom:none}
   </style>
 </head>
 <body>
@@ -83,6 +92,7 @@
     onDenied: 'message',
     onReady: function(user, ud) {
       rolActual = ud.rol;
+      currentUserEmail = user.email || '';
       if (location.hash === '#config') {
         history.replaceState(null, '', 'admin.html');
         mostrarConfig();
@@ -94,6 +104,8 @@
   });
 
   var vistaActual = 'menu';
+  var currentUserEmail = '';
+  var _certHistDocs = [];
 
   function handleBack() {
     if (vistaActual === 'config') { mostrarMenu(); } else { location.href = 'index.html'; }
@@ -129,7 +141,7 @@
         card('cambios',       '&#128203;', 'Cambios propuestos',  'Revisión y aprobación de cambios en datos de instalaciones',    'admin-cambios.html') +
         card('equipos',       '&#128295;', 'Equipos',             'Calibraciones próximas e inventario de material por inspector', 'admin-equipos.html') +
         card('instalaciones', '&#127959;', 'Instalaciones',       'Instalaciones sin inspección en los últimos 12 meses',          'admin-instalaciones.html') +
-        card('formatos', '&#128203;', 'Formatos PAA', 'Editor de preguntas y criterios de inspección', 'admin-formatos.html') +
+        card('formatos', '&#128203;', 'Formatos', 'Editor de preguntas, criterios y revisiones por alcance', 'admin-formatos.html') +
         card('usuarios', '&#128119;', 'Usuarios', 'Alta, roles y acceso de los miembros del equipo', 'admin-usuarios.html');
     }
     document.getElementById('content').innerHTML = html;
@@ -194,7 +206,15 @@
           '<input id="cinput-rev-con" value="' + escHtml(configData.revCertificadoDocEnac||'') + '" placeholder="ej: 04/08/2026 Rev 6.">' +
           '<p class="cfg-note">Pie del certificado cuando el alcance sí tiene ENAC.</p></div>' +
       '</div>' +
-      '<button class="btn-save-cfg" id="btnSaveCfg" onclick="guardarConfig()">Guardar cambios</button>';
+      '<div class="cfg-sec">Motivo del cambio</div>' +
+      '<div class="cfg-card"><div class="cfg-field">' +
+        '<label>Motivo (obligatorio si cambia la revisión del certificado)</label>' +
+        '<textarea id="cinput-cert-motivo" placeholder="Ej: Actualización tras auditoría interna de seguimiento ENAC..."></textarea>' +
+        '<p class="cfg-note">Se guardará en el historial solo si se modifican los campos de revisión del certificado.</p>' +
+      '</div></div>' +
+      '<button class="btn-save-cfg" id="btnSaveCfg" onclick="guardarConfig()">Guardar cambios</button>' +
+      '<div id="hist-cert-container" style="margin-top:24px"></div>';
+    cargarHistorialCert();
   }
 
   function onTgl(id) {
@@ -206,25 +226,144 @@
   function guardarConfig() {
     var btn = document.getElementById('btnSaveCfg');
     btn.disabled = true; btn.textContent = 'Guardando…';
+
     var enacAlcances = {};
     (configData.alcances || []).forEach(function(a) {
       var chk = document.getElementById('cenac-' + a.id);
       if (chk) enacAlcances[a.id] = chk.checked;
     });
-    db.collection('config').doc('empresa').set({
-      enacAlcances: enacAlcances,
+
+    var nuevoRevSin = document.getElementById('cinput-rev-sin').value.trim();
+    var nuevoRevCon = document.getElementById('cinput-rev-con').value.trim();
+    var motivoEl    = document.getElementById('cinput-cert-motivo');
+    var motivo      = motivoEl ? motivoEl.value.trim() : '';
+
+    var certCambios = [];
+    if (nuevoRevSin !== (configData.revCertificadoDoc || ''))
+      certCambios.push({ campo: 'revCertificadoDoc', etiqueta: 'Sin ENAC', anterior: configData.revCertificadoDoc || '', nuevo: nuevoRevSin });
+    if (nuevoRevCon !== (configData.revCertificadoDocEnac || ''))
+      certCambios.push({ campo: 'revCertificadoDocEnac', etiqueta: 'Con ENAC', anterior: configData.revCertificadoDocEnac || '', nuevo: nuevoRevCon });
+
+    var batch = db.batch();
+    var empRef = db.collection('config').doc('empresa');
+
+    batch.set(empRef, {
+      enacAlcances:          enacAlcances,
       acreditacion:          document.getElementById('cinput-acred').value.trim(),
-      revCertificadoDoc:     document.getElementById('cinput-rev-sin').value.trim(),
-      revCertificadoDocEnac: document.getElementById('cinput-rev-con').value.trim()
-    }, { merge: true }).then(function() {
+      revCertificadoDoc:     nuevoRevSin,
+      revCertificadoDocEnac: nuevoRevCon
+    }, { merge: true });
+
+    if (certCambios.length) {
+      batch.set(empRef.collection('historial').doc(String(Date.now())), {
+        fecha:   firebase.firestore.FieldValue.serverTimestamp(),
+        usuario: currentUserEmail,
+        seccion: 'certificados',
+        motivo:  motivo,
+        cambios: certCambios
+      });
+    }
+
+    batch.commit().then(function() {
+      configData.enacAlcances          = enacAlcances;
+      configData.acreditacion          = document.getElementById('cinput-acred').value.trim();
+      configData.revCertificadoDoc     = nuevoRevSin;
+      configData.revCertificadoDocEnac = nuevoRevCon;
       btn.disabled = false; btn.textContent = 'Guardar cambios';
+      if (motivoEl) motivoEl.value = '';
       showToast('Configuración guardada');
+      if (certCambios.length) cargarHistorialCert();
     }).catch(function(e) {
       btn.disabled = false; btn.textContent = 'Guardar cambios';
       alert('Error: ' + e.message);
     });
   }
 
+
+  function cargarHistorialCert() {
+    var cont = document.getElementById('hist-cert-container');
+    if (!cont) return;
+    cont.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Cargando historial…</div>';
+    db.collection('config').doc('empresa').collection('historial')
+      .orderBy('fecha', 'desc').limit(50).get()
+      .then(function(snap) {
+        var docs = [];
+        snap.forEach(function(d) { var h = d.data(); if (h.seccion === 'certificados') docs.push(h); });
+        _certHistDocs = docs;
+        var header = '<div class="cfg-sec" style="margin-top:0">Historial de revisiones del certificado</div>';
+        if (!docs.length) {
+          cont.innerHTML = header + '<div style="color:var(--muted);font-size:13px;padding:4px 0">Sin cambios registrados aún.</div>';
+          return;
+        }
+        var html = header;
+        docs.forEach(function(h, idx) {
+          var fd = h.fecha && h.fecha.toDate ? h.fecha.toDate() : null;
+          var fecha = fd
+            ? fd.toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + fd.toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'})
+            : '—';
+          html +=
+            '<div class="hist-cert-entry">' +
+              '<div class="hist-cert-head">' +
+                '<span style="font-weight:600;font-size:13px">' + escHtml(fecha) + '</span>' +
+                '<span style="color:var(--muted);font-size:12px;flex:1">' + escHtml(h.usuario||'') + '</span>' +
+                (h.motivo ? '<span style="color:var(--muted);font-size:12px;font-style:italic;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(h.motivo) + '">' + escHtml(h.motivo) + '</span>' : '') +
+                '<button class="btn-hist-pdf" onclick="generarPdfCert(' + idx + ')">PDF</button>' +
+              '</div>' +
+              '<div class="hist-cert-body">' +
+                (h.cambios||[]).map(function(c) {
+                  return '<div class="hist-cert-row">' +
+                    '<span style="color:var(--muted);font-size:12px;min-width:70px;flex-shrink:0">' + escHtml(c.etiqueta||c.campo) + '</span>' +
+                    '<span style="font-size:12px;text-decoration:line-through;color:#c62828;flex:1">' + escHtml(c.anterior||'—') + '</span>' +
+                    '<span style="font-size:12px;color:var(--muted)">→</span>' +
+                    '<span style="font-size:12px;color:#2e7d32;flex:1">' + escHtml(c.nuevo||'—') + '</span>' +
+                  '</div>';
+                }).join('') +
+              '</div>' +
+            '</div>';
+        });
+        cont.innerHTML = html;
+      }).catch(function(e) {
+        cont.innerHTML = '<div style="color:red;font-size:13px;padding:8px 0">Error cargando historial: ' + escHtml(e.message) + '</div>';
+      });
+  }
+
+  window.generarPdfCert = function(idx) {
+    var h = _certHistDocs[idx];
+    if (!h) return;
+    var fd = h.fecha && h.fecha.toDate ? h.fecha.toDate() : null;
+    var fecha = fd
+      ? fd.toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + fd.toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'})
+      : '—';
+    var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Revisión Certificado</title><style>' +
+      'body{font-family:Arial,sans-serif;font-size:13px;color:#111;margin:32px}' +
+      'h1{font-size:18px;font-weight:700;border-bottom:2px solid #C8993A;padding-bottom:8px;margin-bottom:16px}' +
+      '.meta{background:#f5f5f5;border-radius:6px;padding:12px 16px;margin-bottom:20px;font-size:12px;line-height:1.8}' +
+      'table{width:100%;border-collapse:collapse;font-size:13px}' +
+      'th{background:#222;color:#fff;text-align:left;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.05em}' +
+      'td{padding:8px 12px;border-bottom:1px solid #e0e0e0}' +
+      'tr:last-child td{border-bottom:none}' +
+      '.ant{color:#c62828;text-decoration:line-through}' +
+      '.nvo{color:#2e7d32;font-weight:600}' +
+      '@media print{body{margin:0}@page{margin:16mm 20mm}}' +
+      '</style></head><body>' +
+      '<h1>Registro de cambio — Revisión del Certificado</h1>' +
+      '<div class="meta">' +
+        '<b>Fecha:</b> ' + escHtml(fecha) + '<br>' +
+        '<b>Registrado por:</b> ' + escHtml(h.usuario||'—') + '<br>' +
+        (h.motivo ? '<b>Motivo:</b> ' + escHtml(h.motivo) + '<br>' : '') +
+      '</div>' +
+      '<table><thead><tr><th>Campo</th><th>Anterior</th><th>Nuevo</th></tr></thead><tbody>' +
+      (h.cambios||[]).map(function(c) {
+        return '<tr><td>' + escHtml(c.etiqueta||c.campo) + '</td>' +
+          '<td class="ant">' + escHtml(c.anterior||'—') + '</td>' +
+          '<td class="nvo">' + escHtml(c.nuevo||'—') + '</td></tr>';
+      }).join('') +
+      '</tbody></table>' +
+      '<script>window.onload=function(){window.print()}<\/script>' +
+      '</body></html>';
+    var w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+  };
 
   function cargarContadores() {
     setBadge('config', '&#9881;', 'off');

@@ -52,6 +52,8 @@
     .hist-meta{font-size:11px;color:var(--muted);flex:1}
     .hist-body{margin-top:10px;display:none}
     .hist-body.open{display:block}
+    .btn-hist-pdf{padding:3px 8px;font-size:10px;font-weight:700;border:1.5px solid var(--border);border-radius:6px;background:white;color:var(--muted);cursor:pointer;white-space:nowrap;font-family:inherit}
+    .btn-hist-pdf:hover{border-color:var(--gold);color:var(--gold)}
     .hist-body .diff-item{font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)}
     .diff-add{color:var(--green)}
     .diff-del{color:var(--red);text-decoration:line-through}
@@ -166,11 +168,13 @@
   var auth = firebase.auth();
   var db   = firebase.firestore();
 
-  var formatoActivo  = null;
-  var borrador       = null;
-  var tabActual      = 'activo';
-  var alcanceActual  = '';
-  var alcancesConfig = [];
+  var formatoActivo   = null;
+  var borrador        = null;
+  var tabActual       = 'activo';
+  var alcanceActual   = '';
+  var alcancesConfig  = [];
+  var empresaData     = {};
+  var _historialDocs  = [];
   var editandoPreguntaIdx = null;
   var editandoColumnaIdx  = null;
   var _sortableChk   = null;
@@ -214,6 +218,7 @@
       currentUserEmail = user.email;
       db.collection('config').doc('empresa').get().then(function(snap) {
         var data = snap.exists ? snap.data() : {};
+        empresaData = data;
         alcancesConfig = (data.alcances || []).filter(function(a) { return a.id; });
         if (!alcancesConfig.length) {
           document.getElementById('content').innerHTML =
@@ -656,6 +661,7 @@
         var docs = [];
         snap.forEach(function(d){ docs.push(d.data()); });
         docs.sort(function(a,b){ return (b.revision||0)-(a.revision||0); });
+        _historialDocs = docs;
         var html = '';
         docs.forEach(function(h, idx) {
           var cambios = h.cambios || {};
@@ -694,7 +700,11 @@
             +'<div class="hist-meta" style="margin-top:2px">'+escHtml(h.publicadoPor||'')+'&nbsp;&middot;&nbsp;'+escHtml(resumen)+'</div>'
             +(h.motivo?'<div style="font-size:11px;color:var(--text);margin-top:3px;font-style:italic">'+escHtml(h.motivo)+'</div>':'')
             +'</div>'
+            +'<div style="display:flex;gap:4px;align-items:center;flex-shrink:0">'
+            +(h.checklist?'<button class="btn-hist-pdf" onclick="event.stopPropagation();generarPdfFormato('+idx+')">PDF</button>':'')
+            +(h.checklist&&idx<docs.length-1?'<button class="btn-hist-pdf" onclick="event.stopPropagation();generarPdfCambios('+idx+')" title="PDF de cambios vs Rev anterior">↕ Cambios</button>':'')
             +'<span>&#9660;</span>'
+            +'</div>'
             +'</div>'
             +'<div class="hist-body">';
 
@@ -738,6 +748,127 @@
   window.cerrarModal = function(id) {
     document.getElementById(id).classList.remove('open');
   };
+
+  // ── PDF DE FORMATO Y CAMBIOS ─────────────────────────────────────────────
+
+  function abrirVentanaImpresion(html) {
+    var w = window.open('', '_blank', 'width=960,height=720');
+    if (!w) { alert('Permite ventanas emergentes para generar el PDF.'); return; }
+    w.document.write(html);
+    w.document.close();
+  }
+
+  function alcLabel() {
+    var a = alcancesConfig.find(function(k) { return k.id === alcanceActual; });
+    return a ? a.label + (a.desc ? ' — ' + a.desc : '') : alcanceActual.toUpperCase();
+  }
+
+  window.generarPdfFormato = function(idx) {
+    var h = _historialDocs[idx];
+    if (!h || !h.checklist) { alert('No hay snapshot del checklist para esta revisión.'); return; }
+    abrirVentanaImpresion(buildFormatoHtml(h, null));
+  };
+
+  window.generarPdfCambios = function(idx) {
+    var h    = _historialDocs[idx];
+    var prev = _historialDocs[idx + 1] || null;
+    if (!h || !h.checklist) { alert('No hay snapshot del checklist para esta revisión.'); return; }
+    abrirVentanaImpresion(buildFormatoHtml(h, prev));
+  };
+
+  function buildFormatoHtml(h, prev) {
+    var isDiff  = !!prev;
+    var empresa = escHtml(empresaData.nombre || empresaData.nombreCorto || '');
+    var alc     = alcLabel();
+    var title   = isDiff
+      ? 'Rev ' + prev.revision + ' → Rev ' + h.revision + ' — ' + alc
+      : 'Formato de inspección Rev ' + h.revision + ' — ' + alc;
+
+    // Construir filas con o sin diff
+    var currItems = h.checklist || [];
+    var prevMap = {}, currMap = {};
+    if (prev && prev.checklist) prev.checklist.forEach(function(i){ prevMap[i.id] = i; });
+    currItems.forEach(function(i){ currMap[i.id] = i; });
+
+    var rows = '';
+    currItems.forEach(function(item) {
+      var cls = '', marker = '';
+      if (isDiff) {
+        if (!prevMap[item.id])                                        { cls = 'row-add'; marker = '+'; }
+        else if (JSON.stringify(prevMap[item.id]) !== JSON.stringify(item)) { cls = 'row-mod'; marker = '~'; }
+      }
+      rows += '<tr class="' + cls + '">'
+        + '<td class="col-m">' + (marker ? '<b>' + marker + '</b>' : '') + '</td>'
+        + '<td class="col-ref">' + escHtml(item.ref||'') + '</td>'
+        + '<td class="col-sec">' + escHtml(item.sec||'') + '</td>'
+        + '<td>' + escHtml(item.desc||'') + '</td>'
+        + '</tr>';
+    });
+    // Eliminados — al final con tachado
+    if (isDiff && prev && prev.checklist) {
+      prev.checklist.forEach(function(item) {
+        if (!currMap[item.id]) {
+          rows += '<tr class="row-del">'
+            + '<td class="col-m"><b>−</b></td>'
+            + '<td class="col-ref">' + escHtml(item.ref||'') + '</td>'
+            + '<td class="col-sec">' + escHtml(item.sec||'') + '</td>'
+            + '<td>' + escHtml(item.desc||'') + '</td>'
+            + '</tr>';
+        }
+      });
+    }
+
+    var legend = isDiff
+      ? '<div class="legend">'
+        + '<span class="lg-add">+ Añadido</span>'
+        + '<span class="lg-del">− Eliminado</span>'
+        + '<span class="lg-mod">~ Modificado</span>'
+        + '</div>'
+      : '';
+
+    return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+      + '<title>' + escHtml(title) + '</title><style>'
+      + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;padding:24px;color:#2C2C2C;font-size:12px}'
+      + 'h1{font-size:17px;color:#C8993A;margin:0 0 2px;font-weight:700}'
+      + 'h2{font-size:12px;color:#8A8278;font-weight:400;margin:0 0 14px}'
+      + '.meta{background:#F5F3EF;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:grid;grid-template-columns:110px 1fr;gap:3px 8px;font-size:11px}'
+      + '.mk{color:#8A8278;font-weight:600}'
+      + '.motivo{font-style:italic}'
+      + '.legend{display:flex;gap:12px;margin-bottom:10px;font-size:10px;font-weight:600}'
+      + '.lg-add{background:#e8f5e9;padding:2px 8px;border-radius:4px;color:#27AE60}'
+      + '.lg-del{background:#ffebee;padding:2px 8px;border-radius:4px;color:#C0392B}'
+      + '.lg-mod{background:#fff8e1;padding:2px 8px;border-radius:4px;color:#E67E22}'
+      + 'table{width:100%;border-collapse:collapse;font-size:11px}'
+      + 'th{background:#C8993A;color:white;padding:6px 8px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.03em}'
+      + 'td{padding:5px 8px;border-bottom:1px solid #E2DDD5;vertical-align:top}'
+      + '.col-m{width:16px;text-align:center;color:#8A8278;font-size:10px}'
+      + '.col-ref{width:50px;font-family:monospace;color:#8A8278;font-size:10px}'
+      + '.col-sec{width:150px;font-weight:500}'
+      + '.row-add td{background:#e8f5e9}'
+      + '.row-del td{background:#ffebee;color:#C0392B;text-decoration:line-through}'
+      + '.row-mod td{background:#fff8e1}'
+      + '.footer{margin-top:16px;font-size:9px;color:#8A8278;border-top:1px solid #E2DDD5;padding-top:6px;display:flex;justify-content:space-between}'
+      + '@media print{@page{margin:12mm}body{padding:0}}'
+      + '</style></head><body>'
+      + '<h1>' + escHtml(title) + '</h1>'
+      + '<h2>' + empresa + '</h2>'
+      + '<div class="meta">'
+      + (isDiff ? '<span class="mk">Revisión</span><span>Rev ' + prev.revision + ' → Rev ' + h.revision + '</span>' : '<span class="mk">Revisión</span><span>Rev ' + h.revision + '</span>')
+      + '<span class="mk">Vigente desde</span><span>' + escHtml(h.fechaVigencia||'') + '</span>'
+      + '<span class="mk">Publicado por</span><span>' + escHtml(h.publicadoPor||'') + '</span>'
+      + (h.motivo ? '<span class="mk">Motivo</span><span class="motivo">' + escHtml(h.motivo) + '</span>' : '')
+      + (isDiff ? '<span class="mk">Rev anterior</span><span>Rev ' + prev.revision + ' (' + escHtml(prev.fechaVigencia||'') + ')</span>' : '')
+      + '</div>'
+      + legend
+      + '<table><thead><tr>'
+      + '<th class="col-m"></th><th class="col-ref">Ref.</th><th class="col-sec">Sección</th><th>Descripción</th>'
+      + '</tr></thead><tbody>' + rows + '</tbody></table>'
+      + '<div class="footer">'
+      + '<span>' + empresa + ' · ' + escHtml(alc) + ' · Rev ' + h.revision + '</span>'
+      + '<span>Generado ' + new Date().toLocaleDateString('es-ES') + '</span>'
+      + '</div>'
+      + '</body></html>';
+  }
 
   ['modalPregunta','modalColumna'].forEach(function(id){
     document.getElementById(id).addEventListener('click', function(e){
