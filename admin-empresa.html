@@ -62,6 +62,7 @@
       appId:'1:35880168451:web:090e3c250b4416ed0b3236'
     });
   }
+  var auth = firebase.auth();
   var db = firebase.firestore();
   db.enablePersistence({synchronizeTabs:true}).catch(function(){});
 
