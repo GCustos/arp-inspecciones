@@ -22,7 +22,8 @@
     /* MODAL */
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none}
     .overlay.open{display:block}
-    .modal{position:fixed;bottom:0;left:0;right:0;background:white;border-radius:16px 16px 0 0;max-height:92vh;overflow-y:auto;z-index:201;padding:20px 16px 40px}
+    .modal{position:fixed;bottom:0;left:0;right:0;background:white;border-radius:16px 16px 0 0;max-height:92vh;overflow-y:auto;z-index:201;padding:20px 16px 40px;display:none}
+    .modal.open{display:block}
     .modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
     .modal-title{font-size:16px;font-weight:700;color:var(--dark);margin-bottom:16px}
     .form-sec{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
@@ -194,6 +195,7 @@
     document.getElementById('modalTitulo').textContent = 'Nuevo tipo de equipo';
     document.getElementById('modalBody').innerHTML = formHtml(null);
     document.getElementById('overlay').classList.add('open');
+    document.getElementById('modal').classList.add('open');
     document.getElementById('modal').scrollTop = 0;
   };
 
@@ -204,11 +206,13 @@
     document.getElementById('modalTitulo').textContent = id + ' · ' + (t.label||'');
     document.getElementById('modalBody').innerHTML = formHtml(t);
     document.getElementById('overlay').classList.add('open');
+    document.getElementById('modal').classList.add('open');
     document.getElementById('modal').scrollTop = 0;
   };
 
   window.cerrarModal = function() {
     document.getElementById('overlay').classList.remove('open');
+    document.getElementById('modal').classList.remove('open');
   };
 
   window.guardar = function() {
