@@ -117,15 +117,18 @@ service cloud.firestore {
     }
 
     // ── clientes ───────────────────────────────────────────────────────────
+    // admin-clientes.html da acceso completo de edición a oficina (Natalia gestiona
+    // el CRM) — write usa canReadAll() en vez de isAdminLike() para incluirla
     match /clientes/{docId} {
       allow read:  if isAuth();
-      allow write: if isAuth() && isAdminLike();
+      allow write: if isAuth() && canReadAll();
     }
 
     // ── contactos ──────────────────────────────────────────────────────────
+    // mismo motivo que clientes — oficina gestiona el CRM de contactos
     match /contactos/{docId} {
       allow read:  if isAuth() && canReadAll();
-      allow write: if isAuth() && isAdminLike();
+      allow write: if isAuth() && canReadAll();
     }
 
     // ── equipos ────────────────────────────────────────────────────────────
