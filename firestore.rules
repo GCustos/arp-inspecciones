@@ -136,6 +136,21 @@ service cloud.firestore {
       allow write: if isAuth() && isAdminLike();
     }
 
+    // historial de calibraciones/verificaciones (subcolección de equipos/{id})
+    match /equipos/{docId}/calibraciones/{calId} {
+      allow read:  if isAuth();
+      allow write: if isAuth() && isAdminLike();
+    }
+
+    // ── tiposEquipo ────────────────────────────────────────────────────────
+    // Plantillas de tipo de equipo (magnitud, tipoConfirmacion, series, tolerancias)
+    // Todos leen (necesario para renderizar la ficha en admin-equipos.html)
+    // Solo admin/director/proyecto editan
+    match /tiposEquipo/{tipoId} {
+      allow read:  if isAuth();
+      allow write: if isAuth() && isAdminLike();
+    }
+
     // ── certificados-publicos ──────────────────────────────────────────────
     // Lectura pública — solo nombre, lugar (municipio/provincia), lat/lng,
     // fechaValidez y tipo. Sin datos de clientes, inspectores ni NCs.

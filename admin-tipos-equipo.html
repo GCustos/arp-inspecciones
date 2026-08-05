@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Tipos de Equipo - ARP</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .btn-nuevo{background:var(--gold);border:none;color:white;font-size:20px;width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+    .content{padding:12px 16px;max-width:680px;margin:0 auto;padding-bottom:80px}
+    .tipo-card{background:white;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s}
+    .tipo-card:hover{border-color:var(--gold)}
+    .tipo-row1{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+    .tipo-id{font-size:12px;font-weight:700;color:var(--dark);font-family:monospace}
+    .tipo-label{font-size:13px;color:var(--text);flex:1}
+    .badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;text-transform:uppercase;flex-shrink:0}
+    .badge-flujo{background:var(--surf);color:var(--muted)}
+    .badge-pendiente{background:#FFF8E1;color:var(--orange)}
+    .tipo-row2{font-size:11px;color:var(--muted)}
+    .empty-state{text-align:center;color:var(--muted);font-size:13px;padding:32px 16px}
+    /* MODAL */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none}
+    .overlay.open{display:block}
+    .modal{position:fixed;bottom:0;left:0;right:0;background:white;border-radius:16px 16px 0 0;max-height:92vh;overflow-y:auto;z-index:201;padding:20px 16px 40px}
+    .modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+    .modal-title{font-size:16px;font-weight:700;color:var(--dark);margin-bottom:16px}
+    .form-sec{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+    .form-row{margin-bottom:12px}
+    .form-row label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:3px}
+    .form-row input,.form-row select,.form-row textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text);background:white;box-sizing:border-box}
+    .form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--gold);outline:none}
+    .form-row textarea{resize:vertical;min-height:60px}
+    .form-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .form-note{font-size:11px;color:var(--muted);margin-top:4px}
+    .toggle-row{display:flex;align-items:center;gap:10px;padding:10px 0}
+    .toggle-row label{font-size:13px;color:var(--text);flex:1}
+    .toggle{width:40px;height:22px;background:var(--border);border-radius:11px;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;border:none}
+    .toggle.on{background:var(--green)}
+    .toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;background:white;border-radius:50%;transition:left 0.2s}
+    .toggle.on::after{left:21px}
+    .modal-btns{display:flex;gap:10px;margin-top:20px}
+    .btn-guardar{flex:1;padding:13px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+    .btn-cancelar{padding:13px 18px;background:white;color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="location.href='admin-equipos.html'">&#8592;</button>
+  <div class="hdr-mark">ARP</div>
+  <div class="hdr-title">Tipos de Equipo</div>
+  <button class="btn-nuevo" id="btnNuevo" onclick="abrirNuevo()" style="display:none" title="Nuevo tipo">+</button>
+</div>
+
+<div class="content" id="content"><div class="spinner"></div></div>
+
+<!-- OVERLAY + MODAL -->
+<div class="overlay" id="overlay" onclick="cerrarModal()"></div>
+<div class="modal" id="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title" id="modalTitulo">Tipo de equipo</div>
+  <div id="modalBody"></div>
+  <div class="modal-btns">
+    <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
+    <button class="btn-guardar" onclick="guardar()">Guardar</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="utils.js"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain:"arp-inspecciones.firebaseapp.com",
+      projectId:"arp-inspecciones",
+      storageBucket:"arp-inspecciones.firebasestorage.app",
+      messagingSenderId:"35880168451",
+      appId:"1:35880168451:web:090e3c250b4416ed0b3236"
+    });
+  }
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+
+  var tiposData = [];
+  var editandoId = null;
+
+  var FLUJO_LABEL = {
+    verificacion_interna: 'Verificación interna',
+    calibracion_externa: 'Calibración externa',
+    clase_declarada_fabricante: 'Clase declarada fabricante',
+    calibre_patron_fijo: 'Calibre patrón fijo'
+  };
+
+  initAuth({
+    roles: ['admin', 'director', 'proyecto'],
+    onReady: function() {
+      document.getElementById('btnNuevo').style.display = 'flex';
+      cargar();
+    }
+  });
+
+  function cargar() {
+    db.collection('tiposEquipo').get().then(function(snap) {
+      tiposData = [];
+      snap.forEach(function(d){ tiposData.push(Object.assign({id:d.id}, d.data())); });
+      tiposData.sort(function(a,b){ return a.id < b.id ? -1 : 1; });
+      render();
+    }).catch(function(e){
+      document.getElementById('content').innerHTML = '<div class="empty-state">Error: '+escHtml(e.message)+'</div>';
+    });
+  }
+
+  function render() {
+    if (!tiposData.length) {
+      document.getElementById('content').innerHTML = '<div class="empty-state">No hay tipos de equipo definidos.</div>';
+      return;
+    }
+    var html = '';
+    tiposData.forEach(function(t) {
+      var pendiente = !t.toleranciaAbsoluta && t.tipoConfirmacion !== 'clase_declarada_fabricante';
+      html += '<div class="tipo-card" onclick="abrirEditar(\''+escHtml(t.id)+'\')">' +
+        '<div class="tipo-row1"><span class="tipo-id">'+escHtml(t.id)+'</span><span class="tipo-label">'+escHtml(t.label||'')+'</span>' +
+        '<span class="badge badge-flujo">'+escHtml(FLUJO_LABEL[t.tipoConfirmacion]||t.tipoConfirmacion||'')+'</span>' +
+        (pendiente?'<span class="badge badge-pendiente">Tolerancia pendiente</span>':'') +
+        '</div>' +
+        '<div class="tipo-row2">'+escHtml(t.magnitud||'')+'</div>' +
+        '</div>';
+    });
+    document.getElementById('content').innerHTML = html;
+  }
+
+  function field(label, id, val, extra, tag) {
+    tag = tag||'input';
+    var inp = tag==='textarea'
+      ? '<textarea id="'+id+'" '+(extra||'')+'>'+escHtml(val||'')+'</textarea>'
+      : '<input id="'+id+'" type="'+(tag==='number'?'number':'text')+'" value="'+escHtml(val==null?'':val)+'" '+(extra||'')+'>';
+    return '<div class="form-row"><label>'+label+'</label>'+inp+'</div>';
+  }
+
+  function selectField(label, id, opts, val, nota) {
+    var html = '<div class="form-row"><label>'+label+'</label><select id="'+id+'">';
+    opts.forEach(function(o) {
+      html += '<option value="'+o.v+'"'+(o.v===(val||'')?' selected':'')+'>'+o.t+'</option>';
+    });
+    html += '</select>' + (nota?'<div class="form-note">'+nota+'</div>':'') + '</div>';
+    return html;
+  }
+
+  function formHtml(t) {
+    t = t || {};
+    return '<div class="form-sec">Identificación</div>' +
+      '<div class="form-2col">' +
+        field('Código (ID)','f_id',t.id||'', editandoId?'readonly':'') +
+        field('Magnitud','f_magnitud',t.magnitud||'') +
+      '</div>' +
+      field('Etiqueta','f_label',t.label||'') +
+      '<div class="form-sec">Flujo de confirmación</div>' +
+      selectField('Tipo de confirmación','f_tipoConfirmacion',[
+        {v:'calibracion_externa', t:'Calibración externa (laboratorio)'},
+        {v:'clase_declarada_fabricante', t:'Clase declarada por fabricante'},
+        {v:'verificacion_interna', t:'Verificación interna (GUM) — próximamente'},
+        {v:'calibre_patron_fijo', t:'Calibre patrón fijo (familia SON) — próximamente'}
+      ], t.tipoConfirmacion) +
+      selectField('Regla de decisión','f_reglaDecision',[
+        {v:'', t:'— Sin definir —'},
+        {v:'limites_separados', t:'Límites separados (corrección ≤ tol. Y incertidumbre ≤ tol.)'},
+        {v:'suma_combinada', t:'Suma combinada (|corrección| + incertidumbre ≤ tol.)'}
+      ], t.reglaDecision, 'Hallazgo #8 del estudio — cómo se calcula FAVORABLE/NO_FAVORABLE.') +
+      '<div class="form-sec">Tolerancia</div>' +
+      selectField('Fuente de la tolerancia','f_fuenteTolerancia',[
+        {v:'', t:'— Sin definir —'},
+        {v:'EMP_fabricante', t:'EMP/MPE del instrumento (norma de diseño)'},
+        {v:'tolerancia_ensayo_campo', t:'Derivada del ensayo de campo'},
+        {v:'porcentaje_fondo_escala_generico', t:'% de fondo de escala genérico'},
+        {v:'formula_parametrica', t:'Fórmula paramétrica (clase declarada)'}
+      ], t.fuenteTolerancia) +
+      field('Tolerancia absoluta (valor numérico, si ya está cerrada)','f_toleranciaAbsoluta',t.toleranciaAbsoluta,'','number') +
+      field('Fórmula paramétrica (solo clase declarada, ej. FLE)','f_formulaParametrica',t.formulaParametrica||'') +
+      field('Justificación (aparece en el PDF — "Base de la validación")','f_justificacionTolerancia',t.justificacionTolerancia||'','','textarea') +
+      '<div class="toggle-row"><label>Activo</label>' +
+        '<button class="toggle'+(t.activo===false?'':' on')+'" id="f_activo" onclick="toggleActivo()"></button></div>';
+  }
+
+  window.toggleActivo = function() {
+    document.getElementById('f_activo').classList.toggle('on');
+  };
+
+  window.abrirNuevo = function() {
+    editandoId = null;
+    document.getElementById('modalTitulo').textContent = 'Nuevo tipo de equipo';
+    document.getElementById('modalBody').innerHTML = formHtml(null);
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('modal').scrollTop = 0;
+  };
+
+  window.abrirEditar = function(id) {
+    var t = tiposData.find(function(x){ return x.id===id; });
+    if (!t) return;
+    editandoId = id;
+    document.getElementById('modalTitulo').textContent = id + ' · ' + (t.label||'');
+    document.getElementById('modalBody').innerHTML = formHtml(t);
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('modal').scrollTop = 0;
+  };
+
+  window.cerrarModal = function() {
+    document.getElementById('overlay').classList.remove('open');
+  };
+
+  window.guardar = function() {
+    var id = editandoId || document.getElementById('f_id').value.trim().toUpperCase();
+    if (!id) { alert('El código es obligatorio.'); return; }
+    var activo = document.getElementById('f_activo').classList.contains('on');
+    var tolAbs = document.getElementById('f_toleranciaAbsoluta').value;
+    var data = {
+      label:        document.getElementById('f_label').value.trim(),
+      magnitud:     document.getElementById('f_magnitud').value.trim(),
+      tipoConfirmacion:     document.getElementById('f_tipoConfirmacion').value,
+      reglaDecision:        document.getElementById('f_reglaDecision').value || null,
+      fuenteTolerancia:     document.getElementById('f_fuenteTolerancia').value || null,
+      toleranciaAbsoluta:   tolAbs ? parseFloat(tolAbs) : null,
+      formulaParametrica:   document.getElementById('f_formulaParametrica').value.trim() || null,
+      justificacionTolerancia: document.getElementById('f_justificacionTolerancia').value.trim(),
+      activo: activo,
+      version: (tiposData.find(function(x){return x.id===id;})||{}).version || 1
+    };
+    var btn = document.querySelector('.btn-guardar');
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    db.collection('tiposEquipo').doc(id).set(data, {merge:true}).then(function() {
+      cerrarModal();
+      cargar();
+    }).catch(function(e){ alert('Error: '+e.message); })
+    .finally(function(){ btn.disabled=false; btn.textContent='Guardar'; });
+  };
+</script>
+</body>
+</html>
