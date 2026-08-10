@@ -12,3 +12,10 @@ _scripts/node_modules/
 _scripts/db-dump/
 _scripts/informe-*.txt
 _scripts/package-lock.json
+
+# Cloud Functions — dependencias y logs de emulador, nunca subir
+functions/node_modules/
+functions-*.log
+firebase-debug.log
+ui-debug.log
+firestore-debug.log
