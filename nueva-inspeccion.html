@@ -79,14 +79,7 @@
   <!-- TIPO DE ALCANCE -->
   <div class="card">
     <div class="card-title">Tipo de inspecci&#243;n</div>
-    <div class="alcance-grid">
-      <button class="alcance-btn selected" data-val="PAA" onclick="selAlcance(this)">PAA</button>
-      <button class="alcance-btn disabled" data-val="SAE" title="Pr&#243;ximamente">SAE</button>
-      <button class="alcance-btn disabled" data-val="FER" title="Pr&#243;ximamente">FER</button>
-      <button class="alcance-btn disabled" data-val="AJN" title="Pr&#243;ximamente">AJN</button>
-      <button class="alcance-btn disabled" data-val="HIN" title="Pr&#243;ximamente">HIN</button>
-      <button class="alcance-btn disabled" data-val="ESC" title="Pr&#243;ximamente">ESC</button>
-    </div>
+    <div class="alcance-grid" id="alcanceGrid"><span style="font-size:12px;color:var(--muted)">Cargando…</span></div>
   </div>
 
   <!-- TIPO DE VISITA -->
@@ -254,7 +247,7 @@
 
   var currentUser = null;
   var userData = null;
-  var selectedAlcance = "PAA";
+  var selectedAlcance = "";
   var selectedTipo = "ANUAL";
   var selectedInspectorEmail = null;
   var selectedInspectorNombre = null;
@@ -280,12 +273,40 @@
     }
   });
 
-  // ── CONFIG ENAC ──
+  // ── CONFIG ENAC + ALCANCES (dinámico, nada hardcodeado) ──
   var enacAlcances = {};
   function cargarConfigEnac() {
     db.collection('config').doc('empresa').get().then(function(snap) {
-      if (snap.exists && snap.data().enacAlcances) enacAlcances = snap.data().enacAlcances;
-    }).catch(function(){});
+      var data = snap.exists ? snap.data() : {};
+      if (data.enacAlcances) enacAlcances = data.enacAlcances;
+      var alcances = (data.alcances || []).filter(function(a) { return a.id; });
+      return Promise.all(alcances.map(function(a) {
+        return db.collection('config').doc(a.id.toLowerCase()).get().then(function(cfgSnap) {
+          var cfg = cfgSnap.exists ? cfgSnap.data() : {};
+          return { id: a.id.toUpperCase(), label: a.label || a.id.toUpperCase(), tieneChecklist: !!(cfg.checklist && cfg.checklist.length) };
+        });
+      }));
+    }).then(function(alcancesConDatos) {
+      renderAlcanceGrid(alcancesConDatos || []);
+    }).catch(function(e) {
+      document.getElementById('alcanceGrid').innerHTML = '<span style="font-size:12px;color:var(--red)">Error cargando alcances: ' + e.message + '</span>';
+    });
+  }
+
+  function renderAlcanceGrid(alcances) {
+    var grid = document.getElementById('alcanceGrid');
+    if (!alcances.length) {
+      grid.innerHTML = '<span style="font-size:12px;color:var(--muted)">No hay alcances configurados. Añádelos en Empresa y Director.</span>';
+      return;
+    }
+    var primeraDisponible = alcances.find(function(a) { return a.tieneChecklist; });
+    selectedAlcance = primeraDisponible ? primeraDisponible.id : '';
+    grid.innerHTML = alcances.map(function(a) {
+      var sel = a.id === selectedAlcance ? ' selected' : '';
+      var dis = a.tieneChecklist ? '' : ' disabled';
+      var title = a.tieneChecklist ? '' : ' title="Pendiente de configurar en Formatos"';
+      return '<button class="alcance-btn' + sel + dis + '" data-val="' + a.id + '"' + title + ' onclick="selAlcance(this)">' + escHtml(a.label) + '</button>';
+    }).join('');
   }
 
   // ── CLIENTES ──
