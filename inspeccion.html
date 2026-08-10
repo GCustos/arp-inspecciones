@@ -376,7 +376,7 @@
     </div>
     <div class="f">
       <label>Referencia normativa</label>
-      <input type="text" id="modalNCNorma" value="UNE-EN 15567-1:2015+A1:2021">
+      <input type="text" id="modalNCNorma" value="">
     </div>
     <div class="modal-err" id="modalNCErr">Debes seleccionar el tipo y la gravedad.</div>
     <button class="btn-modal-ok" onclick="confirmarNC()">Confirmar no conformidad</button>
@@ -488,6 +488,8 @@
   ];
   var COL_LABELS = {ie:"Integridad estructural",af:"Anclajes y fijaciones",ej:"Elementos de juego",ra:"Riesgos y atrapamientos",zs:"Zona de seguridad/Entorno"};
 
+  var NORMA_APLICABLE = "UNE-EN 15567-1:2015+A1:2021";
+
   function _aplicarFormato(fmt) {
     if (!fmt) return;
     if (fmt.checklist && fmt.checklist.length) GEN_ITEMS = fmt.checklist;
@@ -496,6 +498,7 @@
       COL_LABELS = {};
       fmt.columnas.forEach(function(c){ COL_LABELS[c.id] = c.label; });
     }
+    if (fmt.normaAplicable && fmt.normaAplicable.numero) NORMA_APLICABLE = fmt.normaAplicable.numero;
   }
 
   // ── EQUIPOS DE MEDICIÓN ──
@@ -1491,7 +1494,7 @@
     document.getElementById('modalNCTipoLibre').value='';
     document.getElementById('modalNCTipoLibreWrap').style.display='none';
     document.getElementById('modalNCObs').value='';
-    document.getElementById('modalNCNorma').value='UNE-EN 15567-1:2015+A1:2021';
+    document.getElementById('modalNCNorma').value=NORMA_APLICABLE;
     document.getElementById('modalNCErr').textContent='Debes seleccionar el tipo y la gravedad.';
     document.getElementById('modalNCErr').classList.remove('vis');
     document.getElementById('modalNCFotoWrap').style.display='none';
@@ -1521,9 +1524,9 @@
     const v=document.getElementById('modalNCTipo').value;
     document.getElementById('modalNCTipoLibreWrap').style.display=v==='__otro__'?'block':'none';
     if(v&&v!=='__otro__'){
-      document.getElementById('modalNCNorma').value=tiposNCNormaMap[v]||'UNE-EN 15567-1:2015+A1:2021';
+      document.getElementById('modalNCNorma').value=tiposNCNormaMap[v]||NORMA_APLICABLE;
     } else if(v==='__otro__'){
-      document.getElementById('modalNCNorma').value='UNE-EN 15567-1:2015+A1:2021';
+      document.getElementById('modalNCNorma').value=NORMA_APLICABLE;
     }
   };
 
@@ -1636,7 +1639,7 @@
             <textarea onchange="S.ncs[${i}].desc=this.value;markDirty()" placeholder="Describe la no conformidad...">${nc.desc||""}</textarea>
           </div>
           <div class="f"><label>Referencia normativa</label>
-            <input type="text" value="${(nc.norma||'').replace(/"/g,'&quot;')}" placeholder="UNE-EN 15567-1:2015+A1:2021, punto X.X" onchange="S.ncs[${i}].norma=this.value;markDirty()">
+            <input type="text" value="${(nc.norma||'').replace(/"/g,'&quot;')}" placeholder="${NORMA_APLICABLE}, punto X.X" onchange="S.ncs[${i}].norma=this.value;markDirty()">
           </div>
           <div class="f"><label>Gravedad</label>
             <div class="prio-row">
@@ -1767,7 +1770,7 @@
     inp.value="";
   }
 
-  function addNC(){ S.ncs.push({elem:"",tipo:"",desc:"",norma:"UNE-EN 15567-1:2015+A1:2021",prio:"",origen:"manual",fotosDefecto:[],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision}); markDirty(); renderNCs(); goTab(3); }
+  function addNC(){ S.ncs.push({elem:"",tipo:"",desc:"",norma:NORMA_APLICABLE,prio:"",origen:"manual",fotosDefecto:[],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision}); markDirty(); renderNCs(); goTab(3); }
   function delNC(i){
     var nc=S.ncs[i];
     if(nc&&nc.origen==='auto'&&nc.autoId){

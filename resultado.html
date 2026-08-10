@@ -721,6 +721,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       const ref = getNRegistro();
       const fmtRev = D.formatoDocumento?.informeRevision || D.formatoDocumento?.revision || CONFIG?.paa?.formatoRevision || '';
       const fmtFechaStr = D.formatoDocumento?.informeFecha || D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '';
+      const norma = D.formatoDocumento?.normaAplicable || CONFIG?.paa?.normaAplicable || { numero:'', titulo:'', tipoInstalacion:'la instalación' };
 
       const totPag = [0];
       const nPag = [0];
@@ -736,9 +737,9 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
 
       // Título
       doc.setFontSize(26); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      const titulo1 = 'Inspección de Parque Acrobático';
-      const titulo2 = 'en Altura según';
-      const titulo3 = 'UNE-EN 15.567-1:2015+A1:2021';
+      const titulo1 = 'Inspección de';
+      const titulo2 = norma.tipoInstalacion;
+      const titulo3 = 'según ' + norma.numero;
       [titulo1,titulo2,titulo3].forEach(t => {
         doc.text(t, PW-MR, y, {align:'right'});
         y += 13;
@@ -935,7 +936,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('I. Normativa de referencia:', ML, y); y += 6;
       doc.setFont('helvetica','normal'); doc.setFontSize(9);
-      doc.text('UNE-EN 15.567-1:2015+A1:2021: Estructuras de deporte y actividades recreativas. Recorrido acrobático en altura. Parte 1: Requisitos de construcción y seguridad.', ML, y, {maxWidth: CW}); y += 12;
+      doc.text(norma.numero + (norma.titulo ? ': ' + norma.titulo : ''), ML, y, {maxWidth: CW}); y += 12;
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('II. Resultados de la inspección', ML, y); y += 6;
       y = addTextBlock(doc, TEXTO_RESULTADOS, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
@@ -1564,6 +1565,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
       const ref = getNRegistro();
       const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
+      const norma = D.formatoDocumento?.normaAplicable || CONFIG?.paa?.normaAplicable || { numero:'', titulo:'', tipoInstalacion:'la instalación' };
       const totalJ = (D.circuitos||[]).reduce((s,cc)=>s+(cc.juegos||[]).filter(j=>j.tipo==='R').length,0);
 
       // Fecha de inspección (última sesión)
@@ -1585,7 +1587,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('CERTIFICADO DE CONFORMIDAD', PW/2, y, {align:'center'}); y += 10;
       doc.setFontSize(15); doc.setTextColor(...GOLD);
-      doc.text('A NORMA UNE EN 15567-1:2015+A1:2021', PW/2, y, {align:'center'}); y += 10;
+      doc.text('A NORMA ' + norma.numero, PW/2, y, {align:'center'}); y += 10;
       doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
       doc.text(ref, PW/2, y, {align:'center'}); y += 8;
       doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
@@ -1598,11 +1600,11 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       const solicitante = D.solicitante||D.propietario||'';
       const enacActivo = !!D.enacActivo;
       const acreditTxt = enacActivo && c.acreditacion ? ` acreditado ${c.acreditacion}` : '';
-      const textoCert = `${c.nombre.toUpperCase()}, organismo de inspección${acreditTxt}, certifica haber efectuado en fecha ${fechaInsp} la inspección de los equipamientos de RECORRIDO ACROBATICO EN ALTURA de las instalaciones de ${D.nombreInstalacion||''}, ${totalJ} JUEGOS, situado en ${dirCert}.
+      const textoCert = `${c.nombre.toUpperCase()}, organismo de inspección${acreditTxt}, certifica haber efectuado en fecha ${fechaInsp} la inspección de los equipamientos de ${norma.tipoInstalacion.toUpperCase()} de las instalaciones de ${D.nombreInstalacion||''}, ${totalJ} JUEGOS, situado en ${dirCert}.
 
 La intervención realizada, da como resultado un "Informe de inspección", con la numeración ${ref}, que indica las observaciones relativas a las instalaciones y omisiones. Estas observaciones sólo son válidas en las condiciones presentes en la instalación en el momento de control, y no serán válidas en caso de modificaciones en las mismas.
 
-${c.nombre}, certifica que los equipamientos cumplen con las exigencias marcadas en las normas UNE-EN 15567-1:2015+A1:2021. Recorrido acrobático en altura. Parte 1 tras la inspección in situ realizada, la validación de los distintos documentos exigidos por norma y las acciones correctoras realizadas por ${solicitante}.
+${c.nombre}, certifica que los equipamientos cumplen con las exigencias marcadas en las normas ${norma.numero}${norma.titulo ? '. ' + norma.titulo : ''} tras la inspección in situ realizada, la validación de los distintos documentos exigidos por norma y las acciones correctoras realizadas por ${solicitante}.
 
 Visto que el informe presenta un resultado FAVORABLE, se considera que los equipamientos cumplen con las especificaciones de seguridad de las normas de aplicación en vigencia y que son aptos para su uso bajo las indicaciones y directrices del manual de uso y mantenimiento del constructor/instalador.`;
 
@@ -1668,6 +1670,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
       const ref = getNRegistro();
       const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
+      const norma = D.formatoDocumento?.normaAplicable || CONFIG?.paa?.normaAplicable || { numero:'', titulo:'', tipoInstalacion:'' };
       const fmtRev = D.formatoDocumento?.registroRevision || CONFIG?.paa?.registroRevision || '';
       const fmtFechaStr = D.formatoDocumento?.registroFecha || CONFIG?.paa?.registroFecha || '';
 
@@ -1752,7 +1755,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.text('ACTIVIDAD/JUEGO/INSTALACION', ML, y); y += 4;
       doc.setDrawColor(...DARK); doc.rect(ML, y, CW, 8, 'D');
       doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-      doc.text('PAA', ML+2, y+5.5); y += 14;
+      doc.text(D.tipoAlcance||'', ML+2, y+5.5); y += 14;
 
       // Normativa
       doc.setFillColor(...SURF); doc.rect(ML, y, CW, 7, 'FD');
@@ -1760,7 +1763,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.text('NORMATIVA APLICABLE', PW/2, y+4.5, {align:'center'}); y += 7;
       doc.rect(ML, y, CW, 8, 'D');
       doc.setFontSize(10); doc.setFont('helvetica','normal');
-      doc.text('UNE-EN 15567-1:2015+A1:2021', PW/2, y+5.5, {align:'center'}); y += 10;
+      doc.text(norma.numero, PW/2, y+5.5, {align:'center'}); y += 10;
 
       // Equipos medición
       doc.setFillColor(...SURF); doc.rect(ML, y, CW, 7, 'FD');
