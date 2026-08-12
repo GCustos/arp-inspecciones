@@ -718,16 +718,23 @@
       ]);
     }).then(function(results) {
       var equiposMedicion = results[0];
-      var paaSnap = results[1];
-      var _paa = paaSnap.exists ? paaSnap.data() : {};
+      var alcSnap = results[1];
+      var _cfg = alcSnap.exists ? alcSnap.data() : {};
       var formatoDocumento = {
-        informeRevision: _paa.formatoRevision  || 0,
-        informeFecha:    _paa.formatoFecha     || "",
-        registroRevision:_paa.registroRevision || 0,
-        registroFecha:   _paa.registroFecha    || "",
-        checklist:       _paa.checklist        || [],
-        columnas:        _paa.columnas         || [],
-        normaAplicable:  _paa.normaAplicable    || null
+        informeRevision: _cfg.formatoRevision  || 0,
+        informeFecha:    _cfg.formatoFecha     || "",
+        registroRevision:_cfg.registroRevision || 0,
+        registroFecha:   _cfg.registroFecha    || "",
+        checklist:       _cfg.checklist        || [],
+        columnas:        _cfg.columnas         || [],
+        tiposJuego:      _cfg.tiposJuego        || null,
+        normaAplicable:  _cfg.normaAplicable    || null,
+        // Config específica de alcances con tiposJuego (ej. SAE) — se snapshotea igual que
+        // el resto para que la inspección quede congelada aunque luego cambie config/{alcance}.
+        ensayoPrueba:        _cfg.ensayoPrueba        || null,
+        materialSubcategorias:_cfg.materialSubcategorias || null,
+        normasDetalle:       _cfg.normasDetalle       || null,
+        equiposRequeridos:   _cfg.equiposRequeridos   || null
       };
       document.getElementById("loadingMsg").textContent = "Creando inspección...";
 

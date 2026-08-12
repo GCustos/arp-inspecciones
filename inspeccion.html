@@ -291,13 +291,14 @@
 <div class="tab-content" id="tc2">
   <div class="tab-inner">
     <div class="import-banner" id="importBanner">
-      <p>Esta instalación tiene una inspección anterior. ¿Deseas cargar la <strong>estructura de circuitos y juegos</strong> como punto de partida?</p>
+      <p>Esta instalación tiene una inspección anterior. ¿Deseas cargar la <strong id="importBannerEstructuraTxt">estructura de circuitos y juegos</strong> como punto de partida?</p>
       <div class="import-btns">
         <button class="btn-import-si" onclick="importarCircuitos()">&#10003; Sí, cargar estructura</button>
         <button class="btn-import-no" onclick="document.getElementById('importBanner').classList.remove('vis')">No, empezar vacío</button>
       </div>
     </div>
-    <button class="btn-add-circ" onclick="addCircuito()">&#43; Añadir circuito</button>
+    <button class="btn-add-circ" id="btnAddCircuito" onclick="addCircuito()">&#43; Añadir circuito</button>
+    <div id="botonesAddTiposJuego" style="display:none;gap:10px;margin-bottom:12px"></div>
     <div id="circuitosContainer"></div>
   </div>
 </div>
@@ -348,6 +349,12 @@
       <span class="modal-title">Nueva no conformidad</span>
     </div>
     <div class="modal-context" id="modalNCContexto"></div>
+    <div class="f" id="modalNCSubcatWrap" style="display:none">
+      <label>Subcategoría de material *</label>
+      <select id="modalNCSubcat">
+        <option value="">&#8212; Selecciona subcategoría &#8212;</option>
+      </select>
+    </div>
     <div class="f">
       <label>Tipo de no conformidad *</label>
       <select id="modalNCTipo" onchange="onTipoNCChange()">
@@ -393,6 +400,19 @@
     </div>
     <!-- FIX: Botón cancelar que revierte el N -->
     <button class="btn-modal-cancel" onclick="cancelarNC()">Cancelar &#8212; no crear NC</button>
+  </div>
+</div>
+
+<!-- MODAL ENSAYO DE PRUEBA (SAE — PPI/PSPI/SSPC) -->
+<div class="modal-overlay" id="modalEnsayo">
+  <div class="modal-sheet" onclick="event.stopPropagation()" style="max-height:85vh;overflow-y:auto">
+    <div class="modal-header">
+      <span class="modal-title">Ensayo de prueba</span>
+      <button style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)" onclick="cerrarModalEnsayo()">&#215;</button>
+    </div>
+    <div id="modalEnsayoCriterio" style="font-size:11px;color:var(--muted);margin-bottom:10px"></div>
+    <div id="modalEnsayoBody"></div>
+    <button class="btn-modal-ok" onclick="guardarEnsayo()">&#10003; Guardar y cerrar</button>
   </div>
 </div>
 
@@ -490,6 +510,12 @@
 
   var NORMA_APLICABLE = "UNE-EN 15567-1:2015+A1:2021";
 
+  // Alcances con columnas por tipo de elemento (ej. SAE: Vía/Muro) en vez de un único
+  // COLS plano — null para alcances tipo PAA/FER, que siguen usando COLS/COL_LABELS tal cual.
+  var TIPOS_JUEGO = null;          // {SAE:{id,label,botonAnadir,normaRef,columnas:[...]}, MURO:{...}}
+  var ENSAYO_PRUEBA_CFG = null;    // config del modal de ensayo de prueba (PPI/PSPI/SSPC), solo SAE
+  var MATERIAL_SUBCATEGORIAS = null;
+
   function _aplicarFormato(fmt) {
     if (!fmt) return;
     if (fmt.checklist && fmt.checklist.length) GEN_ITEMS = fmt.checklist;
@@ -498,7 +524,27 @@
       COL_LABELS = {};
       fmt.columnas.forEach(function(c){ COL_LABELS[c.id] = c.label; });
     }
+    if (fmt.tiposJuego && fmt.tiposJuego.length) {
+      TIPOS_JUEGO = {};
+      fmt.tiposJuego.forEach(function(t){ TIPOS_JUEGO[t.id] = t; });
+    }
+    if (fmt.ensayoPrueba) ENSAYO_PRUEBA_CFG = fmt.ensayoPrueba;
+    if (fmt.materialSubcategorias && fmt.materialSubcategorias.length) MATERIAL_SUBCATEGORIAS = fmt.materialSubcategorias;
     if (fmt.normaAplicable && fmt.normaAplicable.numero) NORMA_APLICABLE = fmt.normaAplicable.numero;
+  }
+
+  // Columnas efectivas para un circuito dado: si el alcance usa tiposJuego (SAE) y el
+  // circuito tiene tipoElemento asignado, sus propias columnas; si no, COLS/COL_LABELS
+  // globales de siempre (comportamiento PAA/FER sin cambios).
+  function colsForCirc(circ) {
+    if (TIPOS_JUEGO && circ && circ.tipoElemento && TIPOS_JUEGO[circ.tipoElemento]) {
+      var t = TIPOS_JUEGO[circ.tipoElemento];
+      var cols = (t.columnas||[]).map(function(c){ return {key:c.id, label:c.abbrev}; });
+      var labels = {};
+      (t.columnas||[]).forEach(function(c){ labels[c.id] = c.label; });
+      return { cols:cols, labels:labels };
+    }
+    return { cols:COLS, labels:COL_LABELS };
   }
 
   // ── EQUIPOS DE MEDICIÓN ──
@@ -889,6 +935,7 @@
       }
       if(data.ncs) S.ncs=data.ncs;
       _aplicarFormato(data.formatoDocumento);
+      actualizarBotonesAlcance();
       // fotos generales eliminadas — las fotos van en juegos y NCs
       if(data.ensayos) S.ensayos=data.ensayos;
       S.revision=data.revision!==undefined?data.revision:0;
@@ -979,11 +1026,19 @@
 
   function importarCircuitos(){
     if(!circuitosAnteriores) return;
-    S.circuitos=circuitosAnteriores.map(circ=>({
-      id:uid(),
-      nombre:circ.nombre||"",
-      juegos:(circ.juegos||[]).map(j=>({id:uid(),nombre:j.nombre||"",tipo:j.tipo||"R",rama:j.rama||"",ie:"",af:"",ej:"",ra:"",zs:"",obs:"",fotos:[]}))
-    }));
+    // Las columnas a blanquear dependen del tipo de elemento (PAA/FER: ie/af/ej/ra/zs
+    // de siempre vía colsForCirc con tipoElemento vacío; SAE: 9 columnas de Vía o Muro).
+    S.circuitos=circuitosAnteriores.map(function(circ){
+      var nuevoCirc={id:uid(), nombre:circ.nombre||""};
+      if(circ.tipoElemento) nuevoCirc.tipoElemento=circ.tipoElemento;
+      var _cols=colsForCirc(nuevoCirc).cols;
+      nuevoCirc.juegos=(circ.juegos||[]).map(function(j){
+        var nj={id:uid(),nombre:j.nombre||"",tipo:j.tipo||"R",rama:j.rama||"",obs:"",fotos:[]};
+        _cols.forEach(function(col){ nj[col.key]=""; });
+        return nj;
+      });
+      return nuevoCirc;
+    });
     S.circuitos.forEach(function(c){ _dirtyCircuitIds.add(c.id); });
     document.getElementById('importBanner').classList.remove('vis');
     markDirty(); renderCircuitos(); goTab(2);
@@ -1139,6 +1194,50 @@
     markCircuitDirty(ci); markDirty(); renderCircuitos();
   }
 
+  // Alterna entre "+ Añadir circuito" (PAA/FER) y los botones por tipo de elemento
+  // (ej. SAE: "+ Añadir Vía" / "+ Añadir Zona/Muro") — leídos de TIPOS_JUEGO, nunca
+  // hardcodeados, para que un tercer tipo de elemento no necesite tocar código.
+  function actualizarBotonesAlcance(){
+    var wrap=document.getElementById('botonesAddTiposJuego');
+    var btnCirc=document.getElementById('btnAddCircuito');
+    var tabEl=document.getElementById('tab2');
+    var importTxt=document.getElementById('importBannerEstructuraTxt');
+    if(!wrap||!btnCirc) return;
+    if(TIPOS_JUEGO){
+      btnCirc.style.display='none';
+      wrap.style.display='flex';
+      wrap.innerHTML=Object.keys(TIPOS_JUEGO).map(function(tid){
+        var t=TIPOS_JUEGO[tid];
+        return '<button class="btn-add-circ" style="margin-bottom:0" onclick="addElementoSAE(\''+tid+'\')">'+escHtmlLocal(t.botonAnadir||('+ Añadir '+(t.label||tid)))+'</button>';
+      }).join('');
+      if(tabEl) tabEl.textContent='Elementos';
+      if(importTxt) importTxt.textContent='estructura de elementos';
+    } else {
+      btnCirc.style.display='';
+      wrap.style.display='none';
+      wrap.innerHTML='';
+      if(tabEl) tabEl.textContent='Circuitos';
+      if(importTxt) importTxt.textContent='estructura de circuitos y juegos';
+    }
+  }
+  function escHtmlLocal(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // Crea un elemento SAE (Vía/Muro): circuito + su único juego en un solo paso —
+  // el tipo queda fijo al crear, nunca seleccionable/editable después (evita error de operario).
+  window.addElementoSAE = function(tipoElemento){
+    var t = TIPOS_JUEGO && TIPOS_JUEGO[tipoElemento];
+    if(!t) return;
+    var n = S.circuitos.filter(function(c){ return c.tipoElemento===tipoElemento; }).length + 1;
+    var nombre = (t.label||tipoElemento)+' '+n;
+    var cId = uid();
+    var juego = {id:uid(), nombre:nombre, tipo:'R', rama:'', obs:'', fotos:[]};
+    (t.columnas||[]).forEach(function(c){ juego[c.id]=''; });
+    S.circuitos.push({id:cId, nombre:nombre, tipoElemento:tipoElemento, juegos:[juego]});
+    _dirtyCircuitIds.add(cId);
+    circuitoActivo = S.circuitos.length-1;
+    markDirty(); renderCircuitos();
+  };
+
   function addCircuito(){
     const nombre=prompt("Nombre del circuito:","Circuito "+(S.circuitos.length+1));
     if(!nombre) return;
@@ -1183,9 +1282,10 @@
     if(!["nombre","obs","rama"].includes(col)&&val==="N"&&prev!=="N"){
       const j=S.circuitos[ci].juegos[ji];
       const circ=S.circuitos[ci];
+      const _labels=colsForCirc(circ).labels;
       abrirModalNC({
         ci,ji,col,prevVal:prev,
-        contexto:`${circ.nombre} — ${j.nombre||"Juego "+(ji+1)} — ${COL_LABELS[col]}`
+        contexto:circ.tipoElemento?`${circ.nombre} — ${_labels[col]||col}`:`${circ.nombre} — ${j.nombre||"Juego "+(ji+1)} — ${_labels[col]||COL_LABELS[col]}`
       });
     } else {
       renderCircuitos();
@@ -1258,16 +1358,68 @@
       return;
     }
     c.innerHTML=S.circuitos.map((circ,ci)=>{
+      var _colsInfo=colsForCirc(circ), _cols=_colsInfo.cols, _labels=_colsInfo.labels;
       const total=circ.juegos.length;
-      const ok=circ.juegos.filter(j=>COLS.every(col=>j[col.key]==="S"||j[col.key]==="NA")).length;
-      const hayN=circ.juegos.some(j=>COLS.some(col=>j[col.key]==="N"));
+      const ok=circ.juegos.filter(j=>_cols.every(col=>j[col.key]==="S"||j[col.key]==="NA")).length;
+      const hayN=circ.juegos.some(j=>_cols.some(col=>j[col.key]==="N"));
+
+      // ── ELEMENTO SAE (Vía / Zona-Muro) — sin subnivel de "juego" visible: un único
+      // checklist de columnas del tipo de elemento, directamente bajo la cabecera.
+      if (circ.tipoElemento) {
+        const j = circ.juegos[0] || (circ.juegos[0]={id:uid(),nombre:circ.nombre,tipo:'R',rama:'',obs:'',fotos:[]});
+        const tInfo = TIPOS_JUEGO && TIPOS_JUEGO[circ.tipoElemento];
+        const nFotos=j.fotos&&j.fotos.length||0;
+        const nPerdidas=(j.fotos||[]).filter(function(f){return f.perdida;}).length;
+        const criterios=_cols.map(col=>{
+          const esEnsayo = ENSAYO_PRUEBA_CFG && ENSAYO_PRUEBA_CFG.aplicaATipo===circ.tipoElemento && ENSAYO_PRUEBA_CFG.aplicaAColumna===col.key;
+          const ep=j.ensayoPrueba||{};
+          const nPuntos = esEnsayo ? ((ep.ppi||[]).length+(ep.pspi||[]).length+(ep.sspc||[]).length) : 0;
+          return `
+            <div class="criterio-row">
+              <span class="criterio-label">${_labels[col.key]||col.label}${esEnsayo?` <button type="button" onclick="event.stopPropagation();abrirModalEnsayo(${ci})" style="background:none;border:none;color:var(--gold);font-size:10px;text-decoration:underline;cursor:pointer;padding:0;margin-left:4px">ver detalle${nPuntos?' ('+nPuntos+')':''}</button>`:''}</span>
+              <div class="criterio-btns">
+                <button class="snb-s ${j[col.key]==="S"?"s-S":""}" onclick="setJuego(${ci},0,'${col.key}','S')">S</button>
+                <button class="snb-s ${j[col.key]==="N"?"s-N":""}" onclick="setJuego(${ci},0,'${col.key}','N')">N</button>
+                <button class="snb-s ${j[col.key]==="NA"?"s-NA":""}" onclick="setJuego(${ci},0,'${col.key}','NA')">NA</button>
+              </div>
+            </div>`;
+        }).join("");
+        const body = `
+          <div style="padding:12px 14px;background:#FAFAF9" id="jm_${ci}_0">
+            <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${tInfo?tInfo.label:circ.tipoElemento}${tInfo&&tInfo.normaRef?' · '+tInfo.normaRef:''}</div>
+            ${criterios}
+            <div class="juego-field" style="margin-top:10px">
+              <label>Observación</label>
+              <input type="text" value="${(j.obs||'').replace(/"/g,'&quot;')}" placeholder="obs..." onchange="setJuego(${ci},0,'obs',this.value)">
+            </div>
+            <div class="juego-foto-row">
+              <button class="btn-foto-cam" onclick="abrirModalFotos(${ci},0)">&#128247; ${nFotos?nFotos+' foto'+(nFotos>1?'s':''):'Fotos'}</button>
+            </div>
+          </div>`;
+        return `<div class="circ-card" data-ci="${ci}">
+          <div class="circ-header" onclick="toggleCircuito(${ci})">
+            <span class="drag-handle circ-handle" onclick="event.stopPropagation()" title="Arrastrar para reordenar">&#8285;</span>
+            <span class="circ-toggle ${ci===circuitoActivo?'open':''}" id="ct_${ci}">&#9654;</span>
+            <span class="circ-nombre">${circ.nombre}</span>
+            <button onclick="event.stopPropagation();renombrarCircuito(${ci})" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:2px 6px;flex-shrink:0" title="Renombrar">&#9998;</button>
+            <button onclick="event.stopPropagation();delCircuito(${ci})" style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;padding:2px 6px;flex-shrink:0;opacity:.6" title="Eliminar">&#128465;</button>
+            ${nPerdidas?`<span class="foto-juego-hdr" style="color:#c62828">&#128247;&#10060;</span>`:''}
+            <span class="circ-stats" style="color:${hayN?'var(--orange)':ok===total&&total>0?'var(--green)':'var(--muted)'}">${ok}/${total} OK</span>
+          </div>
+          <div class="circ-body ${ci===circuitoActivo?'open':''}" id="cb_${ci}">
+            ${body}
+          </div>
+        </div>`;
+      }
+
+      // ── CIRCUITO PAA/FER — comportamiento anterior, sin cambios ──
       const tablaPC=`
         <div class="jt-wrap"><table class="jt">
           <thead><tr>
             <th style="width:20px"></th>
             <th class="tl" style="width:26%">Juego</th>
             <th style="width:7%">Tipo</th><th style="width:6%">Rama</th>
-            ${COLS.map(col=>`<th style="width:8%">${col.label.replace("\n","<br>")}</th>`).join("")}
+            ${_cols.map(col=>`<th style="width:8%">${col.label.replace("\n","<br>")}</th>`).join("")}
             <th style="min-width:65px">Obs.</th>
             <th style="width:20px">&#128247;</th>
             <th style="width:22px"></th>
@@ -1282,7 +1434,7 @@
                 <option value="AUX" ${j.tipo==="AUX"?"selected":""}>AUX</option>
               </select></td>
               <td><input class="rama-inp" type="text" value="${j.rama||""}" placeholder="-" maxlength="2" onchange="setJuego(${ci},${ji},'rama',this.value)"></td>
-              ${COLS.map(col=>`<td><div class="snb-c">
+              ${_cols.map(col=>`<td><div class="snb-c">
                 <button class="snb-s ${j[col.key]==="S"?"s-S":""}" onclick="setJuego(${ci},${ji},'${col.key}','S')">S</button>
                 <button class="snb-s ${j[col.key]==="N"?"s-N":""}" onclick="setJuego(${ci},${ji},'${col.key}','N')">N</button>
                 <button class="snb-s ${j[col.key]==="NA"?"s-NA":""}" onclick="setJuego(${ci},${ji},'${col.key}','NA')">NA</button>
@@ -1299,8 +1451,8 @@
 
       const jAb=juegoAbierto[ci]??-1;
       const juegosMovil=circ.juegos.map((j,ji)=>{
-        const todoOk=COLS.every(col=>j[col.key]==="S"||j[col.key]==="NA");
-        const hayNj=COLS.some(col=>j[col.key]==="N");
+        const todoOk=_cols.every(col=>j[col.key]==="S"||j[col.key]==="NA");
+        const hayNj=_cols.some(col=>j[col.key]==="N");
         const dotCls=hayNj?'dot-n':todoOk?'dot-ok':'dot-empty';
         const nFotos=j.fotos&&j.fotos.length||0;
         const nPerdidas=(j.fotos||[]).filter(function(f){return f.perdida;}).length;
@@ -1326,9 +1478,9 @@
                 <input type="text" value="${j.rama||""}" placeholder="-" maxlength="2" onchange="setJuego(${ci},${ji},'rama',this.value)" style="text-align:center">
               </div>
             </div>
-            ${COLS.map(col=>`
+            ${_cols.map(col=>`
               <div class="criterio-row">
-                <span class="criterio-label">${COL_LABELS[col.key]}</span>
+                <span class="criterio-label">${_labels[col.key]}</span>
                 <div class="criterio-btns">
                   <button class="snb-s ${j[col.key]==="S"?"s-S":""}" onclick="setJuego(${ci},${ji},'${col.key}','S')">S</button>
                   <button class="snb-s ${j[col.key]==="N"?"s-N":""}" onclick="setJuego(${ci},${ji},'${col.key}','N')">N</button>
@@ -1428,6 +1580,92 @@
     });
   }
 
+  // MODAL ENSAYO DE PRUEBA (SAE — PPI/PSPI/SSPC, columna configurada en ensayoPrueba.aplicaAColumna)
+  // 3 secciones fijas con lista dinámica propia cada una — el tipo de punto queda fijo por la
+  // sección donde se pulsa "+ Añadir punto", nunca se selecciona (evita error de operario).
+  var modalEnsayoRef=null;
+  window.abrirModalEnsayo=function(ci){
+    if(!ENSAYO_PRUEBA_CFG) return;
+    modalEnsayoRef={ci:ci};
+    var j=S.circuitos[ci].juegos[0];
+    if(!j.ensayoPrueba) j.ensayoPrueba={};
+    document.getElementById('modalEnsayoCriterio').textContent='Carga '+(ENSAYO_PRUEBA_CFG.carga||'')+(ENSAYO_PRUEBA_CFG.tiempoMinSegundos?' · '+ENSAYO_PRUEBA_CFG.tiempoMinSegundos+'s mín.':'');
+    renderModalEnsayo();
+    document.getElementById('modalEnsayo').classList.add('open');
+  };
+  window.cerrarModalEnsayo=function(){
+    document.getElementById('modalEnsayo').classList.remove('open');
+    modalEnsayoRef=null;
+  };
+  function renderModalEnsayo(){
+    if(!modalEnsayoRef) return;
+    var ci=modalEnsayoRef.ci;
+    var j=S.circuitos[ci].juegos[0];
+    var ep=j.ensayoPrueba||(j.ensayoPrueba={});
+    var html='';
+    (ENSAYO_PRUEBA_CFG.secciones||[]).forEach(function(sec){
+      var key=sec.id.toLowerCase();
+      var pts=ep[key]||(ep[key]=[]);
+      html+='<div style="margin-bottom:16px">'
+        +'<div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:2px">'+escHtmlLocal(sec.label)+'</div>'
+        +'<div style="font-size:10px;color:var(--muted);margin-bottom:8px">'+escHtmlLocal(sec.criterio||'')+'</div>';
+      pts.forEach(function(p,pi){
+        html+='<div class="criterio-row">';
+        if(sec.ubicaciones&&sec.ubicaciones.length){
+          html+='<select style="flex:1;border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:11px" onchange="setPuntoEnsayo(\''+sec.id+'\','+pi+',\'ubicacion\',this.value)">'
+            +'<option value="">— ubicación —</option>'
+            +sec.ubicaciones.map(function(u){return '<option'+(p.ubicacion===u?' selected':'')+'>'+escHtmlLocal(u)+'</option>';}).join('')
+            +'</select>';
+        } else {
+          html+='<span class="criterio-label">Punto '+(pi+1)+'</span>';
+        }
+        html+='<div class="criterio-btns">'
+          +'<button class="snb-s '+(p.ok===true?'s-S':'')+'" onclick="setPuntoEnsayo(\''+sec.id+'\','+pi+',\'ok\',true)">SAT</button>'
+          +'<button class="snb-s '+(p.ok===false?'s-N':'')+'" onclick="setPuntoEnsayo(\''+sec.id+'\','+pi+',\'ok\',false)">N.S.</button>'
+          +'<button class="del-btn" onclick="delPuntoEnsayo(\''+sec.id+'\','+pi+')">&#215;</button>'
+          +'</div></div>';
+      });
+      html+='<button class="btn-add-juego" style="margin-top:4px" onclick="addPuntoEnsayo(\''+sec.id+'\')">&#43; Añadir punto</button>'
+        +'</div>';
+    });
+    document.getElementById('modalEnsayoBody').innerHTML=html;
+  }
+  window.addPuntoEnsayo=function(secId){
+    var j=S.circuitos[modalEnsayoRef.ci].juegos[0];
+    var key=secId.toLowerCase();
+    if(!j.ensayoPrueba) j.ensayoPrueba={};
+    if(!j.ensayoPrueba[key]) j.ensayoPrueba[key]=[];
+    j.ensayoPrueba[key].push({ok:undefined,obs:'',ubicacion:''});
+    renderModalEnsayo();
+  };
+  window.delPuntoEnsayo=function(secId,idx){
+    var j=S.circuitos[modalEnsayoRef.ci].juegos[0];
+    var key=secId.toLowerCase();
+    if(j.ensayoPrueba&&j.ensayoPrueba[key]) j.ensayoPrueba[key].splice(idx,1);
+    renderModalEnsayo();
+  };
+  window.setPuntoEnsayo=function(secId,idx,field,val){
+    var j=S.circuitos[modalEnsayoRef.ci].juegos[0];
+    var key=secId.toLowerCase();
+    if(j.ensayoPrueba&&j.ensayoPrueba[key]&&j.ensayoPrueba[key][idx]) j.ensayoPrueba[key][idx][field]=val;
+    renderModalEnsayo();
+  };
+  window.guardarEnsayo=function(){
+    if(!modalEnsayoRef) return;
+    var ci=modalEnsayoRef.ci;
+    var j=S.circuitos[ci].juegos[0];
+    var ep=j.ensayoPrueba||{};
+    var pts=(ep.ppi||[]).concat(ep.pspi||[]).concat(ep.sspc||[]);
+    cerrarModalEnsayo();
+    if(pts.length){
+      var hayNS=pts.some(function(p){return p.ok===false;});
+      var todosOk=pts.every(function(p){return p.ok===true;});
+      var agregado=hayNS?'N':(todosOk?'S':'');
+      if(agregado){ setJuego(ci,0,ENSAYO_PRUEBA_CFG.aplicaAColumna,agregado); return; }
+    }
+    markCircuitDirty(ci); markDirty(); renderCircuitos();
+  };
+
   // MODAL FOTOS POR JUEGO
   function abrirModalFotos(ci,ji){
     modalJuegoRef={ci,ji};
@@ -1488,6 +1726,19 @@
     modalNCRef=ref;
     modalNCPrio='';
     document.getElementById('modalNCContexto').innerHTML=`<strong>${ref.contexto}</strong>`;
+    // Subcategoría de material (ej. SAE, ítem "Materiales generales" 4.2) — solo si el ítem
+    // del checklist la pide (item.materialCheck) y el alcance tiene materialSubcategorias.
+    var genItem=ref.itemId?GEN_ITEMS.find(function(i){return i.id===ref.itemId;}):null;
+    var subcatWrap=document.getElementById('modalNCSubcatWrap');
+    if(genItem&&genItem.materialCheck&&MATERIAL_SUBCATEGORIAS&&MATERIAL_SUBCATEGORIAS.length){
+      var subcatSel=document.getElementById('modalNCSubcat');
+      subcatSel.innerHTML='<option value="">— Selecciona subcategoría —</option>'+
+        MATERIAL_SUBCATEGORIAS.map(function(s){return '<option value="'+s.id+'">'+s.label+'</option>';}).join('');
+      subcatSel.value='';
+      subcatWrap.style.display='block';
+    } else {
+      subcatWrap.style.display='none';
+    }
     var sel=document.getElementById('modalNCTipo');
     sel.innerHTML='<option value="">— Selecciona tipo —</option>'+tiposNCList.map(function(t){return'<option>'+t+'</option>'}).join('')+'<option value="__otro__">Otro (escribir)</option>';
     sel.value='';
@@ -1545,9 +1796,16 @@
     const tipo=tipoSel==='__otro__'?tipoLibre:tipoSel;
     const obs=document.getElementById('modalNCObs').value.trim();
     const norma=document.getElementById('modalNCNorma').value.trim();
+    const subcatVisible=document.getElementById('modalNCSubcatWrap').style.display!=='none';
+    const subcategoria=document.getElementById('modalNCSubcat').value;
 
     if(!tipo||!modalNCPrio){
       document.getElementById('modalNCErr').textContent='Debes seleccionar el tipo y la gravedad.';
+      document.getElementById('modalNCErr').classList.add('vis');
+      return;
+    }
+    if(subcatVisible&&!subcategoria){
+      document.getElementById('modalNCErr').textContent='Debes seleccionar la subcategoría de material.';
       document.getElementById('modalNCErr').classList.add('vis');
       return;
     }
@@ -1574,6 +1832,7 @@
     // Evitar duplicado de autoId
     if(!S.ncs.find(n=>n.autoId===autoId)){
       const ncNew={autoId,tipo,elem,desc:obs,norma,prio:modalNCPrio,origen,fotosDefecto:[...modalNCFotos],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision};
+      if(subcatVisible&&subcategoria) ncNew.subcategoria=subcategoria;
       if(juegoId) ncNew.juegoId=juegoId;
       S.ncs.push(ncNew);
     }
@@ -1599,6 +1858,9 @@
     if(!S.ncs.length){ c.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:12px;padding:14px">Sin no conformidades.</div>`; return; }
     c.innerHTML=S.ncs.map((nc,i)=>{
       const incompleta=!nc.tipo||!nc.prio;
+      // Columnas del selector "Pregunta checklist": las del circuito elegido si tiene
+      // tipoElemento propio (SAE), si no las de siempre (PAA/FER/sin elegir aún).
+      const _ncColsInfo=(nc._ci!==undefined&&nc._ci!=='g'&&S.circuitos[nc._ci])?colsForCirc(S.circuitos[nc._ci]):{cols:COLS,labels:COL_LABELS};
       return `
         <div class="nc-card ${incompleta?'nc-incompleta':''}">
           <div class="nc-hdr">
@@ -1614,11 +1876,7 @@
             ${nc.autoId&&nc.origen==='auto' ? `<input type="text" value="${(nc.elem||'').replace(/"/g,'&quot;')}" disabled style="opacity:.7">` :
             `<div class="f" style="margin-bottom:4px"><select onchange="ncSelColumna(${i},this.value)">
               <option value="">— Pregunta checklist —</option>
-              <option value="ie"${nc._col==='ie'?' selected':''}>Integridad estructural</option>
-              <option value="af"${nc._col==='af'?' selected':''}>Anclajes y fijaciones</option>
-              <option value="ej"${nc._col==='ej'?' selected':''}>Elementos de juego</option>
-              <option value="ra"${nc._col==='ra'?' selected':''}>Riesgos y atrapamientos</option>
-              <option value="zs"${nc._col==='zs'?' selected':''}>Zona de seguridad</option>
+              ${_ncColsInfo.cols.map(col=>`<option value="${col.key}"${nc._col===col.key?' selected':''}>${_ncColsInfo.labels[col.key]||col.key}</option>`).join('')}
             </select></div>
             <div class="r2"><div class="f" style="margin-bottom:0"><select onchange="ncSelCircuito(${i},this.value)">
               <option value="">— Circuito —</option>
@@ -1846,7 +2104,11 @@
     var upd={};
     _dirtyCircuitIds.forEach(function(cId){
       var c=S.circuitos.find(function(c){ return c.id===cId; });
-      if(c) upd['circuitos.'+cId]=sanitizar({nombre:c.nombre,orden:S.circuitos.indexOf(c),juegos:c.juegos});
+      if(c) {
+        var _cData={nombre:c.nombre,orden:S.circuitos.indexOf(c),juegos:c.juegos};
+        if(c.tipoElemento) _cData.tipoElemento=c.tipoElemento;
+        upd['circuitos.'+cId]=sanitizar(_cData);
+      }
     });
     _deletedCircuitIds.forEach(function(cId){
       upd['circuitos.'+cId]=firebase.firestore.FieldValue.delete();
@@ -1860,7 +2122,9 @@
   function buildCircuitosMap(){
     var map={};
     S.circuitos.forEach(function(c,i){
-      map[c.id]=sanitizar({nombre:c.nombre,orden:i,juegos:c.juegos});
+      var _cData={nombre:c.nombre,orden:i,juegos:c.juegos};
+      if(c.tipoElemento) _cData.tipoElemento=c.tipoElemento;
+      map[c.id]=sanitizar(_cData);
     });
     return map;
   }
@@ -1967,11 +2231,12 @@
     // Validar columnas de juegos completas
     var juegosSinCol=[]; var firstCol={ci:-1,ji:-1};
     S.circuitos.forEach(function(c,ci){
+      var _cc=colsForCirc(c);
       (c.juegos||[]).forEach(function(j,ji){
-        var vacias=COLS.filter(function(col){ return !j[col.key]; });
+        var vacias=_cc.cols.filter(function(col){ return !j[col.key]; });
         if(vacias.length){
           juegosSinCol.push(c.nombre+' — '+(j.nombre||'Juego '+(ji+1))+
-            ' ('+vacias.map(function(col){ return COL_LABELS[col.key]||col.key; }).join(', ')+')');
+            ' ('+vacias.map(function(col){ return _cc.labels[col.key]||col.key; }).join(', ')+')');
           if(firstCol.ci<0){firstCol={ci,ji};}
         }
       });

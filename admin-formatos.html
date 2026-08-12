@@ -244,14 +244,18 @@
       db.collection('config').doc(alc).get(),
       db.collection('config').doc(alc+'_borrador').get()
     ]).then(function(res) {
-      var paa = res[0].exists ? res[0].data() : {};
+      var cfg = res[0].exists ? res[0].data() : {};
       formatoActivo = {
-        revision:         paa.formatoRevision  || (alc==='paa' ? 9  : 0),
-        fechaVigencia:    paa.formatoFecha      || (alc==='paa' ? '26/02/2026' : '—'),
-        registroRevision: paa.registroRevision  || (alc==='paa' ? 7  : 0),
-        registroFecha:    paa.registroFecha     || (alc==='paa' ? '10/02/2026' : '—'),
-        checklist:        paa.checklist         || [],
-        columnas:         paa.columnas          || []
+        // Los valores tras || son fallback histórico solo de PAA (rev/fecha ya conocidas
+        // de antes de que existiera formatoRevision/formatoFecha en Firestore) — no aplica
+        // a otros alcances, que simplemente parten de 0/'—' hasta tener su propia revisión.
+        revision:         cfg.formatoRevision  || (alc==='paa' ? 9  : 0),
+        fechaVigencia:    cfg.formatoFecha      || (alc==='paa' ? '26/02/2026' : '—'),
+        registroRevision: cfg.registroRevision  || (alc==='paa' ? 7  : 0),
+        registroFecha:    cfg.registroFecha     || (alc==='paa' ? '10/02/2026' : '—'),
+        checklist:        cfg.checklist         || [],
+        columnas:         cfg.columnas          || [],
+        tiposJuego:       cfg.tiposJuego        || null
       };
       borrador = res[1].exists ? res[1].data() : null;
       document.getElementById('borradorDot').style.display = borrador ? 'inline' : 'none';
@@ -300,15 +304,30 @@
     });
     if (!f.checklist.length) html += '<div class="empty-state" style="padding:16px">Sin preguntas definidas.</div>';
 
-    html += '<div class="sec-label">Columnas de inspección ('+f.columnas.length+')</div>';
-    f.columnas.forEach(function(col){
-      html += '<div class="col-item">'
-        +'<span class="col-id">'+escHtml(col.id)+'</span>'
-        +'<span class="col-abbrev">'+escHtml(col.abbrev)+'</span>'
-        +'<span class="col-label">'+escHtml(col.label)+'</span>'
-        +'</div>';
-    });
-    if (!f.columnas.length) html += '<div class="empty-state" style="padding:16px">Sin columnas definidas.</div>';
+    if (f.tiposJuego && f.tiposJuego.length) {
+      // Alcances con columnas por tipo de juego (ej. SAE: Vía/Muro) — solo lectura por ahora,
+      // no comparte código con el editor de columnas plano de abajo (ese es el de PAA/FER).
+      f.tiposJuego.forEach(function(tipo){
+        html += '<div class="sec-label">Columnas — '+escHtml(tipo.label)+' ('+(tipo.columnas||[]).length+')</div>';
+        (tipo.columnas||[]).forEach(function(col){
+          html += '<div class="col-item">'
+            +'<span class="col-id">'+escHtml(col.id)+'</span>'
+            +'<span class="col-abbrev">'+escHtml(col.abbrev)+'</span>'
+            +'<span class="col-label">'+escHtml(col.label)+'</span>'
+            +'</div>';
+        });
+      });
+    } else {
+      html += '<div class="sec-label">Columnas de inspección ('+f.columnas.length+')</div>';
+      f.columnas.forEach(function(col){
+        html += '<div class="col-item">'
+          +'<span class="col-id">'+escHtml(col.id)+'</span>'
+          +'<span class="col-abbrev">'+escHtml(col.abbrev)+'</span>'
+          +'<span class="col-label">'+escHtml(col.label)+'</span>'
+          +'</div>';
+      });
+      if (!f.columnas.length) html += '<div class="empty-state" style="padding:16px">Sin columnas definidas.</div>';
+    }
 
     document.getElementById('content').innerHTML = html;
   }
@@ -349,16 +368,31 @@
     if (!b.checklist.length) html += '<div class="empty-state" style="padding:12px">Sin preguntas. Pulsa + Añadir.</div>';
     html += '</div>';
 
-    // Columnas
-    html += '<div class="sec-label" style="margin-top:20px">Columnas de inspección'
-      +'<button class="btn-primary" style="font-size:11px;padding:4px 10px" onclick="nuevaColumna()">+ Añadir</button>'
-      +'</div>'
-      +'<div id="listaColumnas">';
-    b.columnas.forEach(function(col,i){
-      html += renderColEditor(i, col);
-    });
-    if (!b.columnas.length) html += '<div class="empty-state" style="padding:12px">Sin columnas.</div>';
-    html += '</div>';
+    // Columnas — alcances con tiposJuego (ej. SAE: Vía/Muro) todavía no tienen editor propio
+    // aquí, así que se muestran solo en lectura para no crear columnas planas huérfanas.
+    if (b.tiposJuego && b.tiposJuego.length) {
+      b.tiposJuego.forEach(function(tipo){
+        html += '<div class="sec-label" style="margin-top:20px">Columnas — '+escHtml(tipo.label)+' ('+(tipo.columnas||[]).length+')</div>';
+        (tipo.columnas||[]).forEach(function(col){
+          html += '<div class="col-item">'
+            +'<span class="col-id">'+escHtml(col.id)+'</span>'
+            +'<span class="col-abbrev">'+escHtml(col.abbrev)+'</span>'
+            +'<span class="col-label">'+escHtml(col.label)+'</span>'
+            +'</div>';
+        });
+      });
+      html += '<div class="empty-state" style="padding:8px 12px;font-size:11px">Edición de columnas por tipo de juego: aún no disponible desde aquí.</div>';
+    } else {
+      html += '<div class="sec-label" style="margin-top:20px">Columnas de inspección'
+        +'<button class="btn-primary" style="font-size:11px;padding:4px 10px" onclick="nuevaColumna()">+ Añadir</button>'
+        +'</div>'
+        +'<div id="listaColumnas">';
+      b.columnas.forEach(function(col,i){
+        html += renderColEditor(i, col);
+      });
+      if (!b.columnas.length) html += '<div class="empty-state" style="padding:12px">Sin columnas.</div>';
+      html += '</div>';
+    }
 
     // Botones
     html += '<div class="action-bar">'
@@ -401,23 +435,27 @@
   function initSortablesBorrador() {
     var elChk = document.getElementById('listaPreguntas');
     var elCols = document.getElementById('listaColumnas');
-    if (!elChk || !elCols) return;
     if (_sortableChk) _sortableChk.destroy();
     if (_sortableCols) _sortableCols.destroy();
-    _sortableChk = new Sortable(elChk, {
-      handle:'.drag-handle', animation:150, ghostClass:'sortable-ghost',
-      onEnd: function(evt) {
-        var moved = borrador.checklist.splice(evt.oldIndex, 1)[0];
-        borrador.checklist.splice(evt.newIndex, 0, moved);
-      }
-    });
-    _sortableCols = new Sortable(elCols, {
-      handle:'.drag-handle', animation:150, ghostClass:'sortable-ghost',
-      onEnd: function(evt) {
-        var moved = borrador.columnas.splice(evt.oldIndex, 1)[0];
-        borrador.columnas.splice(evt.newIndex, 0, moved);
-      }
-    });
+    if (elChk) {
+      _sortableChk = new Sortable(elChk, {
+        handle:'.drag-handle', animation:150, ghostClass:'sortable-ghost',
+        onEnd: function(evt) {
+          var moved = borrador.checklist.splice(evt.oldIndex, 1)[0];
+          borrador.checklist.splice(evt.newIndex, 0, moved);
+        }
+      });
+    }
+    // elCols no existe cuando el alcance usa tiposJuego (columnas de solo lectura, sin editor aún)
+    if (elCols) {
+      _sortableCols = new Sortable(elCols, {
+        handle:'.drag-handle', animation:150, ghostClass:'sortable-ghost',
+        onEnd: function(evt) {
+          var moved = borrador.columnas.splice(evt.oldIndex, 1)[0];
+          borrador.columnas.splice(evt.newIndex, 0, moved);
+        }
+      });
+    }
   }
 
   // ── ACCIONES BORRADOR ──
@@ -425,6 +463,9 @@
     borrador = {
       checklist:    JSON.parse(JSON.stringify(formatoActivo.checklist)),
       columnas:     JSON.parse(JSON.stringify(formatoActivo.columnas)),
+      // tiposJuego (alcances como SAE con columnas por tipo de juego) aún no tiene editor
+      // propio — se conserva tal cual para que crear/publicar un borrador nunca lo pierda.
+      tiposJuego:   formatoActivo.tiposJuego ? JSON.parse(JSON.stringify(formatoActivo.tiposJuego)) : null,
       fechaBorrador:new Date().toLocaleDateString('es-ES'),
       editadoPor:   currentUserEmail
     };
@@ -607,11 +648,14 @@
     var hoy = new Date().toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'});
     var batch = db.batch();
 
-    // 1. Actualizar config/paa|sae|fer
-    var paaRef = db.collection('config').doc(alcanceActual);
-    batch.set(paaRef, {
+    // 1. Actualizar config/{alcanceActual}
+    // tiposJuego (SAE) se reescribe tal cual venía en el borrador — todavía no es editable
+    // aquí, pero se preserva explícitamente en cada publicación en vez de dejarlo a merge.
+    var cfgRef = db.collection('config').doc(alcanceActual);
+    batch.set(cfgRef, {
       checklist:       borrador.checklist,
       columnas:        borrador.columnas,
+      tiposJuego:      borrador.tiposJuego || null,
       formatoRevision: nuevaRev,
       formatoFecha:    hoy
     }, {merge: true});
@@ -625,6 +669,7 @@
       motivo:       motivo,
       checklist:    borrador.checklist,
       columnas:     borrador.columnas,
+      tiposJuego:   borrador.tiposJuego || null,
       cambios: {
         checklist: { anadidos: diffChk.anadidos, eliminados: diffChk.eliminados, modificados: diffChk.modificados },
         columnas:  { anadidos: diffCols.anadidos, eliminados: diffCols.eliminados, modificados: diffCols.modificados }
@@ -640,7 +685,8 @@
         revision:     nuevaRev,
         fechaVigencia:hoy,
         checklist:    borrador.checklist,
-        columnas:     borrador.columnas
+        columnas:     borrador.columnas,
+        tiposJuego:   borrador.tiposJuego || null
       };
       borrador = null;
       document.getElementById('borradorDot').style.display = 'none';

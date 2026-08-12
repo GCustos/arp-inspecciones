@@ -105,7 +105,7 @@
   let CONFIG = null; // config empresa + formato
 
   // ── CONFIG POR DEFECTO (si Firestore falla offline) ──
-  const CONFIG_DEFAULT = { empresa: {}, paa: {}, director: {} };
+  const CONFIG_DEFAULT = { empresa: {}, alcance: {}, director: {} };
 
   // ── CARGA ──
   initAuth({
@@ -131,16 +131,15 @@
 
   async function cargarDatos() {
     try {
-      // Cargar configuración
+      // Cargar empresa + director (no dependen del alcance de la inspección)
       try {
-        const [ceSnap, paaSnap, dirSnap] = await Promise.all([
+        const [ceSnap, dirSnap] = await Promise.all([
           db.collection('config').doc('empresa').get(),
-          db.collection('config').doc('paa').get(),
           db.collection('config').doc('director').get()
         ]);
         CONFIG = {
           empresa:  ceSnap.exists  ? ceSnap.data()  : {},
-          paa:      paaSnap.exists ? paaSnap.data() : {},
+          alcance:  {},
           director: dirSnap.exists ? dirSnap.data() : {}
         };
       } catch(e) {
@@ -151,6 +150,15 @@
       const snap = await db.collection('inspecciones').doc(inspeccionId).get();
       if (!snap.exists) { document.getElementById('mainContent').innerHTML = '<p style="color:var(--red);padding:20px">Inspección no encontrada.</p>'; return; }
       D = { id: snap.id, ...snap.data() };
+
+      // Config del alcance real de esta inspección (fallback usado solo cuando la
+      // inspección no tiene formatoDocumento propio, ej. inspecciones antiguas anteriores
+      // a ese snapshot). 'PAA' como último recurso porque esas inspecciones antiguas eran
+      // siempre PAA (no existían otros alcances todavía).
+      try {
+        const alcSnap = await db.collection('config').doc((D.tipoAlcance || 'PAA').toLowerCase()).get();
+        if (alcSnap.exists) CONFIG.alcance = alcSnap.data();
+      } catch(e) {}
       // Normalizar circuitos: nuevo formato = mapa {id: circData}, legacy = array
       if (D.circuitos && !Array.isArray(D.circuitos))
         D.circuitos = Object.values(D.circuitos).sort(function(a,b){ return (a.orden||0)-(b.orden||0); });
@@ -204,16 +212,25 @@
     const favorable = D.resultado === 'FAVORABLE';
     const ncs = (D.ncs || []).filter(n => n.prio && n.prio !== 'OBSERVACION');
     const obs = (D.ncs || []).filter(n => n.prio === 'OBSERVACION');
+    // Claves de columna por circuito: las de su tipoElemento (SAE) o las de siempre (PAA/FER).
+    const tiposJuegoRes = D.formatoDocumento?.tiposJuego;
+    function keysForCircRes(c) {
+      if (tiposJuegoRes && c.tipoElemento) {
+        var t = tiposJuegoRes.find(function(tt){ return tt.id===c.tipoElemento; });
+        if (t) return (t.columnas||[]).map(function(cc){ return cc.id; });
+      }
+      return ['ie','af','ej','ra','zs'];
+    }
     const totalJuegos = (D.circuitos || []).reduce((s,c) => s + (c.juegos||[]).filter(j => j.tipo === 'R').length, 0);
     const totalAux = (D.circuitos || []).reduce((s,c) => s + (c.juegos||[]).filter(j => j.tipo !== 'R').length, 0);
     const juegosOk = (D.circuitos || []).reduce((s,c) =>
-      s + (c.juegos||[]).filter(j => j.tipo === 'R' && ['ie','af','ej','ra','zs'].every(k => j[k]==='S'||j[k]==='NA')).length, 0);
+      s + (c.juegos||[]).filter(j => j.tipo === 'R' && keysForCircRes(c).every(k => j[k]==='S'||j[k]==='NA')).length, 0);
     const juegosNC = (D.circuitos || []).reduce((s,c) =>
-      s + (c.juegos||[]).filter(j => j.tipo === 'R' && ['ie','af','ej','ra','zs'].some(k => j[k]==='N')).length, 0);
+      s + (c.juegos||[]).filter(j => j.tipo === 'R' && keysForCircRes(c).some(k => j[k]==='N')).length, 0);
     const auxOk = (D.circuitos || []).reduce((s,c) =>
-      s + (c.juegos||[]).filter(j => j.tipo !== 'R' && ['ie','af','ej','ra','zs'].every(k => j[k]==='S'||j[k]==='NA')).length, 0);
+      s + (c.juegos||[]).filter(j => j.tipo !== 'R' && keysForCircRes(c).every(k => j[k]==='S'||j[k]==='NA')).length, 0);
     const auxNC = (D.circuitos || []).reduce((s,c) =>
-      s + (c.juegos||[]).filter(j => j.tipo !== 'R' && ['ie','af','ej','ra','zs'].some(k => j[k]==='N')).length, 0);
+      s + (c.juegos||[]).filter(j => j.tipo !== 'R' && keysForCircRes(c).some(k => j[k]==='N')).length, 0);
     const ncsGenerales = (D.ncs || []).filter(n => n.prio && n.prio !== 'OBSERVACION' && n.autoId && n.autoId.startsWith('g')).length;
 
     document.getElementById('hdrTitulo').textContent = D.nombreInstalacion || 'Resultado';
@@ -266,7 +283,7 @@
       </div>
 
       <div class="stats-grid" style="grid-template-columns:repeat(5,1fr)">
-        <div class="stat-box"><div class="stat-num">${totalJuegos}</div><div class="stat-label">Juegos</div></div>
+        <div class="stat-box"><div class="stat-num">${totalJuegos}</div><div class="stat-label">${tiposJuegoRes&&tiposJuegoRes.length?'Elementos':'Juegos'}</div></div>
         <div class="stat-box"><div class="stat-num">${totalAux}</div><div class="stat-label">Aux.</div></div>
         <div class="stat-box"><div class="stat-num" style="color:var(--green)">${juegosOk} / ${auxOk}</div><div class="stat-label">Conformes</div></div>
         <div class="stat-box"><div class="stat-num" style="color:${(juegosNC+auxNC)?'var(--red)':'var(--green)'}">${juegosNC} / ${auxNC}</div><div class="stat-label">Con NC</div></div>
@@ -397,8 +414,9 @@
     doc.line(ML, 10, PW-MR, 10);
     doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
     const emp = CONFIG?.empresa?.nombreCorto || '';
+    const tipoInst = (D?.formatoDocumento?.normaAplicable?.tipoInstalacion || CONFIG?.alcance?.normaAplicable?.tipoInstalacion || 'la instalación').toUpperCase();
     doc.text(emp, ML, 8);
-    doc.text('INFORME DE INSPECCIÓN — INSTALACIONES PAA', PW/2, 8, {align:'center'});
+    doc.text('INFORME DE INSPECCIÓN — INSTALACIONES ' + tipoInst, PW/2, 8, {align:'center'});
     doc.text(`Rev. ${fmtRev||''}   Fecha: ${fmtFecha||''}`, PW-MR, 8, {align:'right'});
     // Pie
     doc.line(ML, PH-10, PW-MR, PH-10);
@@ -550,6 +568,21 @@ El diagnóstico visual realizado por ARP PREVENCIÓN consiste en medir la difere
 
 Nota: Para esta actividad de control ARP PREVENCIÓN interviene de manera totalmente externa, siendo de este modo conforme a los criterios de independencia de los organismos que proceden a la inspección de tipo C tal como están definidos en el Anexo A de la norma UNE EN ISO/CEI 17 020 de junio 2012. Además, ARP PREVENCIÓN dispone de un seguro de responsabilidad civil específico.`;
 
+  // ── TEXTO FIJO SAE (Estructuras Artificiales de Escalada) ──
+  // Borrador inicial — mismo rol/estructura que TEXTO_METODOLOGIA_1 (PAA), pendiente de
+  // revisión por Guille antes de considerarse definitivo para un informe real.
+  const TEXTO_METODOLOGIA_1_SAE = `Las Estructuras Artificiales de Escalada (SAE) son instalaciones que permiten al usuario progresar en altura sobre una superficie artificial de escalada, ya sea en vías equipadas con puntos de protección individual o en zonas/muros de bloque sin cuerda. La seguridad del practicante está asegurada por un sistema de protección individual (EPI ligado a puntos de anclaje) en el caso de las vías, o por las condiciones de la zona de caída y del suelo amortiguador en el caso de los muros de bloque.
+
+ARP PREVENCIÓN interviene en el cuadro de las exigencias normativas que se aplican a los explotadores o responsables de la gestión de las estructuras artificiales de escalada.
+
+La norma impone:
+— Una inspección previa a la apertura de la instalación y de toda modificación ulterior.
+— Una inspección periódica de la instalación para verificar el estado y para determinar las acciones de puesta en conformidad que deban ser realizadas.
+
+El diagnóstico visual realizado por ARP PREVENCIÓN consiste en medir la diferencia entre el nivel de seguridad exigido por la normativa y el nivel real de seguridad constatado sobre los elementos in situ, incluyendo la comprobación de los puntos de protección individual y de los sistemas de protección colectiva mediante el ensayo de prueba correspondiente.
+
+Nota: Para esta actividad de control ARP PREVENCIÓN interviene de manera totalmente externa, siendo de este modo conforme a los criterios de independencia de los organismos que proceden a la inspección de tipo C tal como están definidos en el Anexo A de la norma UNE EN ISO/CEI 17 020 de junio 2012. Además, ARP PREVENCIÓN dispone de un seguro de responsabilidad civil específico.`;
+
   const TEXTO_METODOLOGIA_2 = `Para esta prestación el técnico de ARP PREVENCIÓN dispone del material EPI siguiente:
 — Un arnés, un disipador de energía de caída, una polea, una cinta corta
 — Dos mosquetones automáticos, dos mosquetones de doble seguridad, anilla de sujeción
@@ -574,15 +607,15 @@ Inspección periódica: El control anual principal, se efectúa para constatar, 
 
   const TEXTO_MANT_EPI = `Todo material sufre daños debidos al envejecimiento y al desgaste. Conviene verificar visualmente y de forma meticulosa el material antes y después de cada uso a fin de asegurar su buen estado. Si un producto presenta taras o defectos o está corroído, deberá ser retirado. En caso de choque violento, todo producto debe ser cambiado, incluso si no tiene ningún signo visible de alteración.
 
-Todo responsable de la gestión de un parque debe poseer un registro de Equipos de Protección Individual en el que sean referenciados todos los equipos, con sus fichas de vida y notas técnicas de los fabricantes. En la mayor parte de las notas técnicas, la duración de uso de los equipos después de su primer uso está fijada preventivamente entre 3 y 5 años.`;
+Todo responsable de la gestión de la instalación debe poseer un registro de Equipos de Protección Individual en el que sean referenciados todos los equipos, con sus fichas de vida y notas técnicas de los fabricantes. En la mayor parte de las notas técnicas, la duración de uso de los equipos después de su primer uso está fijada preventivamente entre 3 y 5 años.`;
 
-  const TEXTO_RESULTADOS = `Los resultados de la inspección están organizados por capítulos, listando el conjunto de los puntos de inspección que componen el diagnóstico de seguridad, para el recorrido en su conjunto. En el presente informe se detallan tanto las observaciones de carácter más grave, como los consejos o recomendaciones de seguridad que puedan ser aportados por el inspector en la inspección in situ de las instalaciones.
+  const TEXTO_RESULTADOS = `Los resultados de la inspección están organizados por capítulos, listando el conjunto de los puntos de inspección que componen el diagnóstico de seguridad, para la instalación en su conjunto. En el presente informe se detallan tanto las observaciones de carácter más grave, como los consejos o recomendaciones de seguridad que puedan ser aportados por el inspector en la inspección in situ de las instalaciones.
 
 Las observaciones consideradas como NO CONFORMIDAD a norma, vendrán reflejadas por niveles de severidad:
 
 — Graves: puntos de no cumplimiento normativo que presentan riesgos para la integridad estructural o la seguridad de los usuarios, que deben ser modificados o corregidos lo antes posible.
 — Medio: puntos de divergencia respecto a la normativa en vigor que deben ser tenidos en consideración para que el riesgo no vaya a más. Se deberán realizar operaciones correctivas pero sin carácter de urgencia.
-— Leve/Documentales: falta de documentos técnicos o informes técnicos que necesiten ser entregados por el gestor/constructor del parque.
+— Leve/Documentales: falta de documentos técnicos o informes técnicos que necesiten ser entregados por el gestor/constructor de la instalación.
 
 En caso de ausencia de no conformidad, el certificado será emitido una vez concluido y confirmado el pago del servicio.`;
 
@@ -606,7 +639,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
 — Un registro de todos los defectos encontrados
 — Información sobre lo que se haya omitido en el campo de aplicación original de la inspección
 — Una declaración indicando que el informe de la inspección no se debería reproducir salvo en su integridad
-— El presente documento se debe incluir en la documentación de utilización del recorrido acrobático en altura.`;
+— El presente documento se debe incluir en la documentación de utilización de la instalación.`;
 
   var GEN_ITEMS_PDF = [
     {ref:"4.1",sec:"Selección de Lugar y Entorno",desc:"Evacuación posible desde cualquier punto; riesgos locales (rayos, inundaciones, viento, corrosión).",id:"g1"},
@@ -719,9 +752,15 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
     try {
       const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
       const ref = getNRegistro();
-      const fmtRev = D.formatoDocumento?.informeRevision || D.formatoDocumento?.revision || CONFIG?.paa?.formatoRevision || '';
-      const fmtFechaStr = D.formatoDocumento?.informeFecha || D.formatoDocumento?.fechaVigencia || CONFIG?.paa?.formatoFecha || '';
-      const norma = D.formatoDocumento?.normaAplicable || CONFIG?.paa?.normaAplicable || { numero:'', titulo:'', tipoInstalacion:'la instalación' };
+      const fmtRev = D.formatoDocumento?.informeRevision || D.formatoDocumento?.revision || CONFIG?.alcance?.formatoRevision || '';
+      const fmtFechaStr = D.formatoDocumento?.informeFecha || D.formatoDocumento?.fechaVigencia || CONFIG?.alcance?.formatoFecha || '';
+      const norma = D.formatoDocumento?.normaAplicable || CONFIG?.alcance?.normaAplicable || { numero:'', titulo:'', tipoInstalacion:'la instalación' };
+      // Alcances con columnas por tipo de elemento (ej. SAE: Vía/Muro) — cambia cómo se
+      // agrupa/titula la sección de resultados específicos; PAA/FER sin tiposJuego = sin cambios.
+      const tiposJuegoInforme = D.formatoDocumento?.tiposJuego || null;
+      const esTiposJuego = !!(tiposJuegoInforme && tiposJuegoInforme.length);
+      const tituloInspeccionSeccion = esTiposJuego ? ('INSPECCIÓN — ' + (norma.tipoInstalacion||'LA INSTALACIÓN').toUpperCase()) : 'INSPECCIÓN DE PARQUES DE AVENTURA';
+      const tituloDescripcionSeccion = esTiposJuego ? 'DESCRIPCIÓN DE LA INSTALACIÓN' : 'DESCRIPCIÓN DEL RECORRIDO';
 
       const totPag = [0];
       const nPag = [0];
@@ -801,8 +840,8 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
         ['   II. Material utilizado', 'METODOLOGIA'],
         ['MANTENIMIENTO', 'MANTENIMIENTO'],
         ['RESULTADOS DE LA INSPECCIÓN', 'RESULTADOS'],
-        ['DESCRIPCIÓN DEL RECORRIDO', 'DESCRIPCION'],
-        ['INSPECCIÓN DE PARQUES DE AVENTURA', 'INSPECCION'],
+        [tituloDescripcionSeccion, 'DESCRIPCION'],
+        [tituloInspeccionSeccion, 'INSPECCION'],
         ['ANEXOS', 'ANEXOS'],
         ['LISTADO DE OBSERVACIONES', 'LISTADO'],
         ['CARACTERÍSTICAS DE INSPECCIÓN', 'CARACTERISTICAS'],
@@ -834,7 +873,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('INFORME DE INSPECCIÓN', ML+22, y+2);
       doc.setFontSize(10); doc.setFont('helvetica','normal');
-      doc.text('INSPECCIÓN DE INSTALACIONES PAA', ML+22, y+7);
+      doc.text('INSPECCIÓN DE INSTALACIONES ' + (norma.tipoInstalacion || '').toUpperCase(), ML+22, y+7);
       doc.setFontSize(8); doc.setTextColor(...MUTED);
       doc.text(`Rev. ${fmtRev}`, PW-MR-25, y);
       doc.text(`Fecha: ${fmtFechaStr}`, PW-MR-25, y+5);
@@ -895,7 +934,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
 
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('I. Naturaleza de la inspección', ML, y); y += 6;
-      y = addTextBlock(doc, TEXTO_METODOLOGIA_1, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+      y = addTextBlock(doc, esTiposJuego ? TEXTO_METODOLOGIA_1_SAE : TEXTO_METODOLOGIA_1, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
       y += 6;
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       if (y > PH-40) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
@@ -936,7 +975,17 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('I. Normativa de referencia:', ML, y); y += 6;
       doc.setFont('helvetica','normal'); doc.setFontSize(9);
-      doc.text(norma.numero + (norma.titulo ? ': ' + norma.titulo : ''), ML, y, {maxWidth: CW}); y += 12;
+      const normasDetalleInforme = D.formatoDocumento?.normasDetalle;
+      if (normasDetalleInforme && normasDetalleInforme.length) {
+        normasDetalleInforme.forEach(function(n){
+          const txt = n.numero + (n.titulo ? ': ' + n.titulo : '');
+          const lns = doc.splitTextToSize(txt, CW);
+          doc.text(lns, ML, y); y += lns.length*4.5 + 2;
+        });
+        y += 6;
+      } else {
+        doc.text(norma.numero + (norma.titulo ? ': ' + norma.titulo : ''), ML, y, {maxWidth: CW}); y += 12;
+      }
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('II. Resultados de la inspección', ML, y); y += 6;
       y = addTextBlock(doc, TEXTO_RESULTADOS, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
@@ -971,7 +1020,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.setFillColor(...GOLD); doc.setDrawColor(...GOLD);
       doc.rect(ML, y-2, CW, 8, 'F');
       doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
-      doc.text('DESCRIPCIÓN DEL RECORRIDO', ML+3, y+3.5); y += 12;
+      doc.text(tituloDescripcionSeccion, ML+3, y+3.5); y += 12;
 
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('I. Localización', ML, y); y += 6;
@@ -979,14 +1028,24 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       const totalElems = circuitos.reduce((s,c2)=>s+(c2.juegos||[]).length,0);
       const totalJR = circuitos.reduce((s,c2)=>s+(c2.juegos||[]).filter(j=>j.tipo==='R').length,0);
       const dirCompleta = composeDireccion(D);
-      const locText = `El parque al que se hace referencia en el presente informe se encuentra ubicado en el municipio de ${D.municipio||''}, más concretamente en ${dirCompleta}.
+      let locText;
+      if (esTiposJuego) {
+        var _tiposCount = {};
+        circuitos.forEach(function(c2){ if(c2.tipoElemento){ _tiposCount[c2.tipoElemento]=(_tiposCount[c2.tipoElemento]||0)+1; } });
+        var _resumenTipos = tiposJuegoInforme.map(function(t){ var n=_tiposCount[t.id]||0; return n ? (n+' '+(t.label||t.id)+(n!==1?'s':'')) : null; }).filter(Boolean).join(', ');
+        locText = `La instalación a la que se hace referencia en el presente informe se encuentra ubicada en el municipio de ${D.municipio||''}, más concretamente en ${dirCompleta}.
+
+La instalación objeto de la presente inspección se denomina ${D.nombreInstalacion||''}, consta de ${circuitos.length} elemento${circuitos.length!==1?'s':''} inspeccionado${circuitos.length!==1?'s':''}${_resumenTipos?' ('+_resumenTipos+')':''}.`;
+      } else {
+        locText = `El parque al que se hace referencia en el presente informe se encuentra ubicado en el municipio de ${D.municipio||''}, más concretamente en ${dirCompleta}.
 
 La instalación objeto de la presente inspección se denomina ${D.nombreInstalacion||''}, consta de ${totalJR} juegos (${totalElems} elementos inspeccionados, divididos en ${circuitos.length} circuito${circuitos.length!==1?'s':''}).`;
+      }
       y = addTextBlock(doc, locText, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
       y += 6;
 
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-      doc.text('II. Descripción de los juegos', ML, y); y += 8;
+      doc.text(esTiposJuego ? 'II. Descripción de los elementos' : 'II. Descripción de los juegos', ML, y); y += 8;
 
       // Fotos por circuito — grid 3 columnas, cada circuito en página nueva
       let circIdx = 0;
@@ -1055,7 +1114,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
 
       doc.setFillColor(...GOLD); doc.rect(ML, y-2, CW, 8, 'F');
       doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
-      doc.text('INSPECCIÓN DE PARQUES DE AVENTURA', ML+3, y+3.5); y += 12;
+      doc.text(tituloInspeccionSeccion, ML+3, y+3.5); y += 12;
 
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('I. General', ML, y); y += 8;
@@ -1161,20 +1220,21 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       y = MT + 8;
 
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-      doc.text('II. Específica Circuitos y Juegos', ML, y); y += 8;
+      doc.text(esTiposJuego ? 'II. Específica — Resumen por elemento' : 'II. Específica Circuitos y Juegos', ML, y); y += 8;
 
-      // Tabla por criterio — formato tabla independiente igual que I. General
+      // Tabla por criterio — formato tabla independiente igual que I. General.
+      // Una fila por columna(criterio), agregando SAT/N.S./N.A. de los juegos que la usan.
       var ncNumGlobal = 0;
-      for (const col of COLS_PDF) {
+      function renderFilaCriterioInforme(col, circsSubset, esUltimaColumna) {
         const vArr = [];
-        circuitos.forEach(circ => { (circ.juegos||[]).forEach(j => { if(j[col.key]) vArr.push(j[col.key]); }); });
+        circsSubset.forEach(circ => { (circ.juegos||[]).forEach(j => { if(j[col.key]) vArr.push(j[col.key]); }); });
         const hayN = vArr.includes('N');
         const allNA = vArr.length>0 && vArr.every(v=>v==='NA');
         const allS = vArr.length>0 && vArr.every(v=>v==='S'||v==='NA');
         var vGlobal = hayN?'N':allNA?'NA':allS?'S':'S';
 
         var ncsDelCol = (D.ncs||[]).filter(n => n.autoId && n.autoId.includes('_'+col.key));
-        if (col.key === COLS_PDF[COLS_PDF.length-1].key) {
+        if (esUltimaColumna) {
           (D.ncs||[]).forEach(function(n){ if(n.autoId && n.autoId.includes('_manual')) ncsDelCol.push(n); });
           (D.ncs||[]).forEach(function(n){ if(n.autoId && n.autoId.startsWith('g')) ncsDelCol.push(n); });
         }
@@ -1254,6 +1314,31 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(...MUTED);
         doc.text('Sat. : Satisfactorio; N. S.: no satisfactorio; N.A.: no aplica', ML, y+3.5);
         y += 7;
+      }
+
+      if (esTiposJuego) {
+        // Un sub-bloque por tipo de elemento (ej. Vía, luego Zona/Muro) — el agregado
+        // SAT/N.S./N.A. de cada columna solo cuenta los elementos de ESE tipo, nunca mezcla
+        // Vías con Muros aunque compartan el mismo id de columna (4.1..4.9 no significa lo mismo).
+        const gruposNoVacios = tiposJuegoInforme.filter(function(t){ return circuitos.some(function(c){ return c.tipoElemento===t.id; }); });
+        gruposNoVacios.forEach(function(tipoCfg, tiIdx) {
+          const circsDeTipo = circuitos.filter(function(c){ return c.tipoElemento===tipoCfg.id; });
+          const colsDeTipo = (tipoCfg.columnas||[]).map(function(c){ return {key:c.id, label:c.label, abbrev:c.abbrev, ref:'', desc:''}; });
+          if (y + 12 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr, true); y = MT+8; }
+          doc.setFillColor(...GOLD);
+          doc.rect(ML, y, CW, 6, 'F');
+          doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
+          doc.text((tipoCfg.label||tipoCfg.id).toUpperCase()+' ('+circsDeTipo.length+')'+(tipoCfg.normaRef?' — '+tipoCfg.normaRef:''), ML+2, y+4.2);
+          y += 9;
+          const esUltimoGrupo = tiIdx === gruposNoVacios.length-1;
+          colsDeTipo.forEach(function(col, ci2) {
+            renderFilaCriterioInforme(col, circsDeTipo, esUltimoGrupo && ci2===colsDeTipo.length-1);
+          });
+        });
+      } else {
+        for (const col of COLS_PDF) {
+          renderFilaCriterioInforme(col, circuitos, col.key === COLS_PDF[COLS_PDF.length-1].key);
+        }
       }
 
 
@@ -1565,8 +1650,19 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
       const ref = getNRegistro();
       const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
-      const norma = D.formatoDocumento?.normaAplicable || CONFIG?.paa?.normaAplicable || { numero:'', titulo:'', tipoInstalacion:'la instalación' };
-      const totalJ = (D.circuitos||[]).reduce((s,cc)=>s+(cc.juegos||[]).filter(j=>j.tipo==='R').length,0);
+      const norma = D.formatoDocumento?.normaAplicable || CONFIG?.alcance?.normaAplicable || { numero:'', titulo:'', tipoInstalacion:'la instalación' };
+      const tiposJuegoCert = D.formatoDocumento?.tiposJuego;
+      let totalJUnidadTxt;
+      if (tiposJuegoCert && tiposJuegoCert.length) {
+        const _cCount = {};
+        (D.circuitos||[]).forEach(function(cc){ if(cc.tipoElemento){ _cCount[cc.tipoElemento]=(_cCount[cc.tipoElemento]||0)+1; } });
+        const _tot = Object.values(_cCount).reduce(function(a,b){return a+b;},0);
+        const _detalle = tiposJuegoCert.map(function(t){ var n=_cCount[t.id]||0; return n?(n+' '+(t.label||t.id)+(n!==1?'s':'')):null; }).filter(Boolean).join(', ');
+        totalJUnidadTxt = _tot + (_tot!==1?' ELEMENTOS':' ELEMENTO') + (_detalle?' ('+_detalle.toUpperCase()+')':'');
+      } else {
+        const totalJ = (D.circuitos||[]).reduce((s,cc)=>s+(cc.juegos||[]).filter(j=>j.tipo==='R').length,0);
+        totalJUnidadTxt = totalJ + ' JUEGOS';
+      }
 
       // Fecha de inspección (última sesión)
       const fechaInsp = D.sesiones && D.sesiones.length
@@ -1600,7 +1696,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       const solicitante = D.solicitante||D.propietario||'';
       const enacActivo = !!D.enacActivo;
       const acreditTxt = enacActivo && c.acreditacion ? ` acreditado ${c.acreditacion}` : '';
-      const textoCert = `${c.nombre.toUpperCase()}, organismo de inspección${acreditTxt}, certifica haber efectuado en fecha ${fechaInsp} la inspección de los equipamientos de ${norma.tipoInstalacion.toUpperCase()} de las instalaciones de ${D.nombreInstalacion||''}, ${totalJ} JUEGOS, situado en ${dirCert}.
+      const textoCert = `${c.nombre.toUpperCase()}, organismo de inspección${acreditTxt}, certifica haber efectuado en fecha ${fechaInsp} la inspección de los equipamientos de ${norma.tipoInstalacion.toUpperCase()} de las instalaciones de ${D.nombreInstalacion||''}, ${totalJUnidadTxt}, situado en ${dirCert}.
 
 La intervención realizada, da como resultado un "Informe de inspección", con la numeración ${ref}, que indica las observaciones relativas a las instalaciones y omisiones. Estas observaciones sólo son válidas en las condiciones presentes en la instalación en el momento de control, y no serán válidas en caso de modificaciones en las mismas.
 
@@ -1670,9 +1766,9 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
       const ref = getNRegistro();
       const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
-      const norma = D.formatoDocumento?.normaAplicable || CONFIG?.paa?.normaAplicable || { numero:'', titulo:'', tipoInstalacion:'' };
-      const fmtRev = D.formatoDocumento?.registroRevision || CONFIG?.paa?.registroRevision || '';
-      const fmtFechaStr = D.formatoDocumento?.registroFecha || CONFIG?.paa?.registroFecha || '';
+      const norma = D.formatoDocumento?.normaAplicable || CONFIG?.alcance?.normaAplicable || { numero:'', titulo:'', tipoInstalacion:'' };
+      const fmtRev = D.formatoDocumento?.registroRevision || CONFIG?.alcance?.registroRevision || '';
+      const fmtFechaStr = D.formatoDocumento?.registroFecha || CONFIG?.alcance?.registroFecha || '';
 
       const totPag2 = [0];
       const nPag2 = [0];
@@ -1921,28 +2017,30 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.addPage(); nPag2[0]++;
       addCabReg(nPag2[0], totPag2[0]);
       y = 18;
+      const esTiposJuegoReg = !!(D.formatoDocumento?.tiposJuego && D.formatoDocumento.tiposJuego.length);
 
-      // Cabecera tabla
+      // Cabecera tabla — solo PAA/FER; SAE (tiposJuego) dibuja su propia cabecera por tipo más abajo
       const cw0=30, cw1=35, cw2=(CW-cw0-cw1-25)/5, obsW2=25;
-      doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
-      doc.rect(ML, y, cw0, 10, 'FD');
-      doc.rect(ML+cw0, y, cw1, 10, 'FD');
-      ['Integridad\nestructural','Anclajes y\nfijaciones','Elementos de\njuego/Progresión','Riesgos y\natrapamientos','Zona de\nseguridad/\nEntorno'].forEach((h2,hi) => {
+      if (!esTiposJuegoReg) {
+        doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
+        doc.rect(ML, y, cw0, 10, 'FD');
+        doc.rect(ML+cw0, y, cw1, 10, 'FD');
+        ['Integridad\nestructural','Anclajes y\nfijaciones','Elementos de\njuego/Progresión','Riesgos y\natrapamientos','Zona de\nseguridad/\nEntorno'].forEach((h2,hi) => {
+          doc.setFillColor(...SURF);
+          doc.rect(ML+cw0+cw1+hi*cw2, y, cw2, 10, 'FD');
+          doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+          const hl = h2.split('\n');
+          hl.forEach((l2,li) => doc.text(l2, ML+cw0+cw1+hi*cw2+cw2/2, y+3+li*3, {align:'center'}));
+        });
         doc.setFillColor(...SURF);
-        doc.rect(ML+cw0+cw1+hi*cw2, y, cw2, 10, 'FD');
-        doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-        const hl = h2.split('\n');
-        hl.forEach((l2,li) => doc.text(l2, ML+cw0+cw1+hi*cw2+cw2/2, y+3+li*3, {align:'center'}));
-      });
-      doc.setFillColor(...SURF);
-      doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 10, 'FD');
-      doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-      doc.text('Obser-\nvaciones', ML+cw0+cw1+5*cw2+2, y+4);
-      doc.text('Circuitos', ML+2, y+5);
-      doc.text('Juegos', ML+cw0+2, y+5);
-      y += 10;
+        doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 10, 'FD');
+        doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+        doc.text('Obser-\nvaciones', ML+cw0+cw1+5*cw2+2, y+4);
+        doc.text('Circuitos', ML+2, y+5);
+        doc.text('Juegos', ML+cw0+2, y+5);
+        y += 10;
+      }
 
-      const KEYS = ['ie','af','ej','ra','zs'];
       // Para Rev.1+: obtener checks de la revisión anterior para comparar
       const prevCircuitos = (D.historialRevisiones && D.historialRevisiones.length)
         ? D.historialRevisiones[D.historialRevisiones.length-1].circuitos || []
@@ -1954,53 +2052,163 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
         return pc.juegos[ji2][k2] || null;
       }
 
-      let ciIdx2 = 0;
-      for (const circ of circuitos) {
-        if (y + 8 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; }
-        let circWritten = false;
-        let jiIdx2 = 0;
-        for (const j of (circ.juegos||[])) {
-          if (y + 7 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; circWritten = false; }
-          doc.setFillColor(...WHITE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.1);
-          doc.rect(ML, y, cw0, 7, 'D');
-          if (!circWritten) {
-            doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-            doc.text(circ.nombre, ML+1, y+4.5, {maxWidth:cw0-2});
-            circWritten = true;
-          }
-          doc.rect(ML+cw0, y, cw1, 7, 'D');
-          doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-          doc.text((j.tipo==='NR'?'*. ':j.tipo==='AUX'?'* ':'') + (j.nombre||''), ML+cw0+1, y+4.5, {maxWidth:cw1-2});
-          KEYS.forEach((k,ki) => {
-            doc.setFillColor(...WHITE);
-            doc.rect(ML+cw0+cw1+ki*cw2, y, cw2, 7, 'D');
-            const v2 = j[k]||'';
-            const prev = getPrevVal(ciIdx2,jiIdx2,k);
-            doc.setFontSize(10); doc.setFont('helvetica','bold');
-            if (prevCircuitos && prev !== null) {
-              // Rev.N: colorear según cambio
-              if (v2==='S' && prev==='N') { doc.setTextColor(...GREEN_C); } // corregido
-              else if (v2==='N' && prev==='S') { doc.setTextColor(...RED); } // empeorado
-              else { doc.setTextColor(...DARK); } // sin cambio = negro
-            } else {
-              // Rev.0: colores normales
-              if(v2==='S'){doc.setTextColor(...GREEN_C);}else if(v2==='N'){doc.setTextColor(...RED);}else{doc.setTextColor(...MUTED);}
-            }
-            doc.text(v2, ML+cw0+cw1+ki*cw2+cw2/2, y+5, {align:'center'});
+      if (esTiposJuegoReg) {
+        // ── SAE (u otro alcance con tiposJuego): una tabla por tipo de elemento (Vía,
+        // luego Zona/Muro), columnas dinámicas de ese tipo — nunca comparte columnas
+        // entre tipos aunque compartan id (4.1..4.9 no significa lo mismo en cada uno).
+        const tiposJuegoReg = D.formatoDocumento.tiposJuego;
+        var filasPorTipo = {};
+        tiposJuegoReg.forEach(function(t){ filasPorTipo[t.id]=[]; });
+        circuitos.forEach(function(circ, ciG){
+          if (!circ.tipoElemento || !filasPorTipo[circ.tipoElemento]) return;
+          (circ.juegos||[]).forEach(function(j, jiG){
+            filasPorTipo[circ.tipoElemento].push({circ:circ, j:j, ci:ciG, ji:jiG});
           });
-          doc.setFillColor(...WHITE);
-          doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 7, 'D');
-          var jPat1 = 'c'+ciIdx2+'j'+jiIdx2;
-          var jPat2 = 'j_'+ciIdx2+'_'+jiIdx2+'_';
-          var jObs = (D.ncs||[]).filter(function(nc){ var aid=nc.autoId||''; return (aid.indexOf(jPat1)===0 && (aid.length===jPat1.length || aid[jPat1.length]==='_')) || aid.indexOf(jPat2)===0; }).map(function(nc){ return nc.desc||nc.tipo||''; }).filter(Boolean).join('\n');
-          if (jObs) {
-            doc.setFontSize(5.5); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-            doc.text(doc.splitTextToSize(jObs, obsW2-2), ML+cw0+cw1+5*cw2+1, y+3);
+        });
+        tiposJuegoReg.forEach(function(tipoCfg){
+          var filas = filasPorTipo[tipoCfg.id]||[];
+          if (!filas.length) return;
+          var colsT = tipoCfg.columnas||[];
+          if (y + 15 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; }
+          doc.setFillColor(...GOLD); doc.rect(ML, y, CW, 6, 'F');
+          doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
+          doc.text((tipoCfg.label||tipoCfg.id).toUpperCase()+(tipoCfg.normaRef?' — '+tipoCfg.normaRef:''), ML+2, y+4.2);
+          y += 8;
+
+          var elemW=38, obsWT=22;
+          var colWT=(CW-elemW-obsWT)/colsT.length;
+          doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
+          doc.rect(ML, y, elemW, 12, 'FD');
+          doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+          doc.text('Elemento', ML+2, y+7);
+          colsT.forEach(function(col, ki){
+            doc.rect(ML+elemW+ki*colWT, y, colWT, 12, 'FD');
+            doc.setFontSize(5.5);
+            (col.abbrev||col.id).split(' ').forEach(function(l2,li){ doc.text(l2, ML+elemW+ki*colWT+colWT/2, y+4+li*3, {align:'center'}); });
+          });
+          doc.rect(ML+elemW+colsT.length*colWT, y, obsWT, 12, 'FD');
+          doc.text('Obs.', ML+elemW+colsT.length*colWT+2, y+7);
+          y += 12;
+
+          filas.forEach(function(f){
+            if (y + 7 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; }
+            doc.setFillColor(...WHITE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.1);
+            doc.rect(ML, y, elemW, 7, 'D');
+            doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+            doc.text(f.circ.nombre||'', ML+1, y+4.5, {maxWidth:elemW-2});
+            colsT.forEach(function(col, ki){
+              doc.rect(ML+elemW+ki*colWT, y, colWT, 7, 'D');
+              var v2=f.j[col.id]||'';
+              var prev=getPrevVal(f.ci,f.ji,col.id);
+              doc.setFontSize(9); doc.setFont('helvetica','bold');
+              if (prevCircuitos && prev !== null) {
+                if (v2==='S'&&prev==='N'){doc.setTextColor(...GREEN_C);}
+                else if(v2==='N'&&prev==='S'){doc.setTextColor(...RED);}
+                else {doc.setTextColor(...DARK);}
+              } else {
+                if(v2==='S'){doc.setTextColor(...GREEN_C);}else if(v2==='N'){doc.setTextColor(...RED);}else{doc.setTextColor(...MUTED);}
+              }
+              doc.text(v2, ML+elemW+ki*colWT+colWT/2, y+5, {align:'center'});
+            });
+            doc.rect(ML+elemW+colsT.length*colWT, y, obsWT, 7, 'D');
+            var jPat1b='c'+f.ci+'j'+f.ji;
+            var jPat2b='j_'+f.j.id+'_';
+            var jObsB=(D.ncs||[]).filter(function(nc){var aid=nc.autoId||'';return (aid.indexOf(jPat1b)===0&&(aid.length===jPat1b.length||aid[jPat1b.length]==='_'))||aid.indexOf(jPat2b)===0;}).map(function(nc){return nc.desc||nc.tipo||'';}).filter(Boolean).join('\n');
+            if (jObsB) {
+              doc.setFontSize(5); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+              doc.text(doc.splitTextToSize(jObsB, obsWT-2), ML+elemW+colsT.length*colWT+1, y+3);
+            }
+            y += 7;
+          });
+          y += 4;
+        });
+
+        // Detalle completo del ensayo de prueba (PPI/PSPI/SSPC) — punto por punto, solo aquí
+        // en el Registro; el Informe solo muestra el agregado SAT/N.S. de la columna 4.6.
+        var ensCfgReg = D.formatoDocumento.ensayoPrueba;
+        if (ensCfgReg) {
+          var filasConEnsayo = (filasPorTipo[ensCfgReg.aplicaATipo]||[]).filter(function(f){
+            var ep=f.j.ensayoPrueba||{}; return (ep.ppi||[]).length||(ep.pspi||[]).length||(ep.sspc||[]).length;
+          });
+          if (filasConEnsayo.length) {
+            if (y + 15 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; }
+            doc.setFillColor(...DARK); doc.rect(ML, y, CW, 6, 'F');
+            doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
+            doc.text('DETALLE ENSAYO DE PRUEBA (carga '+(ensCfgReg.carga||'')+')', ML+2, y+4.2);
+            y += 9;
+            (ensCfgReg.secciones||[]).forEach(function(sec){
+              var key=sec.id.toLowerCase();
+              filasConEnsayo.forEach(function(f){
+                var pts=(f.j.ensayoPrueba||{})[key]||[];
+                if (!pts.length) return;
+                if (y + 6 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; }
+                doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+                doc.text(f.circ.nombre+' — '+sec.label, ML, y+3.5); y += 5;
+                pts.forEach(function(p, pi){
+                  if (y + 5 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; }
+                  doc.setFontSize(6.5); doc.setFont('helvetica','normal');
+                  doc.setTextColor(...(p.ok===false?RED:p.ok===true?GREEN_C:MUTED));
+                  var etiqueta=(p.ubicacion?p.ubicacion:'Punto '+(pi+1))+': '+(p.ok===true?'SAT':p.ok===false?'N.S.':'—');
+                  doc.text(etiqueta, ML+4, y+3.5);
+                  y += 4.5;
+                });
+                y += 1.5;
+              });
+            });
+            y += 3;
           }
-          y += 7;
-          jiIdx2++;
         }
-        ciIdx2++;
+      } else {
+        // ── PAA/FER — comportamiento anterior, sin cambios ──
+        const KEYS = ['ie','af','ej','ra','zs'];
+        let ciIdx2 = 0;
+        for (const circ of circuitos) {
+          if (y + 8 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; }
+          let circWritten = false;
+          let jiIdx2 = 0;
+          for (const j of (circ.juegos||[])) {
+            if (y + 7 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; circWritten = false; }
+            doc.setFillColor(...WHITE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.1);
+            doc.rect(ML, y, cw0, 7, 'D');
+            if (!circWritten) {
+              doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+              doc.text(circ.nombre, ML+1, y+4.5, {maxWidth:cw0-2});
+              circWritten = true;
+            }
+            doc.rect(ML+cw0, y, cw1, 7, 'D');
+            doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+            doc.text((j.tipo==='NR'?'*. ':j.tipo==='AUX'?'* ':'') + (j.nombre||''), ML+cw0+1, y+4.5, {maxWidth:cw1-2});
+            KEYS.forEach((k,ki) => {
+              doc.setFillColor(...WHITE);
+              doc.rect(ML+cw0+cw1+ki*cw2, y, cw2, 7, 'D');
+              const v2 = j[k]||'';
+              const prev = getPrevVal(ciIdx2,jiIdx2,k);
+              doc.setFontSize(10); doc.setFont('helvetica','bold');
+              if (prevCircuitos && prev !== null) {
+                // Rev.N: colorear según cambio
+                if (v2==='S' && prev==='N') { doc.setTextColor(...GREEN_C); } // corregido
+                else if (v2==='N' && prev==='S') { doc.setTextColor(...RED); } // empeorado
+                else { doc.setTextColor(...DARK); } // sin cambio = negro
+              } else {
+                // Rev.0: colores normales
+                if(v2==='S'){doc.setTextColor(...GREEN_C);}else if(v2==='N'){doc.setTextColor(...RED);}else{doc.setTextColor(...MUTED);}
+              }
+              doc.text(v2, ML+cw0+cw1+ki*cw2+cw2/2, y+5, {align:'center'});
+            });
+            doc.setFillColor(...WHITE);
+            doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 7, 'D');
+            var jPat1 = 'c'+ciIdx2+'j'+jiIdx2;
+            var jPat2 = 'j_'+ciIdx2+'_'+jiIdx2+'_';
+            var jObs = (D.ncs||[]).filter(function(nc){ var aid=nc.autoId||''; return (aid.indexOf(jPat1)===0 && (aid.length===jPat1.length || aid[jPat1.length]==='_')) || aid.indexOf(jPat2)===0; }).map(function(nc){ return nc.desc||nc.tipo||''; }).filter(Boolean).join('\n');
+            if (jObs) {
+              doc.setFontSize(5.5); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+              doc.text(doc.splitTextToSize(jObs, obsW2-2), ML+cw0+cw1+5*cw2+1, y+3);
+            }
+            y += 7;
+            jiIdx2++;
+          }
+          ciIdx2++;
+        }
       }
 
       addPieReg();
