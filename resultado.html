@@ -569,19 +569,33 @@ El diagnóstico visual realizado por ARP PREVENCIÓN consiste en medir la difere
 Nota: Para esta actividad de control ARP PREVENCIÓN interviene de manera totalmente externa, siendo de este modo conforme a los criterios de independencia de los organismos que proceden a la inspección de tipo C tal como están definidos en el Anexo A de la norma UNE EN ISO/CEI 17 020 de junio 2012. Además, ARP PREVENCIÓN dispone de un seguro de responsabilidad civil específico.`;
 
   // ── TEXTO FIJO SAE (Estructuras Artificiales de Escalada) ──
-  // Borrador inicial — mismo rol/estructura que TEXTO_METODOLOGIA_1 (PAA), pendiente de
-  // revisión por Guille antes de considerarse definitivo para un informe real.
-  const TEXTO_METODOLOGIA_1_SAE = `Las Estructuras Artificiales de Escalada (SAE) son instalaciones que permiten al usuario progresar en altura sobre una superficie artificial de escalada, ya sea en vías equipadas con puntos de protección individual o en zonas/muros de bloque sin cuerda. La seguridad del practicante está asegurada por un sistema de protección individual (EPI ligado a puntos de anclaje) en el caso de las vías, o por las condiciones de la zona de caída y del suelo amortiguador en el caso de los muros de bloque.
+  // Tomado literal del informe SAE antiguo de ARP (Informe XXX/SAE/XXXXX Rev.X, pág. 4).
+  const TEXTO_METODOLOGIA_1_SAE = `El término estructura artificial de escalada (SAE) designa un equipamiento deportivo constituido por una estructura de escalada construida a tal efecto, presentando distintas características de construcción, y concebida con objetivos de utilización específicos y no reservada a conjuntos de personas particularmente preparados.
 
-ARP PREVENCIÓN interviene en el cuadro de las exigencias normativas que se aplican a los explotadores o responsables de la gestión de las estructuras artificiales de escalada.
+Según la demanda, el control realizado por ADELL RIESGOS Y PREVENCIÓN, S.L. (ARP) puede consistir en una simple inspección visual de los equipamientos, o en una inspección visual y una prueba estática (pruebas de carga).
+
+ARP PREVENCIÓN interviene en el cuadro de las exigencias normativas que se aplican a los explotadores o responsables de la gestión de los equipamientos.
 
 La norma impone:
-— Una inspección previa a la apertura de la instalación y de toda modificación ulterior.
-— Una inspección periódica de la instalación para verificar el estado y para determinar las acciones de puesta en conformidad que deban ser realizadas.
+— Una inspección previa a la apertura del equipamiento y de toda modificación ulterior.
+— Una inspección periódica de las instalaciones para verificar el estado y para determinar las acciones de puesta en conformidad que deben ser realizadas.
 
-El diagnóstico visual realizado por ARP PREVENCIÓN consiste en medir la diferencia entre el nivel de seguridad exigido por la normativa y el nivel real de seguridad constatado sobre los elementos in situ, incluyendo la comprobación de los puntos de protección individual y de los sistemas de protección colectiva mediante el ensayo de prueba correspondiente.
+El diagnóstico visual realizado por ARP consiste en medir la diferencia entre el nivel de seguridad exigido por la normativa y el nivel real de seguridad constatado sobre los equipos in situ.
 
-Nota: Para esta actividad de control ARP PREVENCIÓN interviene de manera totalmente externa, siendo de este modo conforme a los criterios de independencia de los organismos que proceden a la inspección de tipo C tal como están definidos en el Anexo A de la norma UNE EN ISO/CEI 17 020 de junio 2012. Además, ARP PREVENCIÓN dispone de un seguro de responsabilidad civil específico.`;
+Nota.- Para esta actividad de control ARP interviene de manera totalmente externa, siendo de este modo conforme a los criterios de independencia de los organismos que proceden a la inspección de tipo C tal como están definidos en el Anexo A de la norma UNE EN ISO/CEI 17 020 de junio 2012. Además ARP PREVENCIÓN dispone de un seguro de responsabilidad civil específico.`;
+
+  const TEXTO_METODOLOGIA_2_SAE = `Para esta prestación el inspector de ARP PREVENCIÓN dispone del material siguiente:
+— un aparato de fotografiar,
+— una llave dinamométrica,
+— un sistema medidor de la inclinación de pendientes,
+— un sistema de medida de cargas (Dinamómetro) y cargas,
+— un juego de sondas: dedo grande y pequeño, A, B, C, E, L, D, V, atraparopa,
+— sondas de radio de redondeo,
+— cronómetro,
+— juego de pesas controladas,
+— flexómetro,
+— aparato de tracción,
+— cualquier equipo específico necesario para la inspección.`;
 
   const TEXTO_METODOLOGIA_2 = `Para esta prestación el técnico de ARP PREVENCIÓN dispone del material EPI siguiente:
 — Un arnés, un disipador de energía de caída, una polea, una cinta corta
@@ -609,6 +623,32 @@ Inspección periódica: El control anual principal, se efectúa para constatar, 
 
 Todo responsable de la gestión de la instalación debe poseer un registro de Equipos de Protección Individual en el que sean referenciados todos los equipos, con sus fichas de vida y notas técnicas de los fabricantes. En la mayor parte de las notas técnicas, la duración de uso de los equipos después de su primer uso está fijada preventivamente entre 3 y 5 años.`;
 
+  // ── TEXTO FIJO SAE — "Inspección y Mantenimiento", tomado literal del informe SAE
+  // antiguo de ARP (págs. 5-6) — más detallado que el de PAA, no es un simple genericizado.
+  const TEXTO_MANT_GENERAL_SAE = `Si la instalación no es segura, es conveniente impedir que los usuarios accedan a ella (ejemplos de falta de seguridad son por ejemplo: mantenimiento que no pueda garantizar un nivel de seguridad mínimo de las instalaciones, riesgos graves de seguridad como elementos peligrosos en zonas de uso, debilidad en la integridad estructural, etc).
+
+Del mismo modo, habrá que poner especial atención a todos aquellos problemas que puedan generar deterioros graves en el equipamiento y que puedan arriesgar o amenazar la seguridad del mismo.`;
+
+  const TEXTO_MANT_ORG_SAE = `Es conveniente que el mantenimiento y el control de las instalaciones y de sus componentes sean efectuadas de acuerdo a una frecuencia mínima. Para estos controles, las instrucciones de los fabricantes deben ser tenidas en cuenta. Los diferentes controles son definidos a continuación. Estos controles deben quedar registrados ya sea en formato digital o físico, y deben ser correctamente almacenados.
+
+Inspección visual rutinaria: El control visual de rutina tiene por objeto la identificación de los riesgos manifiestos que pueden resultar de los actos de vandalismo, de la utilización intensiva o de las condiciones meteorológicas. Deben realizarse cada día. Este control se compone de medidas preventivas destinadas a mantener el nivel de seguridad y las capacidades de los equipos, comprendiendo de manera notable: el estado general de los equipos, de los puntos de anclaje, de la estructura y de las balizas y señalización. Todo desgaste, deterioro u otro punto defectuoso constatado de forma no habitual debe describirse en el registro de mantenimiento junto con la acción correctiva correspondiente, fecha y responsable.
+
+Inspección de funcionamiento: El control funcional es un control rutinario mucho más profundo que tiene por fin verificar la estabilidad del equipamiento y sus elementos, y en particular descubrir los eventuales signos de desgaste normal y anómalo: desgaste de los elementos constitutivos, estado de los elementos de construcción, estado de los sistemas de seguridad y fijación de los elementos móviles. Es conveniente efectuar este control a intervalos de 1 a 3 meses, incluyendo vigilancia del estado general de los elementos portantes (problemas mecánicos, defecto de verticalidad, fisuras, oxidación). Puede realizarse también puntualmente si las circunstancias lo exigen (accidentes climáticos, vientos violentos, inundación, uso malintencionado o intensivo superior a lo normal, fuerte nevada, etc.).
+
+Inspección periódica: El control anual principal se efectúa para constatar, al menos una vez al año, el nivel de seguridad global de los equipos, de la estructura y de las superficies, así como las eventuales variaciones del nivel de seguridad (distancias, geometría, huecos y atrapamientos, estado de cuerdas, redes, etc. — lista no exhaustiva, dependerá del equipo y área a revisar). Este control debe ser anual y efectuado por un organismo de inspección independiente y competente.`;
+
+  const TEXTO_MANT_EPI_SAE = `Todo material sufre daños debidos al envejecimiento y al desgaste. Además, el material puede verse dañado en caso de tener que soportar la caída del usuario. Conviene, pues, verificar visualmente y de forma meticulosa el material antes y después de cada uso a fin de asegurar su buen estado.
+
+Si un producto o parte del producto presenta taras o defectos o si está corroído o contaminado por agentes químicos, deberá ser retirado. En caso de choque violento con un EPI, todo producto debe ser cambiado, incluso si no tiene ningún signo visible de alteración (especialmente los arneses).
+
+Todo responsable de la gestión de la instalación debe poseer un registro de Equipos de mantenimiento en el que sean referenciados todos los equipos, constituido por el conjunto de fichas de vida de los materiales puestos a disposición así como las notas técnicas de los fabricantes. Todos los materiales deben ser objeto de una identificación individual y su ficha de vida debe comprender los resultados de los diferentes controles periódicos así como los del control anual principal. Si un producto o uno de sus componentes muestran signos de desgaste o defectos, debe ser cambiado, incluso en caso de duda.
+
+En la mayor parte de las notas técnicas de materiales, la duración de uso de los equipos tras su primer uso está fijada, a título preventivo, en un periodo de 3 a 5 años en caso de equipos de seguridad. No obstante, existen numerosos factores que pueden reducir la duración de la seguridad de un producto: utilización intensa, medio ambiente desfavorable (ambientes salinos o arenosos), exposición a temperaturas elevadas y a los rayos ultravioletas, corrosión, abrasión, cortes, desgaste, contactos con substancias químicas o fuentes de calor, deformaciones/distorsiones mecánicas y choques violentos.
+
+Incumbe pues al responsable de la gestión o al responsable del material decidir cuándo un artículo debe ser suprimido por razones de seguridad. No se debe dudar en desechar el material que presente fallos susceptibles de reducir su resistencia o limitar su funcionamiento.
+
+A fin de aumentar la longevidad de los productos, es necesario ser cuidadoso durante el transporte, el uso y el almacenamiento: el material debe conservarse en un lugar fresco, oscuro, ventilado y seco, al abrigo de la humedad, del hielo, de los ultravioleta y del polvo. La limpieza y, en su caso, la lubricación regular de un producto contribuyen igualmente a prolongar en el tiempo sus cualidades técnicas.`;
+
   const TEXTO_RESULTADOS = `Los resultados de la inspección están organizados por capítulos, listando el conjunto de los puntos de inspección que componen el diagnóstico de seguridad, para la instalación en su conjunto. En el presente informe se detallan tanto las observaciones de carácter más grave, como los consejos o recomendaciones de seguridad que puedan ser aportados por el inspector en la inspección in situ de las instalaciones.
 
 Las observaciones consideradas como NO CONFORMIDAD a norma, vendrán reflejadas por niveles de severidad:
@@ -629,6 +669,28 @@ En caso de ausencia de no conformidad, el certificado será emitido una vez conc
 — Verificación de que los cables recubiertos de plástico se han sometido a ensayo conforme la norma
 — Comprobación del diagnóstico arbóreo actualizado para confirmar que todos los árboles utilizados como sistema de soporte se han considerado seguros para su uso
 — Verificación de que existe un informe de inspección del EPI
+
+Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCIÓN, S.L, cumpliendo el artículo 7.1.5 de informes de inspección:
+— La identificación del organismo emisor
+— El lugar y la fecha de la inspección
+— La identificación del taller o talleres inspeccionados
+— El nombre, la dirección y la firma del inspector
+— Una declaración de conformidad cuando proceda
+— Un registro de todos los defectos encontrados
+— Información sobre lo que se haya omitido en el campo de aplicación original de la inspección
+— Una declaración indicando que el informe de la inspección no se debería reproducir salvo en su integridad
+— El presente documento se debe incluir en la documentación de utilización de la instalación.`;
+
+  // ── TEXTO FIJO SAE — "Características de Inspección", tomado literal del informe SAE
+  // antiguo de ARP (Informe XXX/SAE/XXXXX Rev.X, pág. 18), no del genérico de PAA.
+  const TEXTO_CARACTERISTICAS_SAE = `ADELL RIESGOS Y PREVENCIÓN, S.L como organismo de inspección realiza en todas sus intervenciones los controles siguientes:
+
+— Comprobación visual rutinaria
+— Inspección del funcionamiento
+— Ensayo del funcionamiento efectuado in-situ por un inspector
+— Evaluación de los talleres desgastados y requisitos para su sustitución
+— Verificación de que se han seguido todas las instrucciones de mantenimiento del fabricante/proveedor
+— Verificación de que existe un informe de inspección de materiales
 
 Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCIÓN, S.L, cumpliendo el artículo 7.1.5 de informes de inspección:
 — La identificación del organismo emisor
@@ -939,7 +1001,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       if (y > PH-40) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
       doc.text('II. Material utilizado', ML, y); y += 6;
-      y = addTextBlock(doc, TEXTO_METODOLOGIA_2, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+      y = addTextBlock(doc, esTiposJuego ? TEXTO_METODOLOGIA_2_SAE : TEXTO_METODOLOGIA_2, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
 
 
       // ═══ MANTENIMIENTO ═══
@@ -951,11 +1013,16 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
       doc.text('MANTENIMIENTO', ML, y); y += 8;
 
-      for (const [titulo, texto] of [
+      const seccionesMant = esTiposJuego ? [
+        ['I. Generalidades', TEXTO_MANT_GENERAL_SAE],
+        ['II. Inspección', TEXTO_MANT_ORG_SAE],
+        ['III. Consignas de mantenimiento y de almacenamiento de los EPI o equipos de protección colectiva (redes, cuerdas, colchonetas, etc)', TEXTO_MANT_EPI_SAE]
+      ] : [
         ['I. Generalidades', TEXTO_MANT_GENERAL],
         ['II. Organización del mantenimiento', TEXTO_MANT_ORG],
         ['III. Consignas de mantenimiento y de almacenamiento de los EPI', TEXTO_MANT_EPI]
-      ]) {
+      ];
+      for (const [titulo, texto] of seccionesMant) {
         if (y > PH-50) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
         doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
         doc.text(titulo, ML, y); y += 6;
@@ -1559,7 +1626,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
       doc.text('CARACTERÍSTICAS DE INSPECCIÓN', ML+3, y+3.5); y += 14;
 
-      y = addTextBlock(doc, TEXTO_CARACTERISTICAS, ML, y, CW, 9, DARK, 'normal', 5, PH-40, ref, fmtRev, fmtFechaStr, nPag, totPag);
+      y = addTextBlock(doc, esTiposJuego ? TEXTO_CARACTERISTICAS_SAE : TEXTO_CARACTERISTICAS, ML, y, CW, 9, DARK, 'normal', 5, PH-40, ref, fmtRev, fmtFechaStr, nPag, totPag);
       y += 10;
 
       // Fecha(s) y nombre inspector — ultima hoja muestra solo la ultima visita
