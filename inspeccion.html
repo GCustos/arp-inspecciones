@@ -462,6 +462,10 @@
   if (!inspeccionId) { location.href="inspecciones.html"; }
 
   let currentUser=null, isDirty=false, cargaIniciada=false, cargaCompleta=false;
+  // Bloquea el autoguardado mientras completar() está confirmando contra el servidor —
+  // evita que guardarSilencioso() escriba estado:"en_curso" por encima de estado:"completada"
+  // si el timer de 30s salta durante ese hueco (visto en producción con mala cobertura).
+  let _completando=false;
   let docDataFull={};
   let modalJuegoRef=null, circuitosAnteriores=null;
   let modalNCRef=null;
@@ -2145,7 +2149,7 @@
 
   // FIX: guardar silencioso para autoguardado
   async function guardarSilencioso(){
-    if (!cargaCompleta) return;
+    if (!cargaCompleta || _completando || S.estado==='completada') return;
     autoCapturarHoraInicio();
     try {
       var circUpd = _legacyArrayFormat
@@ -2170,6 +2174,7 @@
   setInterval(()=>{ if(isDirty) guardarSilencioso(); }, 30000);
 
   async function guardar(){
+    if (_completando || S.estado==='completada') return;
     try {
       var circUpd = _legacyArrayFormat
         ? { circuitos: buildCircuitosMap() }
@@ -2302,6 +2307,7 @@
     }
     // Corregir la fecha del nRegistro con la fecha real de inspección
     S.nRegistro = corregirFechaNRegistro(S.nRegistro, S.fechaInspeccion);
+    _completando = true;
     try {
       // En completar: escribir mapa completo de circuitos (estado definitivo, sin granularidad parcial)
       _dirtyCircuitIds.clear(); _deletedCircuitIds.clear();
@@ -2359,6 +2365,7 @@
       } catch(le) { console.warn('localStorage save failed:', le.message); }
       location.href="resultado.html?id="+inspeccionId;
     } catch(e){ alert("Error al completar: "+e.message); }
+    finally { _completando = false; }
   }
 
   // Manejar fotos en modal NC
