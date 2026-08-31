@@ -968,11 +968,8 @@
             document.getElementById('bannerSesionFin').classList.add('vis');
             window._bannerSesionFechaTarget = _sesFin.fecha;
           }
-          var _nuevaSes = {fecha:_hoyISO, horaInicio:'', horaFin:''};
-          S.sesiones.push(_nuevaSes);
-          db.collection('inspecciones').doc(inspeccionId)
-            .update({sesiones: firebase.firestore.FieldValue.arrayUnion(_nuevaSes)})
-            .catch(function(e){ console.warn('No se pudo registrar sesión del día:', e.message); });
+          // La sesión de hoy ya no se crea aquí (solo por abrir la pantalla) — se crea de
+          // forma perezosa en autoCapturarHoraInicio(), en el primer guardado real del día.
         }
       }
       cargaCompleta = true;
@@ -2141,10 +2138,20 @@
       var inp = document.getElementById("inpHoraInicio");
       if (inp) inp.value = S.horaInicio;
     }
-    // También en la sesión de hoy (multi-jornada)
+    // También en la sesión de hoy (multi-jornada) — se crea aquí, en el primer guardado
+    // real del día, no al abrir la pantalla (eso generaba sesiones "fantasma" vacías
+    // cuando alguien solo entraba a mirar una inspección en curso otro día).
     var _hoyISO2 = new Date().toISOString().split('T')[0];
     var _sesHoy = S.sesiones.find(function(s){ return s.fecha === _hoyISO2; });
-    if (_sesHoy && !_sesHoy.horaInicio) _sesHoy.horaInicio = ahoraStr;
+    if (!_sesHoy) {
+      _sesHoy = {fecha:_hoyISO2, horaInicio:ahoraStr, horaFin:''};
+      S.sesiones.push(_sesHoy);
+      db.collection('inspecciones').doc(inspeccionId)
+        .update({sesiones: firebase.firestore.FieldValue.arrayUnion(_sesHoy)})
+        .catch(function(e){ console.warn('No se pudo registrar sesión del día:', e.message); });
+    } else if (!_sesHoy.horaInicio) {
+      _sesHoy.horaInicio = ahoraStr;
+    }
   }
 
   // FIX: guardar silencioso para autoguardado
@@ -2175,6 +2182,7 @@
 
   async function guardar(){
     if (_completando || S.estado==='completada') return;
+    autoCapturarHoraInicio();
     try {
       var circUpd = _legacyArrayFormat
         ? { circuitos: buildCircuitosMap() }

@@ -484,8 +484,11 @@
 
 
   function getSesionesStr() {
-    if (D.sesiones && D.sesiones.length) {
-      return D.sesiones.map(s => `Fecha inspección: ${fmtFecha(s.fecha)} – Inspector: ${D.inspectorNombre||''}`).join('\n');
+    // Descarta sesiones "fantasma" (creadas solo por abrir la inspección otro día, sin
+    // horaInicio ni horaFin) — mismo filtro que ya usa generarRegistro() para esto.
+    var sesReales = (D.sesiones||[]).filter(function(s){ return s.horaInicio || s.horaFin; });
+    if (sesReales.length) {
+      return sesReales.map(s => `Fecha inspección: ${fmtFecha(s.fecha)} – Inspector: ${D.inspectorNombre||''}`).join('\n');
     }
     return `Fecha inspección: ${fmtFecha(D.fechaInspeccion||'')} – Inspector: ${D.inspectorNombre||''}`;
   }
@@ -1631,7 +1634,12 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
 
       // Fecha(s) y nombre inspector — ultima hoja muestra solo la ultima visita
       const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-      const portadaSes = D.sesiones && D.sesiones.length ? D.sesiones : [{fecha:D.fechaInspeccion||''}];
+      // Mismo filtro que getSesionesStr()/generarRegistro(): descarta sesiones fantasma
+      // (sin horaInicio ni horaFin) para no coger como "última visita" un día en que
+      // solo se abrió la inspección sin trabajar en ella.
+      const portadaSesRaw = D.sesiones && D.sesiones.length ? D.sesiones : [{fecha:D.fechaInspeccion||''}];
+      const portadaSesFilt = portadaSesRaw.filter(function(s){ return s.horaInicio || s.horaFin; });
+      const portadaSes = portadaSesFilt.length ? portadaSesFilt : portadaSesRaw;
       const lastSesInf = portadaSes[portadaSes.length - 1];
       const lastRawInf = portadaSes.length > 1 ? (lastSesInf.fecha||'') : (D.fechaInspeccion||lastSesInf.fecha||'');
       const lastFmtInf = fmtFecha(lastRawInf);
