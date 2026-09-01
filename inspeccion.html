@@ -416,6 +416,38 @@
   </div>
 </div>
 
+<!-- MODAL AYUDA "!" — foto + texto explicativo de una pregunta/columna, ambos opcionales -->
+<div class="modal-overlay" id="modalAyuda" onclick="if(event.target===this)cerrarModalAyuda()">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title" id="modalAyudaTitulo">Ayuda</span>
+      <button style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)" onclick="cerrarModalAyuda()">&#215;</button>
+    </div>
+    <img id="modalAyudaFoto" style="width:100%;border-radius:8px;margin-bottom:10px;display:none" alt="Imagen de referencia">
+    <div id="modalAyudaTexto" style="font-size:13px;line-height:1.5;color:var(--text);white-space:pre-line"></div>
+  </div>
+</div>
+
+<!-- MODAL ENSAYO ALTERNATIVO DE CAMPO (ej. SAE columna IE, 8.2 — sin cálculo disponible) -->
+<div class="modal-overlay" id="modalIEAlt">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Ensayo alternativo de campo</span>
+      <button style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)" onclick="cerrarModalIEAlt()">&#215;</button>
+    </div>
+    <div id="modalIEAltInfo" style="font-size:11px;color:var(--muted);margin-bottom:10px"></div>
+    <div class="criterio-btns" id="modalIEAltBtns" style="justify-content:flex-start;gap:8px">
+      <button class="snb-s" id="btnIEAltSat" onclick="setIEAltResultado(true)" style="padding:6px 14px;font-size:12px">SAT</button>
+      <button class="snb-s" id="btnIEAltNs" onclick="setIEAltResultado(false)" style="padding:6px 14px;font-size:12px">N.S.</button>
+    </div>
+    <div class="f" style="margin-top:10px">
+      <label>Observación (opcional)</label>
+      <textarea id="modalIEAltObs" placeholder="Detalle del ensayo realizado..."></textarea>
+    </div>
+    <button class="btn-modal-ok" onclick="guardarIEAlt()">&#10003; Guardar y cerrar</button>
+  </div>
+</div>
+
 <!-- MODAL FOTOS POR JUEGO -->
 <div class="modal-overlay" id="modalFotos" onclick="cerrarModalFotos(event)">
   <div class="modal-sheet" onclick="event.stopPropagation()">
@@ -518,7 +550,9 @@
   // COLS plano — null para alcances tipo PAA/FER, que siguen usando COLS/COL_LABELS tal cual.
   var TIPOS_JUEGO = null;          // {SAE:{id,label,botonAnadir,normaRef,columnas:[...]}, MURO:{...}}
   var ENSAYO_PRUEBA_CFG = null;    // config del modal de ensayo de prueba (PPI/PSPI/SSPC), solo SAE
+  var ENSAYO_IE_ALT_CFG = null;    // ensayo alternativo de campo ligado a una columna (ej. IE en SAE), resultado único
   var MATERIAL_SUBCATEGORIAS = null;
+  var COLS_RAW = [];               // columnas de config/{alcance}.columnas sin recortar (conserva ayuda:{texto,foto})
 
   function _aplicarFormato(fmt) {
     if (!fmt) return;
@@ -527,14 +561,45 @@
       COLS = fmt.columnas.map(function(c){ return {key:c.id, label:c.abbrev}; });
       COL_LABELS = {};
       fmt.columnas.forEach(function(c){ COL_LABELS[c.id] = c.label; });
+      COLS_RAW = fmt.columnas;
     }
     if (fmt.tiposJuego && fmt.tiposJuego.length) {
       TIPOS_JUEGO = {};
       fmt.tiposJuego.forEach(function(t){ TIPOS_JUEGO[t.id] = t; });
     }
     if (fmt.ensayoPrueba) ENSAYO_PRUEBA_CFG = fmt.ensayoPrueba;
+    if (fmt.ensayoIEAlt) ENSAYO_IE_ALT_CFG = fmt.ensayoIEAlt;
     if (fmt.materialSubcategorias && fmt.materialSubcategorias.length) MATERIAL_SUBCATEGORIAS = fmt.materialSubcategorias;
     if (fmt.normaAplicable && fmt.normaAplicable.numero) NORMA_APLICABLE = fmt.normaAplicable.numero;
+  }
+
+  // Busca el ítem (pregunta general o columna) por id para el modal de ayuda "!" — se hace en
+  // el momento de abrir, no en el render, para no tener que llevar el objeto completo por el HTML.
+  function _buscarItemAyuda(source, itemId, tipoElemento) {
+    if (source === 'gen') return GEN_ITEMS.find(function(i){ return i.id === itemId; });
+    if (tipoElemento && TIPOS_JUEGO && TIPOS_JUEGO[tipoElemento]) {
+      return (TIPOS_JUEGO[tipoElemento].columnas||[]).find(function(c){ return c.id === itemId; });
+    }
+    return COLS_RAW.find(function(c){ return c.id === itemId; });
+  }
+  window.abrirModalAyuda = function(source, itemId, tipoElemento){
+    var item = _buscarItemAyuda(source, itemId, tipoElemento);
+    if (!item || !item.ayuda || !(item.ayuda.texto || item.ayuda.foto)) return;
+    document.getElementById('modalAyudaTitulo').textContent = item.sec || item.label || '';
+    var elTexto = document.getElementById('modalAyudaTexto');
+    if (item.ayuda.texto) { elTexto.textContent = item.ayuda.texto; elTexto.style.display = 'block'; }
+    else { elTexto.style.display = 'none'; }
+    var elFoto = document.getElementById('modalAyudaFoto');
+    if (item.ayuda.foto) { elFoto.src = item.ayuda.foto; elFoto.style.display = 'block'; }
+    else { elFoto.style.display = 'none'; }
+    document.getElementById('modalAyuda').classList.add('open');
+  };
+  window.cerrarModalAyuda = function(){ document.getElementById('modalAyuda').classList.remove('open'); };
+  // Botón "!" — solo se genera si hay contenido, para no mostrar un icono que abre un modal vacío.
+  function _btnAyuda(source, item, tipoElemento){
+    if (!item.ayuda || !(item.ayuda.texto || item.ayuda.foto)) return '';
+    return '<button type="button" onclick="event.stopPropagation();abrirModalAyuda(\''+source+'\',\''+item.id+'\''+(tipoElemento?',\''+tipoElemento+'\'':'')+')" '
+      +'style="background:var(--gold);color:white;border:none;border-radius:50%;width:16px;height:16px;min-width:16px;font-size:10px;font-weight:700;line-height:16px;text-align:center;cursor:pointer;margin-left:4px;padding:0;flex-shrink:0" title="Más información">!</button>';
   }
 
   // Columnas efectivas para un circuito dado: si el alcance usa tiposJuego (SAE) y el
@@ -1159,7 +1224,7 @@
       const obs=(S.genObs[item.id]||"").replace(/"/g,'&quot;');
       html+=`
         <div class="chk-row">
-          <div class="chk-desc">${item.desc}</div>
+          <div class="chk-desc">${item.desc}${_btnAyuda('gen',item)}</div>
           <div class="chk-snb">
             <button class="snb ${v==="S"?"s-S":""}" onclick="setGen('${item.id}','S')">S</button>
             <button class="snb ${v==="N"?"s-N":""}" onclick="setGen('${item.id}','N')">N</button>
@@ -1371,13 +1436,17 @@
         const tInfo = TIPOS_JUEGO && TIPOS_JUEGO[circ.tipoElemento];
         const nFotos=j.fotos&&j.fotos.length||0;
         const nPerdidas=(j.fotos||[]).filter(function(f){return f.perdida;}).length;
+        const colsRawTipo = (TIPOS_JUEGO && TIPOS_JUEGO[circ.tipoElemento] && TIPOS_JUEGO[circ.tipoElemento].columnas) || [];
         const criterios=_cols.map(col=>{
+          const colRaw = colsRawTipo.find(c=>c.id===col.key) || col;
           const esEnsayo = ENSAYO_PRUEBA_CFG && ENSAYO_PRUEBA_CFG.aplicaATipo===circ.tipoElemento && ENSAYO_PRUEBA_CFG.aplicaAColumna===col.key;
+          const esIEAlt = ENSAYO_IE_ALT_CFG && ENSAYO_IE_ALT_CFG.aplicaATipo===circ.tipoElemento && ENSAYO_IE_ALT_CFG.aplicaAColumna===col.key;
           const ep=j.ensayoPrueba||{};
           const nPuntos = esEnsayo ? ((ep.ppi||[]).length+(ep.pspi||[]).length+(ep.sspc||[]).length) : 0;
+          const tieneIEAlt = esIEAlt && j.ensayoIEAlt && (j.ensayoIEAlt.ok===true||j.ensayoIEAlt.ok===false);
           return `
             <div class="criterio-row">
-              <span class="criterio-label">${_labels[col.key]||col.label}${esEnsayo?` <button type="button" onclick="event.stopPropagation();abrirModalEnsayo(${ci})" style="background:none;border:none;color:var(--gold);font-size:10px;text-decoration:underline;cursor:pointer;padding:0;margin-left:4px">ver detalle${nPuntos?' ('+nPuntos+')':''}</button>`:''}</span>
+              <span class="criterio-label">${_labels[col.key]||col.label}${_btnAyuda('col',colRaw,circ.tipoElemento)}${esEnsayo?` <button type="button" onclick="event.stopPropagation();abrirModalEnsayo(${ci})" style="background:none;border:none;color:var(--gold);font-size:10px;text-decoration:underline;cursor:pointer;padding:0;margin-left:4px">ver detalle${nPuntos?' ('+nPuntos+')':''}</button>`:''}${esIEAlt?` <button type="button" onclick="event.stopPropagation();abrirModalIEAlt(${ci})" style="background:none;border:none;color:var(--gold);font-size:10px;text-decoration:underline;cursor:pointer;padding:0;margin-left:4px">alternativa de campo${tieneIEAlt?' ('+(j.ensayoIEAlt.ok?'SAT':'N.S.')+')':''}</button>`:''}</span>
               <div class="criterio-btns">
                 <button class="snb-s ${j[col.key]==="S"?"s-S":""}" onclick="setJuego(${ci},0,'${col.key}','S')">S</button>
                 <button class="snb-s ${j[col.key]==="N"?"s-N":""}" onclick="setJuego(${ci},0,'${col.key}','N')">N</button>
@@ -1481,7 +1550,7 @@
             </div>
             ${_cols.map(col=>`
               <div class="criterio-row">
-                <span class="criterio-label">${_labels[col.key]}</span>
+                <span class="criterio-label">${_labels[col.key]}${_btnAyuda('col',COLS_RAW.find(c=>c.id===col.key)||col)}</span>
                 <div class="criterio-btns">
                   <button class="snb-s ${j[col.key]==="S"?"s-S":""}" onclick="setJuego(${ci},${ji},'${col.key}','S')">S</button>
                   <button class="snb-s ${j[col.key]==="N"?"s-N":""}" onclick="setJuego(${ci},${ji},'${col.key}','N')">N</button>
@@ -1665,6 +1734,46 @@
       if(agregado){ setJuego(ci,0,ENSAYO_PRUEBA_CFG.aplicaAColumna,agregado); return; }
     }
     markCircuitDirty(ci); markDirty(); renderCircuitos();
+  };
+
+  // MODAL ENSAYO ALTERNATIVO DE CAMPO (ej. columna IE en SAE, PAI.11 §8.2) — resultado único,
+  // no una lista de puntos como el modal de ensayo principal; caso raro (solo si no hay cálculo).
+  var modalIEAltRef=null, modalIEAltResultado=null;
+  window.abrirModalIEAlt=function(ci){
+    if(!ENSAYO_IE_ALT_CFG) return;
+    modalIEAltRef={ci:ci};
+    var j=S.circuitos[ci].juegos[0];
+    var existente=j.ensayoIEAlt||null;
+    modalIEAltResultado = existente ? (existente.ok===true?true:existente.ok===false?false:null) : null;
+    document.getElementById('modalIEAltInfo').textContent=
+      (ENSAYO_IE_ALT_CFG.clausula?ENSAYO_IE_ALT_CFG.clausula+' — ':'')+(ENSAYO_IE_ALT_CFG.desc||'')+
+      (ENSAYO_IE_ALT_CFG.carga?' Carga: '+ENSAYO_IE_ALT_CFG.carga+'.':'');
+    document.getElementById('modalIEAltObs').value = existente ? (existente.obs||'') : '';
+    _pintarBotonesIEAlt();
+    document.getElementById('modalIEAlt').classList.add('open');
+  };
+  window.cerrarModalIEAlt=function(){
+    document.getElementById('modalIEAlt').classList.remove('open');
+    modalIEAltRef=null;
+  };
+  window.setIEAltResultado=function(v){ modalIEAltResultado=v; _pintarBotonesIEAlt(); };
+  function _pintarBotonesIEAlt(){
+    document.getElementById('btnIEAltSat').className='snb-s'+(modalIEAltResultado===true?' s-S':'');
+    document.getElementById('btnIEAltNs').className='snb-s'+(modalIEAltResultado===false?' s-N':'');
+    document.getElementById('btnIEAltSat').style.cssText='padding:6px 14px;font-size:12px';
+    document.getElementById('btnIEAltNs').style.cssText='padding:6px 14px;font-size:12px';
+  }
+  window.guardarIEAlt=function(){
+    if(!modalIEAltRef) return;
+    var ci=modalIEAltRef.ci;
+    var j=S.circuitos[ci].juegos[0];
+    j.ensayoIEAlt={ok:modalIEAltResultado, obs:document.getElementById('modalIEAltObs').value.trim()};
+    cerrarModalIEAlt();
+    if(modalIEAltResultado===true||modalIEAltResultado===false){
+      setJuego(ci,0,ENSAYO_IE_ALT_CFG.aplicaAColumna, modalIEAltResultado?'S':'N');
+    } else {
+      markCircuitDirty(ci); markDirty(); renderCircuitos();
+    }
   };
 
   // MODAL FOTOS POR JUEGO
