@@ -211,6 +211,7 @@
   var _historialDocs  = [];
   var editandoPreguntaIdx = null;
   var editandoColumnaIdx  = null;
+  var editandoColumnaTipoRef = null; // {tipoIdx,colIdx} al editar una columna de tiposJuego (SAE/MURO); null = columna plana
   var _sortableChk   = null;
   var _sortableCols  = null;
   var currentUserEmail = '';
@@ -402,20 +403,24 @@
     if (!b.checklist.length) html += '<div class="empty-state" style="padding:12px">Sin preguntas. Pulsa + Añadir.</div>';
     html += '</div>';
 
-    // Columnas — alcances con tiposJuego (ej. SAE: Vía/Muro) todavía no tienen editor propio
-    // aquí, así que se muestran solo en lectura para no crear columnas planas huérfanas.
+    // Columnas — alcances con tiposJuego (ej. SAE: Vía/Muro) todavía no tienen añadir/quitar/
+    // reordenar propio aquí (para no crear columnas planas huérfanas), pero sí se puede editar
+    // abreviatura/nombre/ayuda de cada una ya existente.
     if (b.tiposJuego && b.tiposJuego.length) {
-      b.tiposJuego.forEach(function(tipo){
+      b.tiposJuego.forEach(function(tipo, tipoIdx){
         html += '<div class="sec-label" style="margin-top:20px">Columnas — '+escHtml(tipo.label)+' ('+(tipo.columnas||[]).length+')</div>';
-        (tipo.columnas||[]).forEach(function(col){
+        (tipo.columnas||[]).forEach(function(col, colIdx){
           html += '<div class="col-item">'
             +'<span class="col-id">'+escHtml(col.id)+'</span>'
             +'<span class="col-abbrev">'+escHtml(col.abbrev)+'</span>'
             +'<span class="col-label">'+escHtml(col.label)+(_tieneAyuda(col)?AYUDA_BADGE:'')+'</span>'
+            +'<div class="fmt-actions">'
+            +'<button class="btn-icon" onclick="editarColumnaTipo('+tipoIdx+','+colIdx+')" title="Editar">&#9998;</button>'
+            +'</div>'
             +'</div>';
         });
       });
-      html += '<div class="empty-state" style="padding:8px 12px;font-size:11px">Edición de columnas por tipo de juego: aún no disponible desde aquí.</div>';
+      html += '<div class="empty-state" style="padding:8px 12px;font-size:11px">Añadir/quitar/reordenar columnas por tipo de juego: aún no disponible desde aquí — solo editar las ya existentes.</div>';
     } else {
       html += '<div class="sec-label" style="margin-top:20px">Columnas de inspección'
         +'<button class="btn-primary" style="font-size:11px;padding:4px 10px" onclick="nuevaColumna()">+ Añadir</button>'
@@ -640,6 +645,7 @@
   // ── COLUMNA CRUD ──
   window.nuevaColumna = function() {
     editandoColumnaIdx = null;
+    editandoColumnaTipoRef = null;
     document.getElementById('mcTitulo').textContent = 'Nueva columna';
     document.getElementById('mcId').value     = '';
     document.getElementById('mcAbbrev').value = '';
@@ -652,6 +658,7 @@
 
   window.editarColumna = function(i) {
     editandoColumnaIdx = i;
+    editandoColumnaTipoRef = null;
     var col = borrador.columnas[i];
     document.getElementById('mcTitulo').textContent = 'Editar columna';
     document.getElementById('mcId').value     = col.id     || '';
@@ -664,11 +671,38 @@
     setTimeout(function(){ document.getElementById('mcAbbrev').focus(); }, 100);
   };
 
+  // Editar una columna de tiposJuego (ej. SAE Vía/Muro) — mismo modal que las columnas planas,
+  // pero el código nunca se toca aquí (todavía no hay añadir/quitar para estas, solo editar).
+  window.editarColumnaTipo = function(tipoIdx, colIdx) {
+    editandoColumnaIdx = null;
+    editandoColumnaTipoRef = { tipoIdx: tipoIdx, colIdx: colIdx };
+    var col = borrador.tiposJuego[tipoIdx].columnas[colIdx];
+    document.getElementById('mcTitulo').textContent = 'Editar columna — '+(borrador.tiposJuego[tipoIdx].label||'');
+    document.getElementById('mcId').value     = col.id     || '';
+    document.getElementById('mcAbbrev').value = col.abbrev || '';
+    document.getElementById('mcLabel').value  = col.label  || '';
+    document.getElementById('mcId').setAttribute('readonly','readonly');
+    _resetAyudaUI('mc', col.ayuda);
+    document.getElementById('modalColumna').classList.add('open');
+    setTimeout(function(){ document.getElementById('mcAbbrev').focus(); }, 100);
+  };
+
   window.guardarColumna = function() {
     var id     = document.getElementById('mcId').value.trim().toLowerCase().replace(/[^a-z]/g,'');
     var abbrev = document.getElementById('mcAbbrev').value.trim();
     var label  = document.getElementById('mcLabel').value.trim();
     if (!id || !abbrev || !label) { alert('Todos los campos son obligatorios.'); return; }
+    if (editandoColumnaTipoRef) {
+      var colArr = borrador.tiposJuego[editandoColumnaTipoRef.tipoIdx].columnas;
+      var colPrevioTipo = colArr[editandoColumnaTipoRef.colIdx];
+      var ayudaTipo = _buildAyuda('mc', colPrevioTipo && colPrevioTipo.ayuda);
+      var actualizadaTipo = Object.assign({}, colPrevioTipo, { abbrev:abbrev, label:label });
+      if (ayudaTipo) actualizadaTipo.ayuda = ayudaTipo; else delete actualizadaTipo.ayuda;
+      colArr[editandoColumnaTipoRef.colIdx] = actualizadaTipo;
+      cerrarModal('modalColumna');
+      renderBorrador();
+      return;
+    }
     var colPrevio = editandoColumnaIdx === null ? null : borrador.columnas[editandoColumnaIdx];
     var ayuda = _buildAyuda('mc', colPrevio && colPrevio.ayuda);
     if (editandoColumnaIdx === null) {
