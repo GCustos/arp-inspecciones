@@ -112,14 +112,22 @@
     <div class="field"><label>Referencia norma</label><input type="text" id="mpRef" placeholder="4.1"></div>
     <div class="field"><label>Sección</label><input type="text" id="mpSec" placeholder="Selección de Lugar y Entorno"></div>
     <div class="field"><label>Descripción</label><textarea id="mpDesc" rows="4" placeholder="Descripción detallada del criterio..."></textarea></div>
-    <div class="field"><label>Texto de ayuda (icono "!" en la app, opcional)</label><textarea id="mpAyudaTexto" rows="3" placeholder="Explicación adicional para el inspector, opcional..."></textarea></div>
-    <div class="field">
-      <label>Foto de ayuda (opcional)</label>
-      <img id="mpAyudaFotoPreview" style="max-width:100%;border-radius:6px;margin-bottom:6px;display:none">
-      <input type="file" id="mpAyudaFotoInput" accept="image/*" onchange="subirFotoAyuda(this,'mp')" style="display:none">
-      <button type="button" class="btn-cancel" style="width:100%" onclick="document.getElementById('mpAyudaFotoInput').click()">📷 Subir foto</button>
-      <button type="button" class="btn-cancel" id="mpAyudaFotoQuitar" style="width:100%;display:none;color:var(--red);margin-top:4px" onclick="quitarFotoAyuda('mp')">Quitar foto</button>
+
+    <button type="button" id="mpAyudaToggle" onclick="toggleAyudaSeccion('mp')" style="width:100%;text-align:left;background:var(--surf);border:1.5px dashed var(--border);border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600;color:var(--gold);cursor:pointer;margin:6px 0">
+      &#9432;&nbsp; Icono de ayuda "!" en la app (opcional) — <span id="mpAyudaToggleTxt">añadir</span>
+    </button>
+    <div id="mpAyudaSeccion" style="display:none;border:1.5px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:10px;background:#FFF9F0">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Esto NO es la descripción de la pregunta — es contenido extra que el inspector solo ve si pulsa el icono "!" en la app. Déjalo vacío si no hace falta.</div>
+      <div class="field"><label>Texto explicativo</label><textarea id="mpAyudaTexto" rows="3" placeholder="Explicación adicional para el inspector..."></textarea></div>
+      <div class="field">
+        <label>Foto de referencia</label>
+        <img id="mpAyudaFotoPreview" style="max-width:100%;border-radius:6px;margin-bottom:6px;display:none">
+        <input type="file" id="mpAyudaFotoInput" accept="image/*" onchange="subirFotoAyuda(this,'mp')" style="display:none">
+        <button type="button" class="btn-save" style="width:100%;background:var(--gold)" onclick="document.getElementById('mpAyudaFotoInput').click()">&#128247; Subir foto</button>
+        <button type="button" class="btn-cancel" id="mpAyudaFotoQuitar" style="width:100%;display:none;color:var(--red);margin-top:6px" onclick="quitarFotoAyuda('mp')">Quitar foto</button>
+      </div>
     </div>
+
     <div class="modal-actions">
       <button class="btn-cancel" onclick="cerrarModal('modalPregunta')">Cancelar</button>
       <button class="btn-save" onclick="guardarPregunta()">Guardar</button>
@@ -134,14 +142,22 @@
     <div class="field"><label>Código (2-4 letras, no cambiar si hay inspecciones)</label><input type="text" id="mcId" placeholder="ie" maxlength="4" style="text-transform:lowercase"></div>
     <div class="field"><label>Abreviatura (para cabecera tabla)</label><input type="text" id="mcAbbrev" placeholder="Integ. est." maxlength="20"></div>
     <div class="field"><label>Nombre completo</label><input type="text" id="mcLabel" placeholder="Integridad estructural"></div>
-    <div class="field"><label>Texto de ayuda (icono "!" en la app, opcional)</label><textarea id="mcAyudaTexto" rows="3" placeholder="Explicación adicional para el inspector, opcional..."></textarea></div>
-    <div class="field">
-      <label>Foto de ayuda (opcional)</label>
-      <img id="mcAyudaFotoPreview" style="max-width:100%;border-radius:6px;margin-bottom:6px;display:none">
-      <input type="file" id="mcAyudaFotoInput" accept="image/*" onchange="subirFotoAyuda(this,'mc')" style="display:none">
-      <button type="button" class="btn-cancel" style="width:100%" onclick="document.getElementById('mcAyudaFotoInput').click()">📷 Subir foto</button>
-      <button type="button" class="btn-cancel" id="mcAyudaFotoQuitar" style="width:100%;display:none;color:var(--red);margin-top:4px" onclick="quitarFotoAyuda('mc')">Quitar foto</button>
+
+    <button type="button" id="mcAyudaToggle" onclick="toggleAyudaSeccion('mc')" style="width:100%;text-align:left;background:var(--surf);border:1.5px dashed var(--border);border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600;color:var(--gold);cursor:pointer;margin:6px 0">
+      &#9432;&nbsp; Icono de ayuda "!" en la app (opcional) — <span id="mcAyudaToggleTxt">añadir</span>
+    </button>
+    <div id="mcAyudaSeccion" style="display:none;border:1.5px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:10px;background:#FFF9F0">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Esto NO es el nombre de la columna — es contenido extra que el inspector solo ve si pulsa el icono "!" en la app. Déjalo vacío si no hace falta.</div>
+      <div class="field"><label>Texto explicativo</label><textarea id="mcAyudaTexto" rows="3" placeholder="Explicación adicional para el inspector..."></textarea></div>
+      <div class="field">
+        <label>Foto de referencia</label>
+        <img id="mcAyudaFotoPreview" style="max-width:100%;border-radius:6px;margin-bottom:6px;display:none">
+        <input type="file" id="mcAyudaFotoInput" accept="image/*" onchange="subirFotoAyuda(this,'mc')" style="display:none">
+        <button type="button" class="btn-save" style="width:100%;background:var(--gold)" onclick="document.getElementById('mcAyudaFotoInput').click()">&#128247; Subir foto</button>
+        <button type="button" class="btn-cancel" id="mcAyudaFotoQuitar" style="width:100%;display:none;color:var(--red);margin-top:6px" onclick="quitarFotoAyuda('mc')">Quitar foto</button>
+      </div>
     </div>
+
     <div class="modal-actions">
       <button class="btn-cancel" onclick="cerrarModal('modalColumna')">Cancelar</button>
       <button class="btn-save" onclick="guardarColumna()">Guardar</button>
@@ -331,7 +347,7 @@
           html += '<div class="col-item">'
             +'<span class="col-id">'+escHtml(col.id)+'</span>'
             +'<span class="col-abbrev">'+escHtml(col.abbrev)+'</span>'
-            +'<span class="col-label">'+escHtml(col.label)+'</span>'
+            +'<span class="col-label">'+escHtml(col.label)+(_tieneAyuda(col)?AYUDA_BADGE:'')+'</span>'
             +'</div>';
         });
       });
@@ -341,7 +357,7 @@
         html += '<div class="col-item">'
           +'<span class="col-id">'+escHtml(col.id)+'</span>'
           +'<span class="col-abbrev">'+escHtml(col.abbrev)+'</span>'
-          +'<span class="col-label">'+escHtml(col.label)+'</span>'
+          +'<span class="col-label">'+escHtml(col.label)+(_tieneAyuda(col)?AYUDA_BADGE:'')+'</span>'
           +'</div>';
       });
       if (!f.columnas.length) html += '<div class="empty-state" style="padding:16px">Sin columnas definidas.</div>';
@@ -353,7 +369,7 @@
   function renderItemReadonly(n, item) {
     return '<div class="fmt-item">'
       +'<div class="fmt-body">'
-      +'<div class="fmt-ref">'+n+'. '+escHtml(item.ref)+' &middot; '+escHtml(item.sec)+'</div>'
+      +'<div class="fmt-ref">'+n+'. '+escHtml(item.ref)+' &middot; '+escHtml(item.sec)+(_tieneAyuda(item)?AYUDA_BADGE:'')+'</div>'
       +'<div class="fmt-desc">'+escHtml(item.desc)+'</div>'
       +'</div></div>';
   }
@@ -395,7 +411,7 @@
           html += '<div class="col-item">'
             +'<span class="col-id">'+escHtml(col.id)+'</span>'
             +'<span class="col-abbrev">'+escHtml(col.abbrev)+'</span>'
-            +'<span class="col-label">'+escHtml(col.label)+'</span>'
+            +'<span class="col-label">'+escHtml(col.label)+(_tieneAyuda(col)?AYUDA_BADGE:'')+'</span>'
             +'</div>';
         });
       });
@@ -425,11 +441,14 @@
     initSortablesBorrador();
   }
 
+  function _tieneAyuda(item){ return !!(item.ayuda && (item.ayuda.texto || item.ayuda.foto)); }
+  var AYUDA_BADGE = '<span title="Tiene icono de ayuda !" style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--gold);color:white;font-size:9px;font-weight:700;flex-shrink:0;margin-left:4px">!</span>';
+
   function renderItemEditor(i, item) {
     return '<div class="fmt-item" data-idx="'+i+'">'
       +'<span class="drag-handle">&#9776;</span>'
       +'<div class="fmt-body">'
-      +'<div class="fmt-ref">'+escHtml(item.ref)+' &middot; '+escHtml(item.sec)+'</div>'
+      +'<div class="fmt-ref">'+escHtml(item.ref)+' &middot; '+escHtml(item.sec)+(_tieneAyuda(item)?AYUDA_BADGE:'')+'</div>'
       +'<div class="fmt-desc">'+escHtml(item.desc)+'</div>'
       +'</div>'
       +'<div class="fmt-actions">'
@@ -443,7 +462,7 @@
       +'<span class="drag-handle" style="color:var(--muted);cursor:grab">&#9776;</span>'
       +'<span class="col-id">'+escHtml(col.id)+'</span>'
       +'<span class="col-abbrev">'+escHtml(col.abbrev)+'</span>'
-      +'<span class="col-label">'+escHtml(col.label)+'</span>'
+      +'<span class="col-label">'+escHtml(col.label)+(_tieneAyuda(col)?AYUDA_BADGE:'')+'</span>'
       +'<div class="fmt-actions">'
       +'<button class="btn-icon" onclick="editarColumna('+i+')" title="Editar">&#9998;</button>'
       +'<button class="btn-icon danger" onclick="eliminarColumna('+i+')" title="Eliminar">&#215;</button>'
@@ -528,7 +547,17 @@
     if (ayuda && ayuda.foto) { img.src = ayuda.foto; img.style.display = 'block'; btnQuitar.style.display = 'block'; }
     else { img.style.display = 'none'; btnQuitar.style.display = 'none'; }
     document.getElementById(prefix+'AyudaFotoInput').value = '';
+    // Plegado por defecto — solo se abre solo si el ítem ya tiene texto u foto de ayuda.
+    var abierta = !!(ayuda && (ayuda.texto || ayuda.foto));
+    document.getElementById(prefix+'AyudaSeccion').style.display = abierta ? 'block' : 'none';
+    document.getElementById(prefix+'AyudaToggleTxt').textContent = abierta ? 'quitar/editar' : 'añadir';
   }
+  window.toggleAyudaSeccion = function(prefix) {
+    var el = document.getElementById(prefix+'AyudaSeccion');
+    var abierta = el.style.display !== 'none';
+    el.style.display = abierta ? 'none' : 'block';
+    document.getElementById(prefix+'AyudaToggleTxt').textContent = abierta ? 'añadir' : 'ocultar';
+  };
   window.subirFotoAyuda = function(input, prefix) {
     var f = input.files[0];
     if (!f) return;
