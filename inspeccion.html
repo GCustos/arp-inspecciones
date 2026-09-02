@@ -987,9 +987,19 @@
       if(data.circuitos){
         // Soporta formato antiguo (array) y nuevo (mapa {id: circData})
         var _wasArray=Array.isArray(data.circuitos);
+        // En formato mapa, el id real del circuito es la CLAVE del mapa — el valor
+        // guardado nunca lleva un campo `id` propio (ver buildCircuitUpdates/buildCircuitosMap).
+        // Object.values() por sí solo pierde esa clave; hay que reinyectarla en cada objeto
+        // ANTES de perder la referencia al mapa, o cada carga de página le asignaría a todos
+        // los circuitos un id nuevo (vía el fallback uid() de abajo) desconectado del real —
+        // el siguiente autoguardado los escribiría como documentos duplicados en vez de
+        // actualizar los existentes. Bug real detectado 2026-09-02 (Climbat Zaragoza, 164
+        // circuitos duplicados sobre ~50 reales).
         S.circuitos=_wasArray
           ? data.circuitos
-          : Object.values(data.circuitos).sort(function(a,b){return (a.orden||0)-(b.orden||0);});
+          : Object.keys(data.circuitos).map(function(k){
+              var c=data.circuitos[k]; if(!c.id) c.id=k; return c;
+            }).sort(function(a,b){return (a.orden||0)-(b.orden||0);});
         // Garantizar IDs en todos los circuitos y juegos (docs legacy sin IDs)
         // Si venía en formato array, marcar todos dirty → primer autosave migra a mapa.
         // En migración array→mapa se usan IDs de posición (circ_N/juego_N_M) para que
