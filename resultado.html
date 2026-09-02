@@ -1129,47 +1129,25 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text(esTiposJuego ? 'II. Descripción de los elementos' : 'II. Descripción de los juegos', ML, y); y += 8;
 
-      // Fotos por circuito — grid 3 columnas, cada circuito en página nueva
-      let circIdx = 0;
-      for (const circ of circuitos) {
-        if (circIdx > 0 || y > PH-60) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
-        circIdx++;
-        // Cabecera circuito
-        doc.setFillColor(...DARK); doc.rect(ML, y, CW, 8, 'F');
-        doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
-        doc.text(circ.nombre||'', PW/2, y+5.5, {align:'center'}); y += 10;
-
-        const juegos = circ.juegos || [];
-        const imgW = CW/3 - 3;
-        const imgH = 45;
-        let col = 0; let rowY = y;
-
-        for (const j of juegos) {
-          if (col === 3) { col = 0; rowY += imgH + 12; y = rowY; }
-          if (rowY + imgH + 12 > PH-18) {
-            doc.addPage(); nPag[0]++;
-            addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
-            rowY = MT+8; y = rowY;
-          }
-          const imgX = ML + col * (imgW + 3);
-          // Foto si existe
-          if (j.fotos && j.fotos.length > 0) {
-            const foto = j.fotos[0];
-            const src = foto.dataUrl || foto.url;
-            if (src) {
-              try {
-                const fmt = src.includes('data:image/png') ? 'PNG' : 'JPEG';
-                const fit = fitImage(doc, src, imgW, imgH-8);
-                const offsetX = (imgW - fit.w) / 2;
-                const offsetY = (imgH - 8 - fit.h) / 2;
-                doc.addImage(src, fmt, imgX + offsetX, rowY + offsetY, fit.w, fit.h);
-              } catch(e) {
-                doc.setFillColor(...SURF); doc.rect(imgX, rowY, imgW, imgH-8, 'F');
-                doc.setFontSize(7); doc.setTextColor(...MUTED);
-                doc.text('sin foto', imgX+imgW/2, rowY+(imgH-8)/2, {align:'center'});
-              }
-            } else {
-              doc.setFillColor(...SURF); doc.setDrawColor(...BORDER); doc.rect(imgX, rowY, imgW, imgH-8, 'FD');
+      // Dibuja una celda de foto+nombre en el grid de 3 columnas — factorizado para
+      // reutilizar exactamente el mismo render en modo "circuito por página" (PAA, un
+      // circuito puede tener muchos juegos) y en modo "grid continuo" (SAE/FER: cada
+      // circuito es un único elemento, forzar una página por circuito generaba informes
+      // de decenas de páginas — reportado por Guille 2026-09-02, 60 páginas en Climbat
+      // Zaragoza para 47 elementos).
+      function _celdaFotoJuego(imgX, rowY, imgW, imgH, j, nombreMostrar) {
+        if (j.fotos && j.fotos.length > 0) {
+          const foto = j.fotos[0];
+          const src = foto.dataUrl || foto.url;
+          if (src) {
+            try {
+              const fmt = src.includes('data:image/png') ? 'PNG' : 'JPEG';
+              const fit = fitImage(doc, src, imgW, imgH-8);
+              const offsetX = (imgW - fit.w) / 2;
+              const offsetY = (imgH - 8 - fit.h) / 2;
+              doc.addImage(src, fmt, imgX + offsetX, rowY + offsetY, fit.w, fit.h);
+            } catch(e) {
+              doc.setFillColor(...SURF); doc.rect(imgX, rowY, imgW, imgH-8, 'F');
               doc.setFontSize(7); doc.setTextColor(...MUTED);
               doc.text('sin foto', imgX+imgW/2, rowY+(imgH-8)/2, {align:'center'});
             }
@@ -1178,13 +1156,65 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
             doc.setFontSize(7); doc.setTextColor(...MUTED);
             doc.text('sin foto', imgX+imgW/2, rowY+(imgH-8)/2, {align:'center'});
           }
-          // Nombre juego
-          doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
-          const jNombre = (j.tipo==='NR'?'*. ':j.tipo==='AUX'?'* ':'') + j.nombre;
-          doc.text(jNombre, imgX+imgW/2, rowY+imgH-4, {align:'center', maxWidth:imgW});
+        } else {
+          doc.setFillColor(...SURF); doc.setDrawColor(...BORDER); doc.rect(imgX, rowY, imgW, imgH-8, 'FD');
+          doc.setFontSize(7); doc.setTextColor(...MUTED);
+          doc.text('sin foto', imgX+imgW/2, rowY+(imgH-8)/2, {align:'center'});
+        }
+        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text(nombreMostrar, imgX+imgW/2, rowY+imgH-4, {align:'center', maxWidth:imgW});
+      }
+
+      const imgW = CW/3 - 3;
+      const imgH = 45;
+
+      if (esTiposJuego) {
+        // Grid continuo: cada circuito = 1 elemento con 1 juego, sin salto de página
+        // forzado ni cabecera por circuito — solo pagina cuando el grid se llena de verdad.
+        let col = 0, rowY = y;
+        for (const circ of circuitos) {
+          const j = (circ.juegos||[])[0];
+          if (!j) continue;
+          if (col === 3) { col = 0; rowY += imgH + 12; y = rowY; }
+          if (rowY + imgH + 12 > PH-18) {
+            doc.addPage(); nPag[0]++;
+            addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+            rowY = MT+8; y = rowY; col = 0;
+          }
+          const imgX = ML + col * (imgW + 3);
+          _celdaFotoJuego(imgX, rowY, imgW, imgH, j, circ.nombre||j.nombre||'');
           col++;
         }
         y = rowY + imgH + 12;
+      } else {
+        // Fotos por circuito — grid 3 columnas, cada circuito en página nueva (un circuito
+        // PAA puede tener muchos juegos, mezclar circuitos en el mismo grid confundiría).
+        let circIdx = 0;
+        for (const circ of circuitos) {
+          if (circIdx > 0 || y > PH-60) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+          circIdx++;
+          // Cabecera circuito
+          doc.setFillColor(...DARK); doc.rect(ML, y, CW, 8, 'F');
+          doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
+          doc.text(circ.nombre||'', PW/2, y+5.5, {align:'center'}); y += 10;
+
+          const juegos = circ.juegos || [];
+          let col = 0; let rowY = y;
+
+          for (const j of juegos) {
+            if (col === 3) { col = 0; rowY += imgH + 12; y = rowY; }
+            if (rowY + imgH + 12 > PH-18) {
+              doc.addPage(); nPag[0]++;
+              addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+              rowY = MT+8; y = rowY;
+            }
+            const imgX = ML + col * (imgW + 3);
+            const jNombre = (j.tipo==='NR'?'*. ':j.tipo==='AUX'?'* ':'') + j.nombre;
+            _celdaFotoJuego(imgX, rowY, imgW, imgH, j, jNombre);
+            col++;
+          }
+          y = rowY + imgH + 12;
+        }
       }
 
 
@@ -1738,6 +1768,12 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       const ref = getNRegistro();
       const c = CONFIG?.empresa || CONFIG_DEFAULT.empresa;
       const norma = D.formatoDocumento?.normaAplicable || CONFIG?.alcance?.normaAplicable || { numero:'', titulo:'', tipoInstalacion:'la instalación' };
+      // Alcances con varias partes de norma (ej. SAE: UNE-EN 12572-1/2/3) deben citar cada
+      // parte con su fecha en el certificado (norma.numero por sí solo es el genérico sin
+      // fecha, insuficiente para ENAC) — mismo dato que ya usa "I. Normativa de referencia"
+      // en el Informe. Si el alcance no tiene normasDetalle (ej. PAA), se usa norma.numero
+      // tal cual, comportamiento sin cambios.
+      const normasDetalleCert = D.formatoDocumento?.normasDetalle || CONFIG?.alcance?.normasDetalle || null;
       const tiposJuegoCert = D.formatoDocumento?.tiposJuego;
       let totalJUnidadTxt;
       if (tiposJuegoCert && tiposJuegoCert.length) {
@@ -1769,8 +1805,17 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       // Título
       doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('CERTIFICADO DE CONFORMIDAD', PW/2, y, {align:'center'}); y += 10;
-      doc.setFontSize(15); doc.setTextColor(...GOLD);
-      doc.text('A NORMA ' + norma.numero, PW/2, y, {align:'center'}); y += 10;
+      doc.setTextColor(...GOLD);
+      if (normasDetalleCert && normasDetalleCert.length > 1) {
+        doc.setFontSize(12); doc.setFont('helvetica','bold');
+        doc.text('A NORMAS', PW/2, y, {align:'center'}); y += 6;
+        doc.setFontSize(11);
+        normasDetalleCert.forEach(function(n){ doc.text(n.numero, PW/2, y, {align:'center'}); y += 5.5; });
+        y += 2.5;
+      } else {
+        doc.setFontSize(15);
+        doc.text('A NORMA ' + ((normasDetalleCert && normasDetalleCert[0]?.numero) || norma.numero), PW/2, y, {align:'center'}); y += 10;
+      }
       doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
       doc.text(ref, PW/2, y, {align:'center'}); y += 8;
       doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
@@ -1787,7 +1832,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
 
 La intervención realizada, da como resultado un "Informe de inspección", con la numeración ${ref}, que indica las observaciones relativas a las instalaciones y omisiones. Estas observaciones sólo son válidas en las condiciones presentes en la instalación en el momento de control, y no serán válidas en caso de modificaciones en las mismas.
 
-${c.nombre}, certifica que los equipamientos cumplen con las exigencias marcadas en las normas ${norma.numero}${norma.titulo ? '. ' + norma.titulo : ''} tras la inspección in situ realizada, la validación de los distintos documentos exigidos por norma y las acciones correctoras realizadas por ${solicitante}.
+${c.nombre}, certifica que los equipamientos cumplen con las exigencias marcadas en ${(normasDetalleCert && normasDetalleCert.length) ? (normasDetalleCert.length>1?'las normas ':'la norma ') + normasDetalleCert.map(function(n){ return n.numero + (n.titulo?' ('+n.titulo+')':''); }).join('; ') : 'la norma ' + norma.numero + (norma.titulo ? ' (' + norma.titulo + ')' : '')} tras la inspección in situ realizada, la validación de los distintos documentos exigidos por norma y las acciones correctoras realizadas por ${solicitante}.
 
 Visto que el informe presenta un resultado FAVORABLE, se considera que los equipamientos cumplen con las especificaciones de seguridad de las normas de aplicación en vigencia y que son aptos para su uso bajo las indicaciones y directrices del manual de uso y mantenimiento del constructor/instalador.`;
 
