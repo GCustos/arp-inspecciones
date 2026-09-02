@@ -1448,7 +1448,19 @@
     }
   }
 
+  // Los botones "+ Añadir" de abajo solo tienen sentido si hay algo que scrollear por
+  // encima — con la lista vacía, mostrarlos junto a los de arriba es un duplicado inútil.
+  function actualizarVisibilidadBotonesInferior(){
+    var wrapBottom=document.getElementById('botonesAddTiposJuego_bottom');
+    var btnCircBottom=document.getElementById('btnAddCircuito_bottom');
+    if(!wrapBottom||!btnCircBottom) return;
+    if(!S.circuitos.length){ wrapBottom.style.display='none'; btnCircBottom.style.display='none'; return; }
+    if(TIPOS_JUEGO){ wrapBottom.style.display='flex'; btnCircBottom.style.display='none'; }
+    else { wrapBottom.style.display='none'; btnCircBottom.style.display=''; }
+  }
+
   function renderCircuitos(){
+    actualizarVisibilidadBotonesInferior();
     const c=document.getElementById("circuitosContainer");
     if(!S.circuitos.length){
       c.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Pulsa el botón para añadir el primer circuito.</div>`;
