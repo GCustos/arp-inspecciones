@@ -300,6 +300,8 @@
     <button class="btn-add-circ" id="btnAddCircuito" onclick="addCircuito()">&#43; Añadir circuito</button>
     <div id="botonesAddTiposJuego" style="display:none;gap:10px;margin-bottom:12px"></div>
     <div id="circuitosContainer"></div>
+    <button class="btn-add-circ" id="btnAddCircuito_bottom" style="margin-top:12px" onclick="addCircuito()">&#43; Añadir circuito</button>
+    <div id="botonesAddTiposJuego_bottom" style="display:none;gap:10px;margin-top:12px"></div>
   </div>
 </div>
 
@@ -1267,40 +1269,59 @@
     const nuevo = prompt("Nuevo nombre del circuito:", actual);
     if (!nuevo || nuevo === actual) return;
     S.circuitos[ci].nombre = nuevo;
+    // Elementos de tiposJuego (SAE/FER) solo tienen un juego interno cuyo nombre se generó
+    // una vez al crear el elemento — hay que mantenerlo igual al del circuito o el modal de
+    // fotos (que lee j.nombre) se queda con el nombre viejo aunque la tarjeta ya muestre el nuevo.
+    if (S.circuitos[ci].tipoElemento && S.circuitos[ci].juegos[0]) {
+      S.circuitos[ci].juegos[0].nombre = nuevo;
+    }
     markCircuitDirty(ci); markDirty(); renderCircuitos();
   }
 
-  // Alterna entre "+ Añadir circuito" (PAA/FER) y los botones por tipo de elemento
-  // (ej. SAE: "+ Añadir Vía" / "+ Añadir Zona/Muro") — leídos de TIPOS_JUEGO, nunca
-  // hardcodeados, para que un tercer tipo de elemento no necesite tocar código.
+  // Alterna entre "+ Añadir circuito" (alcances sin tiposJuego, ej. PAA) y los botones
+  // por tipo de elemento (ej. SAE: "+ Añadir Vía"/"+ Añadir Zona-Muro"; FER: "+ Añadir
+  // Tramo", con un único tipo) — leídos de TIPOS_JUEGO, nunca hardcodeados, para que un
+  // alcance nuevo con 1 o varios tipos no necesite tocar código.
   function actualizarBotonesAlcance(){
+    // Los botones de añadir se muestran duplicados arriba y abajo de la lista de elementos
+    // (mismo wrap/btnCirc de siempre + su copia "_bottom"), para no obligar a hacer scroll
+    // hasta arriba cuando ya hay muchos elementos cargados.
     var wrap=document.getElementById('botonesAddTiposJuego');
+    var wrapBottom=document.getElementById('botonesAddTiposJuego_bottom');
     var btnCirc=document.getElementById('btnAddCircuito');
+    var btnCircBottom=document.getElementById('btnAddCircuito_bottom');
     var tabEl=document.getElementById('tab2');
     var importTxt=document.getElementById('importBannerEstructuraTxt');
     if(!wrap||!btnCirc) return;
     if(TIPOS_JUEGO){
+      var html=Object.keys(TIPOS_JUEGO).map(function(tid){
+        var t=TIPOS_JUEGO[tid];
+        return '<button class="btn-add-circ" style="margin-bottom:0" onclick="addElementoTipoJuego(\''+tid+'\')">'+escHtmlLocal(t.botonAnadir||('+ Añadir '+(t.label||tid)))+'</button>';
+      }).join('');
       btnCirc.style.display='none';
       wrap.style.display='flex';
-      wrap.innerHTML=Object.keys(TIPOS_JUEGO).map(function(tid){
-        var t=TIPOS_JUEGO[tid];
-        return '<button class="btn-add-circ" style="margin-bottom:0" onclick="addElementoSAE(\''+tid+'\')">'+escHtmlLocal(t.botonAnadir||('+ Añadir '+(t.label||tid)))+'</button>';
-      }).join('');
+      wrap.innerHTML=html;
+      if(btnCircBottom) btnCircBottom.style.display='none';
+      if(wrapBottom){ wrapBottom.style.display='flex'; wrapBottom.innerHTML=html; }
       if(tabEl) tabEl.textContent='Elementos';
       if(importTxt) importTxt.textContent='estructura de elementos';
     } else {
       btnCirc.style.display='';
       wrap.style.display='none';
       wrap.innerHTML='';
+      if(btnCircBottom) btnCircBottom.style.display='';
+      if(wrapBottom){ wrapBottom.style.display='none'; wrapBottom.innerHTML=''; }
       if(tabEl) tabEl.textContent='Circuitos';
       if(importTxt) importTxt.textContent='estructura de circuitos y juegos';
     }
   }
   function escHtmlLocal(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-  // Crea un elemento SAE (Vía/Muro): circuito + su único juego en un solo paso —
-  // el tipo queda fijo al crear, nunca seleccionable/editable después (evita error de operario).
-  window.addElementoSAE = function(tipoElemento){
+  // Crea un elemento de un tipoJuego (ej. SAE Vía/Muro, FER Tramo): circuito + su único
+  // juego en un solo paso — el tipo queda fijo al crear, nunca seleccionable/editable
+  // después (evita error de operario). Sirve para cualquier alcance con tiposJuego,
+  // tenga 1 solo tipo (FER) o varios (SAE).
+  window.addElementoTipoJuego = function(tipoElemento){
     var t = TIPOS_JUEGO && TIPOS_JUEGO[tipoElemento];
     if(!t) return;
     var n = S.circuitos.filter(function(c){ return c.tipoElemento===tipoElemento; }).length + 1;

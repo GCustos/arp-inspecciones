@@ -820,12 +820,21 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       const fmtRev = D.formatoDocumento?.informeRevision || D.formatoDocumento?.revision || CONFIG?.alcance?.formatoRevision || '';
       const fmtFechaStr = D.formatoDocumento?.informeFecha || D.formatoDocumento?.fechaVigencia || CONFIG?.alcance?.formatoFecha || '';
       const norma = D.formatoDocumento?.normaAplicable || CONFIG?.alcance?.normaAplicable || { numero:'', titulo:'', tipoInstalacion:'la instalación' };
-      // Alcances con columnas por tipo de elemento (ej. SAE: Vía/Muro) — cambia cómo se
-      // agrupa/titula la sección de resultados específicos; PAA/FER sin tiposJuego = sin cambios.
+      // Alcances con columnas por tipo de elemento (ej. SAE: Vía/Muro; FER: Tramo, con un
+      // único tipo) — cambia cómo se agrupa/titula la sección de resultados específicos y
+      // el flujo de inspeccion.html. PAA es hoy el único alcance sin tiposJuego.
       const tiposJuegoInforme = D.formatoDocumento?.tiposJuego || null;
       const esTiposJuego = !!(tiposJuegoInforme && tiposJuegoInforme.length);
       const tituloInspeccionSeccion = esTiposJuego ? ('INSPECCIÓN — ' + (norma.tipoInstalacion||'LA INSTALACIÓN').toUpperCase()) : 'INSPECCIÓN DE PARQUES DE AVENTURA';
       const tituloDescripcionSeccion = esTiposJuego ? 'DESCRIPCIÓN DE LA INSTALACIÓN' : 'DESCRIPCIÓN DEL RECORRIDO';
+      // Textos narrativos (Metodología/Mantenimiento/Características): SÍ dependen del
+      // alcance concreto, no solo de si tiene tiposJuego — esTiposJuego ya no basta para
+      // distinguir SAE de FER. mapaAlcance[D.tipoAlcance] si existe una versión propia,
+      // si no cae al texto de PAA (placeholder genérico hasta tener el texto real de ese
+      // alcance — nunca el texto de OTRO alcance con tiposJuego, sería contenido incorrecto).
+      function textoPorAlcance(mapaAlcance, fallbackPaa) {
+        return mapaAlcance[D.tipoAlcance] || fallbackPaa;
+      }
 
       const totPag = [0];
       const nPag = [0];
@@ -999,12 +1008,12 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
 
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('I. Naturaleza de la inspección', ML, y); y += 6;
-      y = addTextBlock(doc, esTiposJuego ? TEXTO_METODOLOGIA_1_SAE : TEXTO_METODOLOGIA_1, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+      y = addTextBlock(doc, textoPorAlcance({SAE: TEXTO_METODOLOGIA_1_SAE}, TEXTO_METODOLOGIA_1), ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
       y += 6;
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       if (y > PH-40) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
       doc.text('II. Material utilizado', ML, y); y += 6;
-      y = addTextBlock(doc, esTiposJuego ? TEXTO_METODOLOGIA_2_SAE : TEXTO_METODOLOGIA_2, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+      y = addTextBlock(doc, textoPorAlcance({SAE: TEXTO_METODOLOGIA_2_SAE}, TEXTO_METODOLOGIA_2), ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
 
 
       // ═══ MANTENIMIENTO ═══
@@ -1016,11 +1025,14 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...GOLD);
       doc.text('MANTENIMIENTO', ML, y); y += 8;
 
-      const seccionesMant = esTiposJuego ? [
-        ['I. Generalidades', TEXTO_MANT_GENERAL_SAE],
-        ['II. Inspección', TEXTO_MANT_ORG_SAE],
-        ['III. Consignas de mantenimiento y de almacenamiento de los EPI o equipos de protección colectiva (redes, cuerdas, colchonetas, etc)', TEXTO_MANT_EPI_SAE]
-      ] : [
+      const seccionesMantPorAlcance = {
+        SAE: [
+          ['I. Generalidades', TEXTO_MANT_GENERAL_SAE],
+          ['II. Inspección', TEXTO_MANT_ORG_SAE],
+          ['III. Consignas de mantenimiento y de almacenamiento de los EPI o equipos de protección colectiva (redes, cuerdas, colchonetas, etc)', TEXTO_MANT_EPI_SAE]
+        ],
+      };
+      const seccionesMant = seccionesMantPorAlcance[D.tipoAlcance] || [
         ['I. Generalidades', TEXTO_MANT_GENERAL],
         ['II. Organización del mantenimiento', TEXTO_MANT_ORG],
         ['III. Consignas de mantenimiento y de almacenamiento de los EPI', TEXTO_MANT_EPI]
@@ -1629,7 +1641,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
       doc.text('CARACTERÍSTICAS DE INSPECCIÓN', ML+3, y+3.5); y += 14;
 
-      y = addTextBlock(doc, esTiposJuego ? TEXTO_CARACTERISTICAS_SAE : TEXTO_CARACTERISTICAS, ML, y, CW, 9, DARK, 'normal', 5, PH-40, ref, fmtRev, fmtFechaStr, nPag, totPag);
+      y = addTextBlock(doc, textoPorAlcance({SAE: TEXTO_CARACTERISTICAS_SAE}, TEXTO_CARACTERISTICAS), ML, y, CW, 9, DARK, 'normal', 5, PH-40, ref, fmtRev, fmtFechaStr, nPag, totPag);
       y += 10;
 
       // Fecha(s) y nombre inspector — ultima hoja muestra solo la ultima visita
@@ -2094,7 +2106,9 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       y = 18;
       const esTiposJuegoReg = !!(D.formatoDocumento?.tiposJuego && D.formatoDocumento.tiposJuego.length);
 
-      // Cabecera tabla — solo PAA/FER; SAE (tiposJuego) dibuja su propia cabecera por tipo más abajo
+      // Cabecera tabla fija de 5 columnas — solo para alcances sin tiposJuego (hoy, solo
+      // PAA); cualquier alcance con tiposJuego (SAE, FER...) dibuja su propia cabecera por
+      // tipo más abajo, con sus propias columnas.
       const cw0=30, cw1=35, cw2=(CW-cw0-cw1-25)/5, obsW2=25;
       if (!esTiposJuegoReg) {
         doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
