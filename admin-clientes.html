@@ -241,10 +241,12 @@
   // ── ESTADO ──
   var todosClientes = [];
   var todosContactos = [];   // cache global de la colección contactos
+  var todasInstalaciones = []; // cache global de la colección instalaciones
   var filtroActivo = 'activos';
   var vistaActual = 'lista';
   var clienteActual = null;
   var contactosDelCliente = []; // [{contactoId, rol, ...datosContacto}] para la vista detalle
+  var instalacionesDelCliente = []; // instalaciones cuyo propietarioId === clienteActual.id
   var editandoClienteId = null;
   var editandoVinculo = null;  // {contactoId, idx} del contacto que se está editando
 
@@ -267,12 +269,15 @@
   function cargar() {
     Promise.all([
       db.collection('clientes').orderBy('nombre').get(),
-      db.collection('contactos').orderBy('nombre').get()
+      db.collection('contactos').orderBy('nombre').get(),
+      db.collection('instalaciones').get()
     ]).then(function(results) {
       todosClientes = [];
       results[0].forEach(function(d){ todosClientes.push(Object.assign({id:d.id}, d.data())); });
       todosContactos = [];
       results[1].forEach(function(d){ todosContactos.push(Object.assign({id:d.id}, d.data())); });
+      todasInstalaciones = [];
+      results[2].forEach(function(d){ todasInstalaciones.push(Object.assign({id:d.id}, d.data())); });
 
       if (clienteActual) {
         var act = todosClientes.find(function(c){ return c.id===clienteActual.id; });
@@ -352,6 +357,10 @@
       var persona=todosContactos.find(function(c){return c.id===v.contactoId;});
       return Object.assign({}, v, persona ? {nombre:persona.nombre,telefono:persona.telefono,email:persona.email,activo:persona.activo} : {nombre:'[Contacto eliminado]',activo:false});
     });
+    // instalación.propietarioId → cliente existe como dato pero nunca se consultaba en
+    // sentido inverso desde Clientes — sin esto no había forma de saber qué instalaciones
+    // pertenecen a un cliente salvo buscando cada instalación una por una.
+    instalacionesDelCliente=todasInstalaciones.filter(function(i){ return i.propietarioId===clienteActual.id; });
     renderDetalle();
   }
 
@@ -380,7 +389,27 @@
         html+=inactivos.map(function(c){ return renderCtCard(c,contactosDelCliente.indexOf(c)); }).join('');
       }
     }
+
+    html+='<div class="sec-label" style="margin-top:20px"><span>Instalaciones ('+instalacionesDelCliente.length+')</span></div>';
+    html+=instalacionesDelCliente.length
+      ? instalacionesDelCliente.map(renderInstCard).join('')
+      : '<div class="empty-state" style="padding:20px 0">Sin instalaciones vinculadas a este cliente.</div>';
+
     document.getElementById('content').innerHTML=html;
+  }
+
+  function renderInstCard(i){
+    var sub=[i.codigo&&i.codigo!=='__PENDIENTE__'?i.codigo:null, (i.alcances||[]).join(', '), i.municipio&&i.municipio!=='__PENDIENTE__'?i.municipio:null].filter(Boolean).join(' &middot; ');
+    var ultima=i.ultimaInspeccion&&i.ultimaInspeccion!=='__PENDIENTE__'?'Última: '+escHtml(i.ultimaInspeccion):'';
+    var linkInsp=i.ultimaInspeccionId?'<a href="resultado.html?id='+i.ultimaInspeccionId+'" style="color:var(--gold);font-weight:600;text-decoration:none">Ver &#8594;</a>':'';
+    return '<div class="ct-card">'+
+      '<div class="ct-body">'+
+        '<div class="ct-nombre">'+escHtml(i.nombre||i.id)+'</div>'+
+        (sub?'<div class="ct-rol">'+sub+'</div>':'')+
+        (ultima?'<div class="ct-datos"><div class="ct-dato">'+ultima+'</div></div>':'')+
+      '</div>'+
+      linkInsp+
+    '</div>';
   }
 
   function renderCtCard(c,idx){
