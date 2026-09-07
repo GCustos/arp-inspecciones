@@ -353,8 +353,17 @@
 
   // Colores
   // Resuelve el nombre del elemento de una NC.
-  // Formato nuevo: nc.juegoId → busca por ID estable (inmune a reordenación).
-  // Fallback legacy: nc._ci / nc._ji para inspecciones antiguas.
+  // Formato nuevo: nc.juegoId → busca por ID estable (inmune a reordenación/borrado).
+  // nc.elem: texto congelado en el momento de crear la NC — seguro pero puede quedar
+  // desfasado si el elemento se renombra después.
+  // _ci/_ji (legacy, solo en NC de antes de la migración a IDs estables): son índices de
+  // posición en el array de circuitos — si el circuito se reordena o se borra otro por
+  // delante, _ci ya no apunta al mismo elemento pero SIGUE apuntando a ALGUNO válido, así
+  // que esta rama nunca "falla" — devuelve, con total confianza, el nombre de un elemento
+  // distinto al real. Verificado con datos reales 2026-09-03 (Aventura Amazonia Pelayos).
+  // Por eso _ci/_ji va DESPUÉS de nc.elem: el texto congelado es más fiable que una
+  // posición que puede haberse movido, y solo se usa _ci/_ji como último recurso si ni
+  // siquiera hay nc.elem guardado (NC muy antigua/manual sin texto).
   function getNcElem(nc) {
     if (D && D.circuitos) {
       var circs = Array.isArray(D.circuitos) ? D.circuitos : Object.values(D.circuitos);
@@ -370,7 +379,8 @@
         // juegoId duplicado (datos corruptos): usar elem almacenado como referencia
         if (matches.length > 1) return nc.elem || matches[0];
       }
-      // Fallback legacy: índices posicionales _ci/_ji
+      if (nc.elem) return nc.elem;
+      // Último recurso: índices posicionales _ci/_ji (poco fiables, ver comentario arriba)
       if (nc._ci !== undefined && nc._ci !== 'g' && nc._ji !== undefined) {
         var circ = circs[nc._ci];
         var juego = circ && circ.juegos && circ.juegos[nc._ji];

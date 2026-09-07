@@ -2131,19 +2131,40 @@
             }
           }
         }
+      } else if(GEN_ITEMS.find(function(it){ return it.id===aid; })){
+        // NC del checklist general (ej. "g6" — EPI y equipos de rescate): la respuesta vive
+        // en S.gen[id], no en un circuito/juego — sin esto la NC quedaba "cerrada" (con foto
+        // y resolución) pero el ítem seguía marcado N en el checklist, así que el Informe
+        // lo seguía pintando como no conformidad abierta. Reportado por Guille 2026-09-03
+        // (Parque Europa Madrid Rev.1, ítem "EPI y equipos de rescate").
+        S.gen[aid]='S';
       } else {
-        // Fallback legacy posicional: c<ci>j<ji>_<col>
+        // Fallback legacy posicional: c<ci>j<ji>_<col> — SOLO para NC de antes de la
+        // migración a IDs estables (autoId sin "j_", sin juegoId). _ci/_ji son índices de
+        // posición: si el circuito se reordenó o se borró otro por delante desde que se
+        // creó la NC, ci0/jiO ya no apuntan al mismo elemento — pero SIGUEN apuntando a
+        // ALGUNO válido, así que sin esta comprobación se marcaría "Sí" en el elemento
+        // EQUIVOCADO en vez de fallar. Se verifica contra nc.elem (texto congelado al
+        // crear la NC) antes de escribir; si no coincide, no se toca nada y se avisa para
+        // ajustar el checklist a mano — la NC se cierra igualmente, solo se salta el
+        // auto-marcado. Verificado con datos reales 2026-09-03 (Aventura Amazonia Pelayos).
         var mOld=aid.match(/^c(\d+)j(\d+)_(\w+)$/);
         if(mOld&&mOld[3]!=='manual'){
           var ciO=parseInt(mOld[1]),jiO=parseInt(mOld[2]),colO=mOld[3];
-          if(S.circuitos[ciO]&&S.circuitos[ciO].juegos[jiO]&&colO){
-            S.circuitos[ciO].juegos[jiO][colO]='S';
-            markCircuitDirty(ciO);
+          var circO=S.circuitos[ciO], juegoO=circO&&circO.juegos&&circO.juegos[jiO];
+          if(circO&&juegoO&&colO){
+            var elemActual=circO.nombre+' — '+(juegoO.nombre||'');
+            if(!nc.elem||nc.elem===elemActual){
+              juegoO[colO]='S';
+              markCircuitDirty(ciO);
+            } else {
+              alert('Esta NC es de un formato antiguo y su posición ya no coincide con el elemento original ("'+nc.elem+'").\n\nLa NC queda cerrada, pero no se ha podido marcar automáticamente el checklist — revisa y ajusta a mano la columna correspondiente en "'+elemActual+'" o en el elemento correcto.');
+            }
           }
         }
       }
     }
-    markDirty(); renderNCs(); renderCircuitos();
+    markDirty(); renderNCs(); renderCircuitos(); renderGen();
   }
 
   function handleFotoDefecto(inp,i){
