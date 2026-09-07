@@ -114,7 +114,7 @@ function initAuth(opts) {
 }
 
 /**
- * Carga usuarios activos con capacidad de inspección (excluye rol 'oficina').
+ * Carga usuarios activos con capacidad de inspección (excluye roles 'oficina'/'contabilidad').
  * Requiere que `db` (Firestore) esté disponible como global.
  * @param {function(Array)} onSuccess - Recibe [{email, nombre, rol, ...}]
  * @param {function(Error)} [onError]  - Callback opcional de error
@@ -124,7 +124,7 @@ function cargarInspectores(onSuccess, onError) {
     var lista = [];
     snap.forEach(function(d) {
       var u = d.data();
-      if (u.activo && u.rol !== 'oficina') lista.push(Object.assign({ email: d.id }, u));
+      if (u.activo && u.rol !== 'oficina' && u.rol !== 'contabilidad') lista.push(Object.assign({ email: d.id }, u));
     });
     onSuccess(lista);
   }).catch(function(e) {

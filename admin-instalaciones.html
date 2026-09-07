@@ -10,8 +10,8 @@
     .filtros{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
     .filtro-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
     .filtro-btn{padding:5px 12px;border:1.5px solid var(--border);border-radius:20px;background:white;font-family:inherit;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;transition:all 0.15s}
-    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;display:flex}
-    .card[href]:hover{border-color:var(--gold);box-shadow:0 4px 12px rgba(0,0,0,0.07);transform:translateY(-1px);transition:all 0.15s}
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;cursor:pointer;transition:all 0.15s}
+    .card:hover{border-color:var(--gold);box-shadow:0 4px 12px rgba(0,0,0,0.07);transform:translateY(-1px)}
     .row-info{flex:1;min-width:0}
     .row-title{font-size:13px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .row-sub{font-size:11px;color:var(--muted);margin-top:2px}
@@ -25,10 +25,53 @@
     .cert-caducado{color:#C62828}
     .empty-state{text-align:center;color:var(--muted);font-size:13px;padding:24px}
     .contador{font-size:12px;color:var(--muted);margin-bottom:10px}
-    .search-wrap{position:relative;margin-bottom:12px}
+    .search-wrap{position:relative;flex:1}
     .search-wrap input{width:100%;box-sizing:border-box;padding:9px 12px 9px 34px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;outline:none}
     .search-wrap input:focus{border-color:var(--gold)}
     .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+    .toolbar{display:flex;gap:8px;margin-bottom:12px}
+    .btn-primary{padding:9px 16px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0}
+    .btn-sm{background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 11px;font-family:inherit;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;flex-shrink:0;transition:border-color .15s;white-space:nowrap}
+    .btn-sm:hover{border-color:var(--gold);color:var(--gold)}
+    .card-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0}
+    .ver-cliente{font-size:11px;color:var(--gold);font-weight:600;text-decoration:none}
+
+    /* MODAL EDITAR INSTALACIÓN — mismo patrón que admin-clientes.html */
+    .modal-overlay2{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center}
+    .modal-overlay2.open{display:flex}
+    @media(min-width:520px){.modal-overlay2{align-items:center;padding:20px}}
+    .modal2{background:white;border-radius:16px 16px 0 0;padding:24px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;box-shadow:0 -4px 24px rgba(0,0,0,.15)}
+    @media(min-width:520px){.modal2{border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.18)}}
+    .modal2-title{font-size:15px;font-weight:700;color:var(--dark);margin-bottom:18px}
+    .field{margin-bottom:14px}
+    .field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+    .field input,.field select{width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;color:var(--text);outline:none;transition:border-color .15s;background:white}
+    .field input:focus,.field select:focus{border-color:var(--gold)}
+    .field-row{display:flex;gap:8px}
+    .field-row .field{flex:1}
+    .chip-grid{display:flex;flex-wrap:wrap;gap:6px}
+    .chip{padding:6px 12px;border:1.5px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;color:var(--text);cursor:pointer;user-select:none}
+    .chip.sel{background:rgba(200,153,58,0.12);border-color:var(--gold);color:var(--gold)}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+    .toggle-label{font-size:13px;color:var(--text)}
+    .toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+    .toggle input{opacity:0;width:0;height:0;position:absolute}
+    .toggle-track{position:absolute;inset:0;background:var(--border);border-radius:12px;cursor:pointer;transition:background .2s}
+    .toggle input:checked+.toggle-track{background:var(--green)}
+    .toggle-track:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:white;border-radius:50%;transition:transform .2s}
+    .toggle input:checked+.toggle-track:before{transform:translateX(20px)}
+    .modal2-actions{display:flex;gap:8px;margin-top:20px}
+    .btn-cancel{flex:1;padding:11px;border:1.5px solid var(--border);border-radius:10px;background:white;font-family:inherit;font-size:13px;font-weight:600;color:var(--text);cursor:pointer}
+    .btn-save{flex:2;padding:11px;border:none;border-radius:10px;background:var(--gold);color:white;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    .btn-save:hover{opacity:.9}
+    .btn-save:disabled{opacity:.5;cursor:not-allowed}
+    .err2{font-size:11px;color:var(--red);margin-top:5px;display:none}
+    .propietario-results{max-height:180px;overflow-y:auto;border:1.5px solid var(--border);border-radius:10px;margin-top:6px}
+    .propietario-result-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px}
+    .propietario-result-item:last-child{border-bottom:none}
+    .propietario-result-item:hover{background:var(--surf)}
+    .propietario-sel{background:#FFF8E8;border:1px solid rgba(200,153,58,.3);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--text);margin-top:6px;display:none;align-items:center;justify-content:space-between;gap:8px}
+    .propietario-sel button{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;padding:0 2px}
   </style>
 </head>
 <body>
@@ -36,11 +79,83 @@
 <div class="app-header">
   <button class="btn-back" onclick="location.href='admin.html'">&#8592;</button>
   <div class="hdr-mark">ARP</div>
-  <div class="hdr-title">Instalaciones pendientes</div>
+  <div class="hdr-title">Instalaciones</div>
 </div>
 
 <div class="content" id="content">
   <div class="spinner"></div>
+</div>
+
+<!-- MODAL: ALTA/EDICIÓN INSTALACIÓN -->
+<div class="modal-overlay2" id="modalInst">
+  <div class="modal2">
+    <div class="modal2-title" id="miTitulo">Nueva instalación</div>
+    <div class="field">
+      <label>Nombre *</label>
+      <input type="text" id="miNombre" placeholder="Nombre de la instalación">
+      <div class="err2" id="miErrNombre">El nombre es obligatorio</div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Código</label>
+        <input type="text" id="miCodigo" placeholder="ABC" style="text-transform:uppercase">
+      </div>
+      <div class="field">
+        <label>CIF</label>
+        <input type="text" id="miCif" placeholder="B12345678" style="text-transform:uppercase">
+      </div>
+    </div>
+    <div class="field">
+      <label>Alcances</label>
+      <div class="chip-grid" id="miAlcances"></div>
+    </div>
+    <div class="field">
+      <label>Propietario</label>
+      <input type="text" id="miPropBuscar" placeholder="Buscar cliente…" oninput="filtrarPropietarios()" autocomplete="off">
+      <div id="miPropResultados" class="propietario-results" style="display:none"></div>
+      <div class="propietario-sel" id="miPropSel"><span id="miPropSelTxt"></span><button type="button" onclick="quitarPropietario()">&times;</button></div>
+    </div>
+    <div class="field">
+      <label>Solicitante (si es distinto del propietario)</label>
+      <input type="text" id="miSolicitante" placeholder="Vacío = mismo que el propietario">
+    </div>
+    <div class="field">
+      <label>Gestor (quien abre in situ)</label>
+      <input type="text" id="miGestor" placeholder="Nombre del gestor">
+    </div>
+    <div class="field">
+      <label>Dirección</label>
+      <input type="text" id="miDireccion" placeholder="Calle, número">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>CP</label>
+        <input type="text" id="miCp" placeholder="28850">
+      </div>
+      <div class="field">
+        <label>Localidad</label>
+        <input type="text" id="miLocalidad" placeholder="Torrejón de Ardoz">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Municipio</label>
+        <input type="text" id="miMunicipio" placeholder="Torrejón de Ardoz">
+      </div>
+      <div class="field">
+        <label>Provincia</label>
+        <input type="text" id="miProvincia" placeholder="Madrid">
+      </div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Instalación activa</span>
+      <label class="toggle"><input type="checkbox" id="miActivo" checked><div class="toggle-track"></div></label>
+    </div>
+    <div class="modal2-actions">
+      <button class="btn-cancel" onclick="cerrarModalInst()">Cancelar</button>
+      <button class="btn-save" id="miBtnSave" onclick="guardarInstalacion()">Guardar</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -61,23 +176,36 @@
   var auth = firebase.auth();
   var db = firebase.firestore();
   var instData = [];
+  var todosClientesInst = []; // cache para el buscador de propietario
+  var alcancesCatalogo = [];  // desde config/empresa.alcances, igual que nueva-inspeccion.html
   var filtroActivo = '12m';
   var textoBusqueda = '';
+  var editandoInstId = null;
+  var propietarioSelId = null, propietarioSelNombre = null;
+  var alcancesSeleccionados = [];
 
   function fechaHace(meses) { var d = new Date(); d.setMonth(d.getMonth()-meses); return d.toISOString().slice(0,10); }
 
   initAuth({
-    roles: ['admin', 'director', 'proyecto'],
+    roles: ['admin', 'director', 'proyecto', 'oficina', 'contabilidad'],
     onReady: function(user, ud) { cargar(); }
   });
 
   function cargar() {
-    db.collection('instalaciones').get().then(function(snap) {
+    Promise.all([
+      db.collection('instalaciones').get(),
+      db.collection('clientes').get(),
+      db.collection('config').doc('empresa').get()
+    ]).then(function(results) {
       instData = [];
-      snap.forEach(function(d) {
+      results[0].forEach(function(d) {
         var data = d.data();
         if (data.activo !== false) instData.push(Object.assign({ id: d.id }, data));
       });
+      todosClientesInst = [];
+      results[1].forEach(function(d) { todosClientesInst.push(Object.assign({ id: d.id }, d.data())); });
+      var empresaData = results[2].exists ? results[2].data() : {};
+      alcancesCatalogo = (empresaData.alcances || []).filter(function(a) { return a.id; });
       renderFiltros();
       render();
     }).catch(function(e) {
@@ -87,8 +215,11 @@
 
   function renderFiltros() {
     var filtrosHtml =
+      '<div class="toolbar">' +
       '<div class="search-wrap"><span class="search-icon">&#128269;</span>' +
       '<input type="search" placeholder="Buscar instalación, código o propietario…" value="' + escHtml(textoBusqueda) + '" oninput="textoBusqueda=this.value;render()">' +
+      '</div>' +
+      '<button class="btn-primary" onclick="abrirModalInst(null)">+ Nueva</button>' +
       '</div>' +
       '<div class="filtros">' +
       '<span class="filtro-label">Sin inspección en</span>' +
@@ -132,8 +263,9 @@
         var u = i.ultimaInspeccion;
         var sinFecha = !u || u === PEND;
         var propietarioTxt = (i.propietario && i.propietario !== PEND) ? escHtml(i.propietario) : '';
-        var tag = i.propietarioId ? 'a' : 'div';
-        var href = i.propietarioId ? ' href="admin-clientes.html?id=' + escHtml(i.propietarioId) + '"' : '';
+        var verClienteLink = i.propietarioId
+          ? '<a class="ver-cliente" href="admin-clientes.html?id=' + escHtml(i.propietarioId) + '" onclick="event.stopPropagation()">Ver cliente &#8594;</a>'
+          : '';
         var badgeClass, badgeTxt;
         if (i.inspeccionActivaId) {
           if (i.inspeccionActivaEstado === 'en_curso') { badgeClass='badge-en_curso'; badgeTxt='En Curso'; }
@@ -148,14 +280,17 @@
           var caducado = i.certificadoHasta < hoy;
           certLine = '<div class="cert-hasta' + (caducado ? ' cert-caducado' : '') + '">Cert. ' + (caducado ? 'caducó' : 'hasta') + ' ' + cp[2] + '/' + cp[1] + '/' + cp[0] + '</div>';
         }
-        html += '<' + tag + ' class="card"' + href + '>' +
+        html += '<div class="card" onclick="abrirModalInst(\'' + i.id + '\')">' +
           '<div class="row-info">' +
           '<div class="row-title">' + escHtml(i.nombre || i.id) + (i.codigo ? ' <span style="font-weight:400;color:var(--muted)">' + escHtml(i.codigo) + '</span>' : '') + '</div>' +
           '<div class="row-sub">Última: ' + (sinFecha ? 'sin fecha' : escHtml(u)) + (i.provincia ? ' &middot; ' + escHtml(i.provincia) : '') + (propietarioTxt ? ' &middot; ' + propietarioTxt : '') + '</div>' +
           certLine +
           '</div>' +
+          '<div class="card-actions">' +
           '<span class="badge ' + badgeClass + '">' + badgeTxt + '</span>' +
-          '</' + tag + '>';
+          verClienteLink +
+          '</div>' +
+          '</div>';
       });
       if (!q && relevantes.length > 50) {
         html += '<div class="empty-state">Mostrando las 50 más antiguas de ' + relevantes.length + '. Usa el buscador para encontrar una en concreto.</div>';
@@ -170,6 +305,134 @@
     btn.classList.add('active');
     render();
   };
+
+  // ── MODAL ALTA/EDICIÓN INSTALACIÓN ──
+  window.abrirModalInst = function(id) {
+    editandoInstId = id;
+    var i = id ? instData.find(function(x){ return x.id === id; }) : null;
+    document.getElementById('miTitulo').textContent = i ? 'Editar instalación' : 'Nueva instalación';
+    document.getElementById('miNombre').value = i ? (i.nombre || '') : '';
+    document.getElementById('miCodigo').value = i ? (i.codigo && i.codigo !== '__PENDIENTE__' ? i.codigo : '') : '';
+    document.getElementById('miCif').value = i ? (i.cif || '') : '';
+    document.getElementById('miSolicitante').value = i ? (i.solicitanteActual && i.solicitanteActual !== '__PENDIENTE__' ? i.solicitanteActual : '') : '';
+    document.getElementById('miGestor').value = i ? (i.gestorActual && i.gestorActual !== '__PENDIENTE__' ? i.gestorActual : '') : '';
+    document.getElementById('miDireccion').value = i ? (i.direccion && i.direccion !== '__PENDIENTE__' ? i.direccion : '') : '';
+    document.getElementById('miCp').value = i ? (i.cp || '') : '';
+    document.getElementById('miLocalidad').value = i ? (i.localidad || '') : '';
+    document.getElementById('miMunicipio').value = i ? (i.municipio && i.municipio !== '__PENDIENTE__' ? i.municipio : '') : '';
+    document.getElementById('miProvincia').value = i ? (i.provincia && i.provincia !== '__PENDIENTE__' ? i.provincia : '') : '';
+    document.getElementById('miActivo').checked = i ? i.activo !== false : true;
+    document.getElementById('miErrNombre').style.display = 'none';
+    document.getElementById('miPropBuscar').value = '';
+    document.getElementById('miPropResultados').style.display = 'none';
+
+    alcancesSeleccionados = (i && i.alcances) ? i.alcances.slice() : [];
+    renderChipsAlcances();
+
+    if (i && i.propietarioId) {
+      propietarioSelId = i.propietarioId;
+      propietarioSelNombre = (i.propietario && i.propietario !== '__PENDIENTE__') ? i.propietario : i.propietarioId;
+      mostrarPropietarioSel();
+    } else {
+      quitarPropietario();
+    }
+
+    var btn = document.getElementById('miBtnSave');
+    btn.disabled = false; btn.textContent = 'Guardar';
+    document.getElementById('modalInst').classList.add('open');
+  };
+
+  window.cerrarModalInst = function() { document.getElementById('modalInst').classList.remove('open'); };
+
+  function renderChipsAlcances() {
+    var el = document.getElementById('miAlcances');
+    if (!alcancesCatalogo.length) { el.innerHTML = '<span style="font-size:12px;color:var(--muted)">Sin alcances configurados (Empresa y Director)</span>'; return; }
+    el.innerHTML = alcancesCatalogo.map(function(a) {
+      var id = a.id.toUpperCase();
+      var sel = alcancesSeleccionados.indexOf(id) !== -1;
+      return '<span class="chip' + (sel ? ' sel' : '') + '" onclick="toggleAlcanceChip(\'' + id + '\')">' + escHtml(a.label || id) + '</span>';
+    }).join('');
+  }
+
+  window.toggleAlcanceChip = function(id) {
+    var idx = alcancesSeleccionados.indexOf(id);
+    if (idx === -1) alcancesSeleccionados.push(id); else alcancesSeleccionados.splice(idx, 1);
+    renderChipsAlcances();
+  };
+
+  window.filtrarPropietarios = function() {
+    var q = document.getElementById('miPropBuscar').value.toLowerCase().trim();
+    var div = document.getElementById('miPropResultados');
+    if (!q) { div.style.display = 'none'; return; }
+    var resultados = todosClientesInst.filter(function(c) {
+      return c.activo !== false && ((c.nombre||'').toLowerCase().includes(q) || (c.cif||'').toLowerCase().includes(q));
+    }).slice(0, 8);
+    div.innerHTML = resultados.length
+      ? resultados.map(function(c) { return '<div class="propietario-result-item" onclick="seleccionarPropietario(\'' + c.id + '\')">' + escHtml(c.nombre) + (c.cif ? ' <span style="color:var(--muted)">· ' + escHtml(c.cif) + '</span>' : '') + '</div>'; }).join('')
+      : '<div class="propietario-result-item" style="color:var(--muted);cursor:default">Sin resultados</div>';
+    div.style.display = 'block';
+  };
+
+  window.seleccionarPropietario = function(id) {
+    var c = todosClientesInst.find(function(x){ return x.id === id; });
+    propietarioSelId = id;
+    propietarioSelNombre = c ? c.nombre : id;
+    document.getElementById('miPropBuscar').value = '';
+    document.getElementById('miPropResultados').style.display = 'none';
+    mostrarPropietarioSel();
+  };
+
+  window.quitarPropietario = function() {
+    propietarioSelId = null; propietarioSelNombre = null;
+    document.getElementById('miPropSel').style.display = 'none';
+  };
+
+  function mostrarPropietarioSel() {
+    document.getElementById('miPropSelTxt').textContent = propietarioSelNombre;
+    document.getElementById('miPropSel').style.display = 'flex';
+  }
+
+  window.guardarInstalacion = function() {
+    var nombre = document.getElementById('miNombre').value.trim();
+    if (!nombre) { document.getElementById('miErrNombre').style.display = 'block'; return; }
+    document.getElementById('miErrNombre').style.display = 'none';
+    var btn = document.getElementById('miBtnSave'); btn.disabled = true; btn.textContent = 'Guardando…';
+
+    var datos = {
+      nombre: nombre,
+      codigo: document.getElementById('miCodigo').value.trim().toUpperCase() || '__PENDIENTE__',
+      cif: document.getElementById('miCif').value.trim().toUpperCase(),
+      alcances: alcancesSeleccionados.slice(),
+      solicitanteActual: document.getElementById('miSolicitante').value.trim(),
+      gestorActual: document.getElementById('miGestor').value.trim() || '__PENDIENTE__',
+      direccion: document.getElementById('miDireccion').value.trim() || '__PENDIENTE__',
+      cp: document.getElementById('miCp').value.trim(),
+      localidad: document.getElementById('miLocalidad').value.trim(),
+      municipio: document.getElementById('miMunicipio').value.trim() || '__PENDIENTE__',
+      provincia: document.getElementById('miProvincia').value.trim() || '__PENDIENTE__',
+      activo: document.getElementById('miActivo').checked,
+      propietario: propietarioSelNombre || '__PENDIENTE__'
+    };
+    // FieldValue.delete() solo es válido en update(), no en add() al crear un documento nuevo
+    if (propietarioSelId) {
+      datos.propietarioId = propietarioSelId;
+    } else if (editandoInstId) {
+      datos.propietarioId = firebase.firestore.FieldValue.delete();
+    }
+    if (!editandoInstId) {
+      datos.ultimaInspeccion = '__PENDIENTE__';
+      datos.inspeccionActivaId = null;
+      datos.inspeccionActivaEstado = null;
+    }
+
+    var op = editandoInstId
+      ? db.collection('instalaciones').doc(editandoInstId).update(datos)
+      : db.collection('instalaciones').add(datos);
+    op.then(function(){ cerrarModalInst(); cargar(); })
+      .catch(function(e){ btn.disabled = false; btn.textContent = 'Guardar'; alert('Error: ' + e.message); });
+  };
+
+  document.getElementById('modalInst').addEventListener('click', function(e){ if (e.target === this) cerrarModalInst(); });
 </script>
 </body>
 </html>

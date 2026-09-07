@@ -27,8 +27,8 @@ service cloud.firestore {
     }
 
     function canReadAll() {
-      // oficina también puede leer todo pero no escribir
-      return myRole() in ['admin', 'director', 'proyecto', 'oficina'];
+      // oficina y contabilidad también leen todo (oficina no escribe inspecciones)
+      return myRole() in ['admin', 'director', 'proyecto', 'oficina', 'contabilidad'];
     }
 
     // Editores de la web pública (arp-web-preview) — no depende de rol,
@@ -108,24 +108,25 @@ service cloud.firestore {
 
     // ── instalaciones ──────────────────────────────────────────────────────
     // Todos leen (inspectores necesitan buscar instalaciones en nueva-inspeccion)
-    // Inspectores crean instalaciones nuevas y actualizan ultimaInspeccion al completar
+    // Inspectores crean instalaciones nuevas y actualizan ultimaInspeccion al completar;
+    // oficina y contabilidad también dan de alta/modifican (admin-instalaciones.html)
     // Solo admin/director/proyecto eliminan
     match /instalaciones/{docId} {
       allow read:            if isAuth();
-      allow create, update:  if isAuth() && myRole() != 'oficina';
+      allow create, update:  if isAuth();
       allow delete:          if isAuth() && isAdminLike();
     }
 
     // ── clientes ───────────────────────────────────────────────────────────
-    // admin-clientes.html da acceso completo de edición a oficina (Natalia gestiona
-    // el CRM) — write usa canReadAll() en vez de isAdminLike() para incluirla
+    // admin-clientes.html da acceso completo de edición a oficina y contabilidad
+    // (Natalia gestiona el CRM) — write usa canReadAll() en vez de isAdminLike()
     match /clientes/{docId} {
       allow read:  if isAuth();
       allow write: if isAuth() && canReadAll();
     }
 
     // ── contactos ──────────────────────────────────────────────────────────
-    // mismo motivo que clientes — oficina gestiona el CRM de contactos
+    // mismo motivo que clientes — oficina y contabilidad gestionan el CRM de contactos
     match /contactos/{docId} {
       allow read:  if isAuth() && canReadAll();
       allow write: if isAuth() && canReadAll();
