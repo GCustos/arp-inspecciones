@@ -425,6 +425,61 @@
     return y + (opts.heightAfter !== undefined ? opts.heightAfter : 9);
   }
 
+  // Quita el nº de apartado de la norma al principio de un label (ej. "4.3.1 Distribución
+  // y ubicación..." → "Distribución y ubicación..."). Los labels de SAE/FER llevan el
+  // número incrustado en el propio texto (a diferencia de PAA, que lo guarda aparte en
+  // `ref`) — mismo texto real, solo sin el prefijo, para que quepa como cabecera de columna.
+  function shortLabelNorma(label) {
+    return (label||'').replace(/^\d+(\.\d+)*\s+/, '');
+  }
+
+  // Fila de cabecera de una tabla de registro (Circuitos/Elemento + criterios + Obs.) —
+  // usada tanto por PAA (Circuitos/Juegos + 5 columnas fijas) como por SAE/FER (Elemento +
+  // columnas dinámicas por tipo). `cols` es un array plano {width, label, align?} en orden
+  // de izquierda a derecha; el texto de cada columna se ajusta automáticamente al ancho
+  // disponible, y si una sola palabra (sin espacios) no cabe ni siquiera ocupando toda la
+  // columna, se reduce el tamaño de letra de TODA la fila hasta que quepa entera — nunca se
+  // corta una palabra a mitad (splitTextToSize por sí solo lo hace si no le queda más remedio).
+  function drawRegHeaderRow(doc, y, cols, fontSize) {
+    fontSize = fontSize || 6.5;
+    var minFontSize = 4;
+    doc.setFont('helvetica', 'bold');
+    function palabraMasLarga(label) {
+      return label.replace(/\//g, '/ ').split(/\s+/).filter(Boolean);
+    }
+    // Encoger la fuente hasta que la palabra más larga de cada columna quepa entera
+    cols.forEach(function(c) {
+      var palabras = palabraMasLarga(c.label);
+      var fs = fontSize;
+      while (fs > minFontSize) {
+        doc.setFontSize(fs);
+        var anchoMax = Math.max(0, ...palabras.map(function(p){ return doc.getTextWidth(p); }));
+        if (anchoMax <= c.width - 3) break;
+        fs -= 0.25;
+      }
+      if (fs < fontSize) fontSize = fs;
+    });
+    doc.setFontSize(fontSize);
+    var lineH = fontSize * 0.42;
+    var linesPerCol = cols.map(function(c){ return doc.splitTextToSize(c.label.replace(/\//g, '/ '), c.width - 3); });
+    var maxLines = Math.max(1, ...linesPerCol.map(function(l){ return l.length; }));
+    var h = Math.max(10, maxLines * lineH + 4);
+
+    var x = ML;
+    doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
+    cols.forEach(function(c, i){
+      doc.setFillColor(...SURF);
+      doc.rect(x, y, c.width, h, 'FD');
+      var lines = linesPerCol[i];
+      var startY = y + h/2 - (lines.length-1)*lineH/2 + lineH*0.35;
+      var align = c.align || 'center';
+      var tx = align === 'left' ? x + 2 : x + c.width/2;
+      lines.forEach(function(l, li){ doc.text(l, tx, startY + li*lineH, {align: align}); });
+      x += c.width;
+    });
+    return y + h;
+  }
+
   function showGenerating(text, sub) {
     document.getElementById('generatingText').textContent = text;
     document.getElementById('generatingSub').textContent = sub || '';
@@ -2180,23 +2235,13 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       // tipo más abajo, con sus propias columnas.
       const cw0=30, cw1=35, cw2=(CW-cw0-cw1-25)/5, obsW2=25;
       if (!esTiposJuegoReg) {
-        doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
-        doc.rect(ML, y, cw0, 10, 'FD');
-        doc.rect(ML+cw0, y, cw1, 10, 'FD');
-        ['Integridad\nestructural','Anclajes y\nfijaciones','Elementos de\njuego/Progresión','Riesgos y\natrapamientos','Zona de\nseguridad/\nEntorno'].forEach((h2,hi) => {
-          doc.setFillColor(...SURF);
-          doc.rect(ML+cw0+cw1+hi*cw2, y, cw2, 10, 'FD');
-          doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-          const hl = h2.split('\n');
-          hl.forEach((l2,li) => doc.text(l2, ML+cw0+cw1+hi*cw2+cw2/2, y+3+li*3, {align:'center'}));
-        });
-        doc.setFillColor(...SURF);
-        doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 10, 'FD');
-        doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-        doc.text('Obser-\nvaciones', ML+cw0+cw1+5*cw2+2, y+4);
-        doc.text('Circuitos', ML+2, y+5);
-        doc.text('Juegos', ML+cw0+2, y+5);
-        y += 10;
+        doc.setTextColor(...DARK);
+        var _colsPaaHeader = [
+          {width:cw0, label:'Circuitos', align:'left'},
+          {width:cw1, label:'Juegos', align:'left'}
+        ].concat(COLS_PDF.map(function(c){ return {width:cw2, label:c.label}; }))
+         .concat([{width:obsW2, label:'Observaciones'}]);
+        y = drawRegHeaderRow(doc, y, _colsPaaHeader);
       }
 
       // Para Rev.1+: obtener checks de la revisión anterior para comparar
@@ -2232,22 +2277,11 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
 
           var elemW=38, obsWT=22;
           var colWT=(CW-elemW-obsWT)/colsT.length;
-          // Refijar color en cada rect (igual que la tabla EQUIPOS MEDICION de arriba)
-          doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
-          doc.rect(ML, y, elemW, 12, 'FD');
-          doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-          doc.text('Elemento', ML+2, y+7);
-          colsT.forEach(function(col, ki){
-            doc.setFillColor(...SURF); doc.setDrawColor(...DARK);
-            doc.rect(ML+elemW+ki*colWT, y, colWT, 12, 'FD');
-            doc.setFontSize(5.5); doc.setTextColor(...DARK);
-            (col.abbrev||col.id).split(' ').forEach(function(l2,li){ doc.text(l2, ML+elemW+ki*colWT+colWT/2, y+4+li*3, {align:'center'}); });
-          });
-          doc.setFillColor(...SURF); doc.setDrawColor(...DARK);
-          doc.rect(ML+elemW+colsT.length*colWT, y, obsWT, 12, 'FD');
-          doc.setFontSize(7); doc.setTextColor(...DARK);
-          doc.text('Obs.', ML+elemW+colsT.length*colWT+2, y+7);
-          y += 12;
+          doc.setTextColor(...DARK);
+          var _colsTipoHeader = [{width:elemW, label:'Elemento', align:'left'}]
+            .concat(colsT.map(function(col){ return {width:colWT, label:shortLabelNorma(col.label||col.abbrev||col.id)}; }))
+            .concat([{width:obsWT, label:'Obs.'}]);
+          y = drawRegHeaderRow(doc, y, _colsTipoHeader, 5.5);
 
           filas.forEach(function(f){
             if (y + 7 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; }
