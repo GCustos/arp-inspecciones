@@ -141,9 +141,12 @@
     return { cls:'badge-ok', txt:'OK' };
   }
 
+  var currentUser = null;
+
   initAuth({
     roles: ['admin', 'director', 'proyecto'],
     onReady: function(user, ud) {
+      currentUser = user;
       document.getElementById('btnNuevo').style.display = 'flex';
       document.getElementById('btnTipos').style.display = 'flex';
       cargar();
@@ -308,7 +311,10 @@
       '<div class="form-2col">' +
         field('Frecuencia','f_cal_frec',escHtml(cal.frecuencia||'')) +
         fieldNum('Periodo (meses)','f_cal_meses',cal.periodoMeses||'') +
-      '</div>';
+      '</div>' +
+      (editandoId
+        ? '<div class="form-sec">Histórico de calibraciones</div><div id="historicoCal" class="form-note">Cargando…</div>'
+        : '<div class="form-note" style="margin-top:6px">El histórico de calibraciones se registra a partir de que se guarde el equipo por primera vez.</div>');
   }
 
   function field(label, id, val, extra, tag) {
@@ -353,7 +359,30 @@
     document.getElementById('overlay').classList.add('open');
     document.getElementById('modal').classList.add('open');
     document.getElementById('modal').scrollTop = 0;
+    cargarHistoricoCalibraciones(id);
   };
+
+  // Histórico inmutable — solo lectura, ordenado del más reciente al más antiguo
+  function cargarHistoricoCalibraciones(id) {
+    db.collection('equipos').doc(id).collection('calibraciones').get().then(function(snap) {
+      var el = document.getElementById('historicoCal');
+      if (!el) return; // el modal pudo cerrarse antes de que llegue la respuesta
+      if (snap.empty) { el.textContent = 'Sin eventos registrados todavía.'; return; }
+      var eventos = [];
+      snap.forEach(function(d){ eventos.push(d.data()); });
+      eventos.sort(function(a,b){ return (b.fecha||'') < (a.fecha||'') ? -1 : 1; });
+      el.innerHTML = eventos.map(function(c) {
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--border)">' +
+          escHtml(c.fecha||'—') + ' → próx. ' + escHtml(c.fechaProximaCalculada||'—') +
+          (c.laboratorio ? ' · ' + escHtml(c.laboratorio) : '') +
+          (c.certificado ? ' · cert. ' + escHtml(c.certificado) : '') +
+          '</div>';
+      }).join('');
+    }).catch(function(e) {
+      var el = document.getElementById('historicoCal');
+      if (el) el.textContent = 'Error cargando histórico: ' + e.message;
+    });
+  }
 
   window.cerrarModal = function() {
     document.getElementById('overlay').classList.remove('open');
@@ -398,6 +427,31 @@
         ? db.collection('equipos').doc(id).set(data, {merge:true})
         : db.collection('equipos').doc(id).set(data)
     ];
+
+    // Si los datos de calibración han cambiado de verdad respecto a lo que había cargado
+    // (no solo se ha tocado otro campo del equipo), se registra como evento nuevo e
+    // inmutable en la subcolección — nunca se sobreescribe uno existente, solo se añade.
+    var calAnterior = (equiposData.find(function(x){ return x.id===id; })||{}).calibracion || {};
+    var calNueva = data.calibracion;
+    var calCambio = ['fechaUltima','fechaProxima','laboratorio','certificado'].some(function(k){
+      return (calAnterior[k]||'') !== (calNueva[k]||'');
+    });
+    if (calCambio && calNueva.fechaUltima) {
+      var calId = calNueva.certificado || db.collection('equipos').doc().id; // auto-id si no hay nº de certificado
+      ops.push(db.collection('equipos').doc(id).collection('calibraciones').doc(calId).set({
+        tipoId: tipoId,
+        tipoSnapshot: tipoDef,
+        fecha: calNueva.fechaUltima,
+        laboratorio: calNueva.laboratorio || '',
+        certificado: calNueva.certificado || '',
+        fechaProximaCalculada: calNueva.fechaProxima || '',
+        dictamen: null,
+        nota: null,
+        registradoPor: currentUser ? currentUser.email : 'desconocido',
+        creadoEn: firebase.firestore.FieldValue.serverTimestamp()
+      }));
+    }
+
     if (nuevoAsignado !== anteriorAsignado) {
       if (anteriorAsignado) {
         ops.push(db.collection('usuarios').doc(anteriorAsignado).update({

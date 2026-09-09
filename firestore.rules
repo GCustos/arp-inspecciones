@@ -140,10 +140,14 @@ service cloud.firestore {
       allow write: if isAuth() && isAdminLike();
     }
 
-    // historial de calibraciones/verificaciones (subcolección de equipos/{id})
+    // historial de calibraciones/verificaciones (subcolección de equipos/{id}) — cada
+    // documento es un evento inmutable, nunca se edita ni se borra una vez creado (evita
+    // repetir el incidente GON01: un dato que se sobreescribe pierde la trazabilidad de
+    // qué estaba vigente en cada fecha pasada)
     match /equipos/{docId}/calibraciones/{calId} {
-      allow read:  if isAuth();
-      allow write: if isAuth() && isAdminLike();
+      allow read:   if isAuth();
+      allow create: if isAuth() && isAdminLike();
+      allow update, delete: if false;
     }
 
     // ── tiposEquipo ────────────────────────────────────────────────────────
