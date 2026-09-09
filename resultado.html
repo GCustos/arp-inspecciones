@@ -2221,16 +2221,20 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
 
           var elemW=38, obsWT=22;
           var colWT=(CW-elemW-obsWT)/colsT.length;
+          // Refijar color en cada rect (igual que la tabla EQUIPOS MEDICION de arriba)
           doc.setFillColor(...SURF); doc.setDrawColor(...DARK); doc.setLineWidth(0.2);
           doc.rect(ML, y, elemW, 12, 'FD');
           doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
           doc.text('Elemento', ML+2, y+7);
           colsT.forEach(function(col, ki){
+            doc.setFillColor(...SURF); doc.setDrawColor(...DARK);
             doc.rect(ML+elemW+ki*colWT, y, colWT, 12, 'FD');
-            doc.setFontSize(5.5);
+            doc.setFontSize(5.5); doc.setTextColor(...DARK);
             (col.abbrev||col.id).split(' ').forEach(function(l2,li){ doc.text(l2, ML+elemW+ki*colWT+colWT/2, y+4+li*3, {align:'center'}); });
           });
+          doc.setFillColor(...SURF); doc.setDrawColor(...DARK);
           doc.rect(ML+elemW+colsT.length*colWT, y, obsWT, 12, 'FD');
+          doc.setFontSize(7); doc.setTextColor(...DARK);
           doc.text('Obs.', ML+elemW+colsT.length*colWT+2, y+7);
           y += 12;
 
