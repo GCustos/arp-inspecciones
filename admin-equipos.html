@@ -103,6 +103,7 @@
 
   var equiposData = [];
   var usuariosData = [];
+  var tiposEquipoData = [];
   var asignacionPorEquipo = {}; // equipoId → email del usuario propietario
   var filtroActivo = 'todos';
   var tabActivo = 'calibracion';
@@ -152,13 +153,16 @@
   function cargar() {
     Promise.all([
       db.collection('equipos').get(),
-      db.collection('usuarios').get()
+      db.collection('usuarios').get(),
+      db.collection('tiposEquipo').get()
     ]).then(function(res) {
       equiposData = [];
       res[0].forEach(function(d){ equiposData.push(Object.assign({id:d.id},d.data())); });
       equiposData.sort(function(a,b){ return a.id < b.id ? -1 : 1; });
       usuariosData = [];
       res[1].forEach(function(d){ usuariosData.push(Object.assign({email:d.id},d.data())); });
+      tiposEquipoData = [];
+      res[2].forEach(function(d){ tiposEquipoData.push(Object.assign({id:d.id},d.data())); });
       // Mapa inverso: equipoId → email del propietario (desde equiposAsignados en cada usuario)
       asignacionPorEquipo = {};
       usuariosData.forEach(function(u) {
@@ -170,6 +174,19 @@
     }).catch(function(e){
       document.getElementById('content').innerHTML='<div class="empty-state">Error: '+escHtml(e.message)+'</div>';
     });
+  }
+
+  // Siguiente código libre para un tipoId — incluye equipos dados de baja (nunca se
+  // borran, solo se marcan inactivos), así un código jamás se reutiliza y no hace falta
+  // comprobar colisión al guardar.
+  function siguienteCodigo(tipoId) {
+    var maxN = 0;
+    var re = new RegExp('^' + tipoId + '(\\d+)$');
+    equiposData.forEach(function(e) {
+      var m = e.id.match(re);
+      if (m) maxN = Math.max(maxN, parseInt(m[1], 10));
+    });
+    return tipoId + String(maxN + 1).padStart(2, '0');
   }
 
   window.mostrarTab = function(tab, btn) {
@@ -230,6 +247,17 @@
   }
 
   // ── MODAL ──
+  function tiposEquipoOpts(seleccionado) {
+    var html = '<option value="">— Selecciona tipo —</option>';
+    tiposEquipoData
+      .filter(function(t){ return t.activo !== false; })
+      .forEach(function(t) {
+        html += '<option value="'+escHtml(t.id)+'"'+(seleccionado===t.id?' selected':'')+'>'+
+          escHtml(t.id)+' — '+escHtml(t.label||'')+'</option>';
+      });
+    return html;
+  }
+
   function usuariosOpts(seleccionado) {
     var html = '<option value=""'+(seleccionado===''?' selected':'')+'>— Sin asignar —</option>';
     usuariosData
@@ -245,8 +273,14 @@
     var cal = e.calibracion || {};
     return '<div class="form-sec">Datos del equipo</div>' +
       '<div class="form-2col">' +
-        field('Código','f_id',escHtml(e.codigo||e.id||''), editandoId?'readonly':'') +
-        field('Tipo','f_tipo',escHtml(e.tipo||'')) +
+        ('<div class="form-row"><label>Tipo de equipo</label><select id="f_tipoId" '+
+          (editandoId?'disabled':'onchange="previsualizarCodigo()"')+'>'+
+          tiposEquipoOpts(e.tipoId||'')+'</select>'+
+          (editandoId?'':'<div class="form-note">El código se calcula solo al elegir el tipo — nunca se escribe a mano.</div>')+
+          '</div>') +
+        (editandoId
+          ? field('Código','f_id_display',escHtml(e.id||''),'readonly')
+          : '<div class="form-row"><label>Código</label><input id="f_id_preview" type="text" value="" readonly placeholder="elige el tipo primero"></div>') +
       '</div>' +
       field('Magnitud medida','f_medicion',escHtml(e.medicion||'')) +
       '<div class="form-2col">' +
@@ -296,6 +330,11 @@
     btn.classList.toggle('on');
   };
 
+  window.previsualizarCodigo = function() {
+    var tipoId = document.getElementById('f_tipoId').value;
+    document.getElementById('f_id_preview').value = tipoId ? siguienteCodigo(tipoId) : '';
+  };
+
   window.abrirNuevo = function() {
     editandoId = null;
     document.getElementById('modalTitulo').textContent = 'Nuevo equipo';
@@ -322,15 +361,18 @@
   };
 
   window.guardar = function() {
-    var id = editandoId || (document.getElementById('f_id').value.trim().toUpperCase());
-    if (!id) { alert('El código del equipo es obligatorio.'); return; }
+    var tipoId = document.getElementById('f_tipoId').value;
+    if (!tipoId) { alert('Selecciona el tipo de equipo.'); return; }
+    var id = editandoId || siguienteCodigo(tipoId);
+    var tipoDef = tiposEquipoData.find(function(t){ return t.id===tipoId; }) || {};
     var activo = document.getElementById('f_activo').classList.contains('on');
     var meses = parseInt(document.getElementById('f_cal_meses').value)||0;
     var nuevoAsignado  = document.getElementById('f_asignadoA').value; // email o ''
     var anteriorAsignado = asignacionPorEquipo[id] || '';
     var data = {
-      codigo:    document.getElementById('f_id').value.trim().toUpperCase(),
-      tipo:      document.getElementById('f_tipo').value.trim().toUpperCase(),
+      codigo:    id,
+      tipoId:    tipoId,
+      tipo:      tipoDef.label || tipoId,
       medicion:  document.getElementById('f_medicion').value.trim().toUpperCase(),
       marca:     document.getElementById('f_marca').value.trim(),
       modelo:    document.getElementById('f_modelo').value.trim(),
@@ -349,7 +391,13 @@
     };
     var btn = document.querySelector('.btn-guardar');
     btn.disabled = true; btn.textContent = 'Guardando...';
-    var ops = [db.collection('equipos').doc(id).set(data, {merge:true})];
+    // Al crear, sin merge — el id se acaba de calcular como "el siguiente libre para ese
+    // tipo", así que nunca puede colisionar con uno existente; al editar, merge normal.
+    var ops = [
+      editandoId
+        ? db.collection('equipos').doc(id).set(data, {merge:true})
+        : db.collection('equipos').doc(id).set(data)
+    ];
     if (nuevoAsignado !== anteriorAsignado) {
       if (anteriorAsignado) {
         ops.push(db.collection('usuarios').doc(anteriorAsignado).update({
