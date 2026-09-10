@@ -283,6 +283,17 @@
     return favorable ? 'FAVORABLE' : 'NO_FAVORABLE';
   }
 
+  // Explicación en lenguaje llano, genérica para cualquier tipo (nunca hardcodeada a un
+  // tipo concreto) — se construye a partir de toleranciaAbsoluta/magnitud/reglaDecision.
+  function explicacionSimpleTolerancia(tipoDef) {
+    var ud = tipoDef.magnitud ? ' '+escHtml(tipoDef.magnitud) : '';
+    var comoSeMira = tipoDef.reglaDecision === 'suma_combinada'
+      ? 'sumando la corrección y la incertidumbre que dé el laboratorio'
+      : 'mirando por separado la corrección y la incertidumbre que dé el laboratorio';
+    return 'En palabras simples: el laboratorio calibra el equipo y da dos números — cuánto se desvía (corrección) y cuánto margen de error tiene esa medida (incertidumbre). Si cualquiera de los dos supera '+
+      tipoDef.toleranciaAbsoluta+ud+' ('+comoSeMira+'), el equipo NO es válido y no se puede usar en inspecciones hasta calibrarlo de nuevo o sustituirlo. Si ambos quedan dentro de ese margen, es válido.';
+  }
+
   function calExtraHtml(tipoDef) {
     if (!tipoDef || tipoDef.toleranciaAbsoluta == null) {
       return '<div class="form-note">Este tipo todavía no tiene tolerancia de validación definida — el dictamen FSG no se puede calcular todavía para él.</div>';
@@ -292,7 +303,8 @@
         fieldNum('Corrección máx. medida'+ud,'f_cal_correccion','') +
         fieldNum('Incertidumbre máx. medida'+ud,'f_cal_incertidumbre','') +
       '</div>' +
-      '<div class="form-note">Tolerancia aplicada: '+tipoDef.toleranciaAbsoluta+ud+
+      '<div class="form-note">'+explicacionSimpleTolerancia(tipoDef)+'</div>' +
+      '<div class="form-note" style="font-size:10px;margin-top:4px">Detalle técnico — tolerancia aplicada: '+tipoDef.toleranciaAbsoluta+ud+
       (tipoDef.justificacionTolerancia ? ' — '+escHtml(tipoDef.justificacionTolerancia) : '')+'</div>';
   }
 
@@ -420,8 +432,8 @@
         var detalle = '<div style="padding:8px 0 4px;font-size:11px;color:var(--muted)">' +
           (c.correccionMedida!=null ? 'Corrección medida: '+c.correccionMedida+ud+'<br>' : '') +
           (c.incertidumbreMedida!=null ? 'Incertidumbre medida: '+c.incertidumbreMedida+ud+'<br>' : '') +
-          (t.toleranciaAbsoluta!=null ? 'Tolerancia aplicada: '+t.toleranciaAbsoluta+ud+'<br>' : '') +
-          (t.justificacionTolerancia ? escHtml(t.justificacionTolerancia)+'<br>' : '') +
+          (t.toleranciaAbsoluta!=null ? '<br>'+explicacionSimpleTolerancia(t)+'<br>' : '') +
+          (t.toleranciaAbsoluta!=null ? '<span style="font-size:10px">Detalle técnico — tolerancia aplicada: '+t.toleranciaAbsoluta+ud+(t.justificacionTolerancia?' — '+escHtml(t.justificacionTolerancia):'')+'</span><br>' : '') +
           (c.registradoPor ? 'Registrado por: '+escHtml(c.registradoPor) : '') +
           '</div>';
         return '<div style="padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="var d=this.querySelector(\'.fsg-detalle\');d.hidden=!d.hidden">' +
