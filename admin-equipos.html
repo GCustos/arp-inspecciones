@@ -333,6 +333,16 @@
 
   window.toggleActivo = function() {
     var btn = document.getElementById('f_activo');
+    var activandoAhora = !btn.classList.contains('on'); // va a pasar a "on"
+    if (activandoAhora && editandoId) {
+      var e = equiposData.find(function(x){ return x.id===editandoId; });
+      if (e) {
+        var st = estadoCal(e);
+        if (st.txt === 'Vencido' || st.txt === 'Sin datos') {
+          alert('Este equipo tiene la calibración ' + (st.txt==='Vencido'?'vencida':'sin datos registrados') + '. Se activará igualmente, pero seguirá apareciendo así hasta que registres una calibración nueva.');
+        }
+      }
+    }
     btn.classList.toggle('on');
   };
 
