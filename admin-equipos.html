@@ -271,9 +271,35 @@
     return html;
   }
 
+  // Ficha de comprobación FSG (digital): compara lo medido contra la tolerancia del
+  // tipo y calcula FAVORABLE/NO_FAVORABLE — sustituye la validación manual en papel.
+  function calcularDictamen(tipoDef, correccion, incertidumbre) {
+    if (!tipoDef || tipoDef.toleranciaAbsoluta == null) return null;
+    if (isNaN(correccion) || isNaN(incertidumbre)) return null;
+    var tol = tipoDef.toleranciaAbsoluta;
+    var favorable = tipoDef.reglaDecision === 'suma_combinada'
+      ? (correccion + incertidumbre) <= tol
+      : (correccion <= tol && incertidumbre <= tol);
+    return favorable ? 'FAVORABLE' : 'NO_FAVORABLE';
+  }
+
+  function calExtraHtml(tipoDef) {
+    if (!tipoDef || tipoDef.toleranciaAbsoluta == null) {
+      return '<div class="form-note">Este tipo todavía no tiene tolerancia de validación definida — el dictamen FSG no se puede calcular todavía para él.</div>';
+    }
+    var ud = tipoDef.magnitud ? ' ('+escHtml(tipoDef.magnitud)+')' : '';
+    return '<div class="form-2col">' +
+        fieldNum('Corrección máx. medida'+ud,'f_cal_correccion','') +
+        fieldNum('Incertidumbre máx. medida'+ud,'f_cal_incertidumbre','') +
+      '</div>' +
+      '<div class="form-note">Tolerancia aplicada: '+tipoDef.toleranciaAbsoluta+ud+
+      (tipoDef.justificacionTolerancia ? ' — '+escHtml(tipoDef.justificacionTolerancia) : '')+'</div>';
+  }
+
   function formHtml(e) {
     e = e || {};
     var cal = e.calibracion || {};
+    var tipoDef = tiposEquipoData.find(function(t){ return t.id===(e.tipoId||''); });
     return '<div class="form-sec">Datos del equipo</div>' +
       '<div class="form-2col">' +
         ('<div class="form-row"><label>Tipo de equipo</label><select id="f_tipoId" '+
@@ -312,6 +338,8 @@
         field('Frecuencia','f_cal_frec',escHtml(cal.frecuencia||'')) +
         fieldNum('Periodo (meses)','f_cal_meses',cal.periodoMeses||'') +
       '</div>' +
+      '<div class="form-sec">Comprobación FSG (validación de esta calibración)</div>' +
+      '<div id="calExtraWrap">'+calExtraHtml(tipoDef)+'</div>' +
       (editandoId
         ? '<div class="form-sec">Histórico de calibraciones</div><div id="historicoCal" class="form-note">Cargando…</div>'
         : '<div class="form-note" style="margin-top:6px">El histórico de calibraciones se registra a partir de que se guarde el equipo por primera vez.</div>');
@@ -349,6 +377,9 @@
   window.previsualizarCodigo = function() {
     var tipoId = document.getElementById('f_tipoId').value;
     document.getElementById('f_id_preview').value = tipoId ? siguienteCodigo(tipoId) : '';
+    var tipoDef = tiposEquipoData.find(function(t){ return t.id===tipoId; });
+    var wrap = document.getElementById('calExtraWrap');
+    if (wrap) wrap.innerHTML = calExtraHtml(tipoDef);
   };
 
   window.abrirNuevo = function() {
@@ -381,11 +412,26 @@
       var eventos = [];
       snap.forEach(function(d){ eventos.push(d.data()); });
       eventos.sort(function(a,b){ return (b.fecha||'') < (a.fecha||'') ? -1 : 1; });
-      el.innerHTML = eventos.map(function(c) {
-        return '<div style="padding:6px 0;border-bottom:1px solid var(--border)">' +
-          escHtml(c.fecha||'—') + ' → próx. ' + escHtml(c.fechaProximaCalculada||'—') +
+      el.innerHTML = eventos.map(function(c, i) {
+        var badgeCls = c.dictamen==='FAVORABLE' ? 'badge-ok' : c.dictamen==='NO_FAVORABLE' ? 'badge-vencido' : 'badge-sd';
+        var badgeTxt = c.dictamen || 'sin evaluar';
+        var t = c.tipoSnapshot || {};
+        var ud = t.magnitud ? ' '+escHtml(t.magnitud) : '';
+        var detalle = '<div style="padding:8px 0 4px;font-size:11px;color:var(--muted)">' +
+          (c.correccionMedida!=null ? 'Corrección medida: '+c.correccionMedida+ud+'<br>' : '') +
+          (c.incertidumbreMedida!=null ? 'Incertidumbre medida: '+c.incertidumbreMedida+ud+'<br>' : '') +
+          (t.toleranciaAbsoluta!=null ? 'Tolerancia aplicada: '+t.toleranciaAbsoluta+ud+'<br>' : '') +
+          (t.justificacionTolerancia ? escHtml(t.justificacionTolerancia)+'<br>' : '') +
+          (c.registradoPor ? 'Registrado por: '+escHtml(c.registradoPor) : '') +
+          '</div>';
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="var d=this.querySelector(\'.fsg-detalle\');d.hidden=!d.hidden">' +
+          '<div style="display:flex;align-items:center;gap:6px">' +
+          '<span style="flex:1">'+escHtml(c.fecha||'—') + ' → próx. ' + escHtml(c.fechaProximaCalculada||'—') +
           (c.laboratorio ? ' · ' + escHtml(c.laboratorio) : '') +
-          (c.certificado ? ' · cert. ' + escHtml(c.certificado) : '') +
+          (c.certificado ? ' · cert. ' + escHtml(c.certificado) : '') + '</span>' +
+          '<span class="badge '+badgeCls+'">'+badgeTxt+'</span>' +
+          '</div>' +
+          '<div class="fsg-detalle" hidden>'+detalle+'</div>' +
           '</div>';
       }).join('');
     }).catch(function(e) {
@@ -447,6 +493,10 @@
       return (calAnterior[k]||'') !== (calNueva[k]||'');
     });
     if (calCambio && calNueva.fechaUltima) {
+      var elCorreccion = document.getElementById('f_cal_correccion');
+      var elIncertidumbre = document.getElementById('f_cal_incertidumbre');
+      var correccion = elCorreccion ? parseFloat(elCorreccion.value) : NaN;
+      var incertidumbre = elIncertidumbre ? parseFloat(elIncertidumbre.value) : NaN;
       var calId = calNueva.certificado || db.collection('equipos').doc().id; // auto-id si no hay nº de certificado
       ops.push(db.collection('equipos').doc(id).collection('calibraciones').doc(calId).set({
         tipoId: tipoId,
@@ -455,7 +505,9 @@
         laboratorio: calNueva.laboratorio || '',
         certificado: calNueva.certificado || '',
         fechaProximaCalculada: calNueva.fechaProxima || '',
-        dictamen: null,
+        correccionMedida: isNaN(correccion) ? null : correccion,
+        incertidumbreMedida: isNaN(incertidumbre) ? null : incertidumbre,
+        dictamen: calcularDictamen(tipoDef, correccion, incertidumbre),
         nota: null,
         registradoPor: currentUser ? currentUser.email : 'desconocido',
         creadoEn: firebase.firestore.FieldValue.serverTimestamp()
