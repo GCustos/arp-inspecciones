@@ -308,6 +308,19 @@
       (tipoDef.justificacionTolerancia ? ' — '+escHtml(tipoDef.justificacionTolerancia) : '')+'</div>';
   }
 
+  // Rango real del aparato concreto (no del tipo) — determina para qué ensayos vale.
+  // Solo se pide si el tipo tiene magnitud definida (mismo criterio que calExtraHtml).
+  function rangoHtml(tipoDef, e) {
+    if (!tipoDef || !tipoDef.magnitud) return '';
+    e = e || {};
+    var ud = ' ('+escHtml(tipoDef.magnitud)+')';
+    return '<div class="form-2col">' +
+        fieldNum('Rango mínimo'+ud,'f_rangoMin',e.rangoMin!=null?e.rangoMin:'') +
+        fieldNum('Rango máximo'+ud,'f_rangoMax',e.rangoMax!=null?e.rangoMax:'') +
+      '</div>' +
+      '<div class="form-note">Capacidad real de este aparato concreto — determina para qué ensayos vale (independiente del resto de equipos del mismo tipo).</div>';
+  }
+
   function formHtml(e) {
     e = e || {};
     var cal = e.calibracion || {};
@@ -332,6 +345,7 @@
         field('Nº de serie','f_nSerie',escHtml(e.nSerie||e.serie||'')) +
         field('Sede','f_sede',escHtml(e.sede||'')) +
       '</div>' +
+      '<div id="rangoWrap">'+rangoHtml(tipoDef, e)+'</div>' +
       '<div class="form-row"><label>Inspector asignado</label>' +
         '<select id="f_asignadoA">'+usuariosOpts(asignacionPorEquipo[e.id||'']||'')+'</select></div>' +
       field('Observaciones','f_obs',escHtml(e.obs||''),'','textarea') +
@@ -392,6 +406,8 @@
     var tipoDef = tiposEquipoData.find(function(t){ return t.id===tipoId; });
     var wrap = document.getElementById('calExtraWrap');
     if (wrap) wrap.innerHTML = calExtraHtml(tipoDef);
+    var rangoWrap = document.getElementById('rangoWrap');
+    if (rangoWrap) rangoWrap.innerHTML = rangoHtml(tipoDef, null);
   };
 
   window.abrirNuevo = function() {
@@ -425,15 +441,23 @@
       snap.forEach(function(d){ eventos.push(d.data()); });
       eventos.sort(function(a,b){ return (b.fecha||'') < (a.fecha||'') ? -1 : 1; });
       el.innerHTML = eventos.map(function(c, i) {
-        var badgeCls = c.dictamen==='FAVORABLE' ? 'badge-ok' : c.dictamen==='NO_FAVORABLE' ? 'badge-vencido' : 'badge-sd';
-        var badgeTxt = c.dictamen || 'sin evaluar';
         var t = c.tipoSnapshot || {};
         var ud = t.magnitud ? ' '+escHtml(t.magnitud) : '';
+        // El dictamen FSG solo existe como concepto desde que el tipo tiene tolerancia
+        // definida. Un evento anterior a eso no está "sin evaluar" — la evaluación
+        // simplemente no existía todavía, así que no se muestra ninguna etiqueta.
+        var hayTolerancia = t.toleranciaAbsoluta != null;
+        var badge = '';
+        if (hayTolerancia) {
+          var badgeCls = c.dictamen==='FAVORABLE' ? 'badge-ok' : c.dictamen==='NO_FAVORABLE' ? 'badge-vencido' : 'badge-sd';
+          var badgeTxt = c.dictamen || 'sin evaluar';
+          badge = '<span class="badge '+badgeCls+'">'+badgeTxt+'</span>';
+        }
         var detalle = '<div style="padding:8px 0 4px;font-size:11px;color:var(--muted)">' +
           (c.correccionMedida!=null ? 'Corrección medida: '+c.correccionMedida+ud+'<br>' : '') +
           (c.incertidumbreMedida!=null ? 'Incertidumbre medida: '+c.incertidumbreMedida+ud+'<br>' : '') +
-          (t.toleranciaAbsoluta!=null ? '<br>'+explicacionSimpleTolerancia(t)+'<br>' : '') +
-          (t.toleranciaAbsoluta!=null ? '<span style="font-size:10px">Detalle técnico — tolerancia aplicada: '+t.toleranciaAbsoluta+ud+(t.justificacionTolerancia?' — '+escHtml(t.justificacionTolerancia):'')+'</span><br>' : '') +
+          (hayTolerancia ? '<br>'+explicacionSimpleTolerancia(t)+'<br>' : '<br>Este evento es anterior a que el tipo tuviera una tolerancia de validación definida — no se puede evaluar.<br>') +
+          (hayTolerancia ? '<span style="font-size:10px">Detalle técnico — tolerancia aplicada: '+t.toleranciaAbsoluta+ud+(t.justificacionTolerancia?' — '+escHtml(t.justificacionTolerancia):'')+'</span><br>' : '') +
           (c.registradoPor ? 'Registrado por: '+escHtml(c.registradoPor) : '') +
           '</div>';
         return '<div style="padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="var d=this.querySelector(\'.fsg-detalle\');d.hidden=!d.hidden">' +
@@ -441,7 +465,7 @@
           '<span style="flex:1">'+escHtml(c.fecha||'—') + ' → próx. ' + escHtml(c.fechaProximaCalculada||'—') +
           (c.laboratorio ? ' · ' + escHtml(c.laboratorio) : '') +
           (c.certificado ? ' · cert. ' + escHtml(c.certificado) : '') + '</span>' +
-          '<span class="badge '+badgeCls+'">'+badgeTxt+'</span>' +
+          badge +
           '</div>' +
           '<div class="fsg-detalle" hidden>'+detalle+'</div>' +
           '</div>';
@@ -466,6 +490,10 @@
     var meses = parseInt(document.getElementById('f_cal_meses').value)||0;
     var nuevoAsignado  = document.getElementById('f_asignadoA').value; // email o ''
     var anteriorAsignado = asignacionPorEquipo[id] || '';
+    var elRangoMin = document.getElementById('f_rangoMin');
+    var elRangoMax = document.getElementById('f_rangoMax');
+    var rangoMin = elRangoMin ? parseFloat(elRangoMin.value) : NaN;
+    var rangoMax = elRangoMax ? parseFloat(elRangoMax.value) : NaN;
     var data = {
       codigo:    id,
       tipoId:    tipoId,
@@ -486,6 +514,10 @@
         periodoMeses: meses || firebase.firestore.FieldValue.delete()
       }
     };
+    if (!isNaN(rangoMin)) data.rangoMin = rangoMin;
+    else if (editandoId) data.rangoMin = firebase.firestore.FieldValue.delete();
+    if (!isNaN(rangoMax)) data.rangoMax = rangoMax;
+    else if (editandoId) data.rangoMax = firebase.firestore.FieldValue.delete();
     var btn = document.querySelector('.btn-guardar');
     btn.disabled = true; btn.textContent = 'Guardando...';
     // Al crear, sin merge — el id se acaba de calcular como "el siguiente libre para ese
