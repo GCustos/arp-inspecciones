@@ -1258,23 +1258,32 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       const imgH = 45;
 
       if (esTiposJuego) {
-        // Grid continuo: cada circuito = 1 elemento con 1 juego, sin salto de página
-        // forzado ni cabecera por circuito — solo pagina cuando el grid se llena de verdad.
-        let col = 0, rowY = y;
-        for (const circ of circuitos) {
-          const j = (circ.juegos||[])[0];
-          if (!j) continue;
-          if (col === 3) { col = 0; rowY += imgH + 12; y = rowY; }
-          if (rowY + imgH + 12 > PH-18) {
-            doc.addPage(); nPag[0]++;
-            addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
-            rowY = MT+8; y = rowY; col = 0;
+        // Un grid por tipo de elemento (Vía, luego Zona/Muro) con la misma barra
+        // divisoria dorada que ya usa "II. Específica" — antes era un único grid
+        // continuo con todos los circuitos mezclados sin distinguir tipo.
+        const gruposFotos = tiposJuegoInforme.filter(function(t){ return circuitos.some(function(c){ return c.tipoElemento===t.id; }); });
+        gruposFotos.forEach(function(tipoCfg) {
+          const circsDeTipo = circuitos.filter(function(c){ return c.tipoElemento===tipoCfg.id; });
+          if (y + 12 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+          y = drawTipoGroupBar(doc, y, tipoCfg, {count: circsDeTipo.length, heightAfter: 4});
+          // Grid continuo dentro del tipo: sin salto de página forzado ni cabecera por
+          // circuito — solo pagina cuando el grid se llena de verdad.
+          let col = 0, rowY = y;
+          for (const circ of circsDeTipo) {
+            const j = (circ.juegos||[])[0];
+            if (!j) continue;
+            if (col === 3) { col = 0; rowY += imgH + 12; y = rowY; }
+            if (rowY + imgH + 12 > PH-18) {
+              doc.addPage(); nPag[0]++;
+              addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr);
+              rowY = MT+8; y = rowY; col = 0;
+            }
+            const imgX = ML + col * (imgW + 3);
+            _celdaFotoJuego(imgX, rowY, imgW, imgH, j, circ.nombre||j.nombre||'');
+            col++;
           }
-          const imgX = ML + col * (imgW + 3);
-          _celdaFotoJuego(imgX, rowY, imgW, imgH, j, circ.nombre||j.nombre||'');
-          col++;
-        }
-        y = rowY + imgH + 12;
+          y = rowY + imgH + 12;
+        });
       } else {
         // Fotos por circuito — grid 3 columnas, cada circuito en página nueva (un circuito
         // PAA puede tener muchos juegos, mezclar circuitos en el mismo grid confundiría).
