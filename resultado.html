@@ -335,7 +335,11 @@
 
   function verRevisionHistorica(idx){
     const snap=D_actual.historialRevisiones[idx];
-    D=Object.assign({},D_actual,snap,{id:D_actual.id,historialRevisiones:D_actual.historialRevisiones});
+    // Solo las revisiones anteriores a la que se está viendo cuentan como "anterior" para
+    // el coloreado de diffs — si no, al ver Rev.0 se compara consigo misma (siempre "sin
+    // cambio" = negro) y al ver Rev.N>0 se compara contra la última guardada en vez de la
+    // inmediatamente anterior.
+    D=Object.assign({},D_actual,snap,{id:D_actual.id,historialRevisiones:D_actual.historialRevisiones.slice(0,idx)});
     viendoRevisionIdx=idx;
     renderResultado();
     window.scrollTo({top:0,behavior:'smooth'});
