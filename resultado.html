@@ -1126,8 +1126,10 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       ];
       for (const [titulo, texto] of seccionesMant) {
         if (y > PH-50) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
-        doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
-        doc.text(titulo, ML, y); y += 6;
+        // Título con el mismo wrap que el cuerpo — antes usaba doc.text() sin maxWidth y
+        // se salía de la página en títulos largos (ej. el de EPI en SAE, ~127 caracteres).
+        y = addTextBlock(doc, titulo, ML, y, CW, 10, DARK, 'bold', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+        y += 2;
         y = addTextBlock(doc, texto, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
         y += 6;
       }
@@ -1424,6 +1426,20 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       // Tabla por criterio — formato tabla independiente igual que I. General.
       // Una fila por columna(criterio), agregando SAT/N.S./N.A. de los juegos que la usan.
       var ncNumGlobal = 0;
+      // Comprueba si una NC pertenece a alguno de los circuitos del subset (mismo tipo de
+      // elemento). Necesario porque SAE y MURO comparten ids de columna (ej. "SUP" es
+      // 4.10 en Vía y 4.11 en Muro) — sin esto, filtrar solo por col.key mezcla las notas
+      // de un tipo con el resumen del otro.
+      function ncPerteneceASubset(n, circsSubset) {
+        if (n.juegoId) {
+          return circsSubset.some(function(c){ return (c.juegos||[]).some(function(j){ return j.id === n.juegoId; }); });
+        }
+        if (n._ci !== undefined && n._ci !== 'g') {
+          var circ = circuitos[n._ci];
+          return circ ? circsSubset.indexOf(circ) !== -1 : false;
+        }
+        return false;
+      }
       function renderFilaCriterioInforme(col, circsSubset, esUltimaColumna) {
         const vArr = [];
         circsSubset.forEach(circ => { (circ.juegos||[]).forEach(j => { if(j[col.key]) vArr.push(j[col.key]); }); });
@@ -1432,7 +1448,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         const allS = vArr.length>0 && vArr.every(v=>v==='S'||v==='NA');
         var vGlobal = hayN?'N':allNA?'NA':allS?'S':'S';
 
-        var ncsDelCol = (D.ncs||[]).filter(n => n.autoId && n.autoId.includes('_'+col.key));
+        var ncsDelCol = (D.ncs||[]).filter(n => n.autoId && n.autoId.includes('_'+col.key) && ncPerteneceASubset(n, circsSubset));
         if (esUltimaColumna) {
           (D.ncs||[]).forEach(function(n){ if(n.autoId && n.autoId.includes('_manual')) ncsDelCol.push(n); });
           (D.ncs||[]).forEach(function(n){ if(n.autoId && n.autoId.startsWith('g')) ncsDelCol.push(n); });
