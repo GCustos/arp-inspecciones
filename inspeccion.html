@@ -2516,13 +2516,28 @@
         if(resultado==='FAVORABLE'){
           var _instalId=docDataFull.instalacionId, _cert=_certHasta;
           var _nombre=docDataFull.nombreInstalacion||'', _tipo=docDataFull.tipoAlcance||'PAA';
-          db.collection('instalaciones').doc(_instalId).get().then(function(snap){
+          db.collection('instalaciones').doc(_instalId).get().then(async function(snap){
             var inst=snap.exists?snap.data():{};
+            var lat=inst.lat||null, lng=inst.lng||null;
+            // Sin coordenadas guardadas: geocodificar por municipio/provincia (gratis, sin API key)
+            // para que el pin del mapa público no se quede sin posición. Best-effort: si falla,
+            // sigue igual que antes (lat/lng null, el mapa simplemente no pinta ese punto).
+            if(!lat && !lng && (inst.municipio||inst.provincia)){
+              try{
+                var q=[inst.municipio,inst.provincia,'España'].filter(Boolean).join(', ');
+                var geoRes=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q));
+                var geoData=await geoRes.json();
+                if(geoData && geoData[0]){
+                  lat=parseFloat(geoData[0].lat); lng=parseFloat(geoData[0].lon);
+                  db.collection('instalaciones').doc(_instalId).update({lat:lat,lng:lng}).catch(function(){});
+                }
+              }catch(ge){ console.warn('geocode:',ge.message); }
+            }
             return db.collection('certificados-publicos').doc(_instalId).set({
               nombre:_nombre,
               lugar:[inst.municipio,inst.provincia].filter(Boolean).join(', '),
-              lat:inst.lat||null,
-              lng:inst.lng||null,
+              lat:lat,
+              lng:lng,
               fechaValidez:_cert,
               tipo:_tipo,
               actualizadoEn:firebase.firestore.FieldValue.serverTimestamp()
