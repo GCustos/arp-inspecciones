@@ -1033,8 +1033,16 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       try { doc.addImage('data:image/jpeg;base64,'+LOGO_B64,'JPEG', ML+2, y-4, 16, 11); } catch(e){}
       doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('INFORME DE INSPECCIÓN', ML+22, y+2);
-      doc.setFontSize(10); doc.setFont('helvetica','normal');
-      doc.text('INSPECCIÓN DE INSTALACIONES ' + (norma.tipoInstalacion || '').toUpperCase(), ML+22, y+7);
+      // Subtítulo con ancho variable según el alcance (tipoInstalacion) — se encoge para
+      // no pisar la caja de Rev./Fecha a la derecha (antes se dibujaba a tamaño fijo y
+      // "INSPECCIÓN DE INSTALACIONES ESTRUCTURA ARTIFICIAL DE ESCALADA" se metía encima).
+      const subtitInsp = 'INSPECCIÓN DE INSTALACIONES ' + (norma.tipoInstalacion || '').toUpperCase();
+      const subtitMaxW = (PW-MR-25) - (ML+22) - 3;
+      var subtitFS = 10;
+      doc.setFont('helvetica','normal');
+      while (subtitFS > 7 && doc.setFontSize(subtitFS).getTextWidth(subtitInsp) > subtitMaxW) subtitFS -= 0.25;
+      doc.setFontSize(subtitFS);
+      doc.text(subtitInsp, ML+22, y+7);
       doc.setFontSize(8); doc.setTextColor(...MUTED);
       doc.text(`Rev. ${fmtRev}`, PW-MR-25, y);
       doc.text(`Fecha: ${fmtFechaStr}`, PW-MR-25, y+5);
