@@ -1277,7 +1277,7 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
         gruposFotos.forEach(function(tipoCfg) {
           const circsDeTipo = circuitos.filter(function(c){ return c.tipoElemento===tipoCfg.id; });
           if (y + 12 > PH-18) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
-          y = drawTipoGroupBar(doc, y, tipoCfg, {count: circsDeTipo.length, heightAfter: 4});
+          y = drawTipoGroupBar(doc, y, tipoCfg, {count: circsDeTipo.length, heightAfter: 9});
           // Grid continuo dentro del tipo: sin salto de página forzado ni cabecera por
           // circuito — solo pagina cuando el grid se llena de verdad.
           let col = 0, rowY = y;
