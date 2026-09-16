@@ -620,6 +620,10 @@
         doc.addPage();
         nPag[0]++;
         addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFecha);
+        // addCabecera cambia tamaño/color/tipo de letra para dibujar su propia cabecera y
+        // pie — sin restaurar aquí, el resto del párrafo en la página nueva se queda con
+        // esa fuente (pequeña, gris o dorada) en vez de la del cuerpo del texto.
+        doc.setFontSize(fontSize); doc.setFont('helvetica', font||'normal'); doc.setTextColor(...(color||DARK));
         y = MT + 8;
       }
       doc.text(line, x, y);
