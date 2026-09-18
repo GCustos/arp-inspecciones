@@ -170,7 +170,10 @@
         if (D.formatoDocumento.checklist && D.formatoDocumento.checklist.length)
           GEN_ITEMS_PDF = D.formatoDocumento.checklist;
         if (D.formatoDocumento.columnas && D.formatoDocumento.columnas.length)
-          COLS_PDF = D.formatoDocumento.columnas.map(function(c){ return {key:c.id, label:c.label, abbrev:c.abbrev, ref:'', desc:''}; });
+          COLS_PDF = D.formatoDocumento.columnas.map(function(c){
+            var def = COLS_PDF_DEFAULT.find(function(d){ return d.key===c.id; });
+            return {key:c.id, label:c.label, abbrev:c.abbrev, ref:(def?def.ref:''), desc:(def?def.desc:'')};
+          });
       }
 
       // Guardar snapshot en localStorage (triple backup)
@@ -191,7 +194,10 @@
             if (D.formatoDocumento.checklist && D.formatoDocumento.checklist.length)
               GEN_ITEMS_PDF = D.formatoDocumento.checklist;
             if (D.formatoDocumento.columnas && D.formatoDocumento.columnas.length)
-              COLS_PDF = D.formatoDocumento.columnas.map(function(c){ return {key:c.id, label:c.label, abbrev:c.abbrev, ref:'', desc:''}; });
+              COLS_PDF = D.formatoDocumento.columnas.map(function(c){
+                var def = COLS_PDF_DEFAULT.find(function(d){ return d.key===c.id; });
+                return {key:c.id, label:c.label, abbrev:c.abbrev, ref:(def?def.ref:''), desc:(def?def.desc:'')};
+              });
           }
           CONFIG = CONFIG_DEFAULT;
           document.getElementById('alertOffline').classList.add('vis');
@@ -814,6 +820,12 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
     {key:"ra",label:"Riesgos y atrapamientos",ref:"4.4",desc:"Evaluación de posibles riesgos de atrapamiento, cizallamiento e interferencias."},
     {key:"zs",label:"Zona de seguridad / Entorno",ref:"4.1",desc:"Comprobación de distancias libres, ausencia de obstáculos y condiciones de evacuación."},
   ];
+  // Copia inmutable del array de arriba — el snapshot formatoDocumento.columnas (guardado
+  // en cada inspección desde config/{alcance}.columnas) nunca lleva ref/desc, solo
+  // id/label/abbrev (es lo único que gestiona el editor de admin-formatos.html). Al aplicar
+  // ese snapshot se busca aquí por key para no perder la referencia normativa ni el texto
+  // descriptivo de cada criterio.
+  var COLS_PDF_DEFAULT = COLS_PDF.slice();
 
 
   // Helper: load image URL as base64 for jsPDF
