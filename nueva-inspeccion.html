@@ -480,14 +480,25 @@
             ?prev.circuitos
             :(prev.circuitos?Object.values(prev.circuitos).sort(function(a,b){return(a.orden||0)-(b.orden||0);}):[]);
           if(prevCircArr.length){
-            // Construir como MAPA {id: circData} desde el primer momento (evita formato array legacy)
+            // Construir como MAPA {id: circData} desde el primer momento (evita formato array
+            // legacy), y dentro de cada circuito los juegos también como mapa {juegoId: juegoData}
+            // (mismo formato que ahora escribe inspeccion.html — ver buildCircuitosMap). El
+            // circuito de origen puede venir en cualquiera de los dos formatos (antiguo o nuevo),
+            // según cuándo se editó por última vez esa inspección anterior.
             var _mapHer={};
             prevCircArr.forEach(function(c,ci){
               var cId='circ_'+ci;
-              _mapHer[cId]={id:cId,nombre:c.nombre,orden:ci,juegos:(c.juegos||[]).map(function(j,ji){return{id:'juego_'+ci+'_'+ji,nombre:j.nombre,tipo:j.tipo||'R',rama:j.rama||'',ie:'',af:'',ej:'',ra:'',zs:'',obs:'',fotos:[]};})};
+              var prevJuegos=Array.isArray(c.juegos)?c.juegos
+                :(c.juegos?Object.keys(c.juegos).map(function(k){var j=c.juegos[k];if(!j.id)j.id=k;return j;}).sort(function(a,b){return(a.orden||0)-(b.orden||0);}):[]);
+              var juegosMap={};
+              prevJuegos.forEach(function(j,ji){
+                var jId='juego_'+ci+'_'+ji;
+                juegosMap[jId]={id:jId,orden:ji,nombre:j.nombre,tipo:j.tipo||'R',rama:j.rama||'',ie:'',af:'',ej:'',ra:'',zs:'',obs:'',fotos:[]};
+              });
+              _mapHer[cId]={id:cId,nombre:c.nombre,orden:ci,juegos:juegosMap};
             });
             circuitosHeredados=_mapHer;
-            txt+=" · "+circuitosHeredados.reduce(function(s,c){return s+c.juegos.length},0)+" elem. heredados";
+            txt+=" · "+Object.values(circuitosHeredados).reduce(function(s,c){return s+Object.keys(c.juegos).length},0)+" elem. heredados";
             document.getElementById("acVincTxt").textContent=txt;
           }
         }

@@ -108,6 +108,18 @@
   // ── CONFIG POR DEFECTO (si Firestore falla offline) ──
   const CONFIG_DEFAULT = { empresa: {}, alcance: {}, director: {} };
 
+  // Normaliza juegos de cada circuito a array — vienen de Firestore como array (antiguo) o
+  // como mapa {juegoId: juegoData} (nuevo, ver buildCircuitosMap en inspeccion.html). El resto
+  // del informe asume siempre array (índices, filter/reduce), igual que ya pasa con circuitos.
+  function normalizarJuegos(circuitos) {
+    (circuitos || []).forEach(function(c) {
+      if (c.juegos && !Array.isArray(c.juegos)) {
+        c.juegos = Object.keys(c.juegos).map(function(k) { var j = c.juegos[k]; if (!j.id) j.id = k; return j; })
+          .sort(function(a, b) { return (a.orden || 0) - (b.orden || 0); });
+      }
+    });
+  }
+
   // ── CARGA ──
   initAuth({
     onReady: function(user, ud) { cargarDatos(); }
@@ -177,6 +189,7 @@
       // Normalizar circuitos: nuevo formato = mapa {id: circData}, legacy = array
       if (D.circuitos && !Array.isArray(D.circuitos))
         D.circuitos = Object.values(D.circuitos).sort(function(a,b){ return (a.orden||0)-(b.orden||0); });
+      normalizarJuegos(D.circuitos);
       D_actual = D;
 
       // Aplicar formato del snapshot guardado en la inspección
@@ -203,6 +216,7 @@
           D = JSON.parse(local);
           if (D.circuitos && !Array.isArray(D.circuitos))
             D.circuitos = Object.values(D.circuitos).sort(function(a,b){ return (a.orden||0)-(b.orden||0); });
+          normalizarJuegos(D.circuitos);
           D_actual = D;
           if (D.formatoDocumento) {
             if (D.formatoDocumento.checklist && D.formatoDocumento.checklist.length)

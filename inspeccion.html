@@ -514,7 +514,17 @@
   let _legacyArrayFormat=false;     // true cuando la inspección cargó circuitos en formato array (antiguo)
   let _legacyNcArrayFormat=false;   // true cuando las NC cargaron como array embebido (antiguo) en vez de subcolección
   let _ncLastSaved={};              // id de NC -> JSON de lo último escrito en su documento de la subcolección
+  let _legacyJuegosCircIds=new Set(); // ids de circuitos cuyos juegos siguen en formato array (antiguo) en Firestore
+  let _juegoLastSaved={};           // "cId|jId" -> JSON de lo último escrito en circuitos.<cId>.juegos.<jId>
   function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
+  // Normaliza juegos de un circuito a array in-memory, venga de Firestore como array (antiguo)
+  // o como mapa {juegoId: juegoData} (nuevo) — reutilizable también en nueva-inspeccion.html.
+  function juegosArrayFrom(juegos){
+    if(!juegos) return [];
+    if(Array.isArray(juegos)) return juegos;
+    return Object.keys(juegos).map(function(k){ var j=juegos[k]; if(!j.id) j.id=k; return j; })
+      .sort(function(a,b){ return (a.orden||0)-(b.orden||0); });
+  }
   function markCircuitDirty(ci){ if(S.circuitos[ci]) _dirtyCircuitIds.add(S.circuitos[ci].id); }
   var tiposNCList=["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente","Riesgo de atrapamiento"];
   var tiposNCNormaMap={};
@@ -1013,7 +1023,17 @@
         if(_wasArray) _legacyArrayFormat = true;
         S.circuitos.forEach(function(c, ci){
           if(!c.id) c.id = _wasArray ? ('circ_'+ci) : uid();
-          (c.juegos||[]).forEach(function(j, ji){ if(!j.id) j.id = _wasArray ? ('juego_'+ci+'_'+ji) : uid(); });
+          // juegos dentro del circuito: igual soporte array (antiguo) / mapa (nuevo), igual
+          // que el propio circuitos de arriba — ver buildCircuitUpdates/buildCircuitosMap.
+          var juegosEraArray = Array.isArray(c.juegos);
+          if (juegosEraArray) {
+            c.juegos.forEach(function(j, ji){ if(!j.id) j.id = _wasArray ? ('juego_'+ci+'_'+ji) : uid(); });
+            if (c.juegos.length) _legacyJuegosCircIds.add(c.id);
+          } else {
+            var arr = juegosArrayFrom(c.juegos);
+            arr.forEach(function(j, ji){ _juegoLastSaved[c.id+'|'+j.id] = JSON.stringify(sanitizar(Object.assign({},j,{orden:ji}))); });
+            c.juegos = arr;
+          }
           if(_wasArray) _dirtyCircuitIds.add(c.id);
         });
       }
@@ -2336,18 +2356,54 @@
 
   // Genera las actualizaciones granulares de circuitos (dot-notation) para evitar
   // sobreescribir circuitos editados en otro dispositivo durante sincronización offline.
+  // Dentro de cada circuito, además, los juegos se comparan uno a uno contra lo último
+  // escrito (_juegoLastSaved) y solo se reescriben los que cambiaron de verdad — tocar la
+  // foto de un juego ya no reescribe a sus hermanos dentro del mismo circuito.
   function buildCircuitUpdates(){
     var upd={};
     _dirtyCircuitIds.forEach(function(cId){
       var c=S.circuitos.find(function(c){ return c.id===cId; });
-      if(c) {
-        var _cData={nombre:c.nombre,orden:S.circuitos.indexOf(c),juegos:c.juegos};
-        if(c.tipoElemento) _cData.tipoElemento=c.tipoElemento;
-        upd['circuitos.'+cId]=sanitizar(_cData);
+      if(!c) return;
+      upd['circuitos.'+cId+'.nombre']=c.nombre;
+      upd['circuitos.'+cId+'.orden']=S.circuitos.indexOf(c);
+      if(c.tipoElemento) upd['circuitos.'+cId+'.tipoElemento']=c.tipoElemento;
+      var juegosArr=c.juegos||[];
+      if(_legacyJuegosCircIds.has(cId)){
+        // Sus juegos siguen en formato array en Firestore — se reemplaza el campo entero
+        // por un mapa de una vez (no se puede escribir una clave suelta sobre un valor
+        // que hoy no es un mapa), y a partir de aquí ya se compara juego a juego.
+        var mapaCompleto={};
+        juegosArr.forEach(function(j,ji){
+          var data=sanitizar(Object.assign({},j,{orden:ji}));
+          mapaCompleto[j.id]=data;
+          _juegoLastSaved[cId+'|'+j.id]=JSON.stringify(data);
+        });
+        upd['circuitos.'+cId+'.juegos']=mapaCompleto;
+        _legacyJuegosCircIds.delete(cId);
+      } else {
+        var vistos={};
+        juegosArr.forEach(function(j,ji){
+          var key=cId+'|'+j.id;
+          vistos[key]=true;
+          var data=sanitizar(Object.assign({},j,{orden:ji}));
+          var json=JSON.stringify(data);
+          if(_juegoLastSaved[key]!==json){
+            upd['circuitos.'+cId+'.juegos.'+j.id]=data;
+            _juegoLastSaved[key]=json;
+          }
+        });
+        Object.keys(_juegoLastSaved).forEach(function(key){
+          if(key.indexOf(cId+'|')===0 && !vistos[key]){
+            upd['circuitos.'+cId+'.juegos.'+key.slice(cId.length+1)]=firebase.firestore.FieldValue.delete();
+            delete _juegoLastSaved[key];
+          }
+        });
       }
     });
     _deletedCircuitIds.forEach(function(cId){
       upd['circuitos.'+cId]=firebase.firestore.FieldValue.delete();
+      Object.keys(_juegoLastSaved).forEach(function(key){ if(key.indexOf(cId+'|')===0) delete _juegoLastSaved[key]; });
+      _legacyJuegosCircIds.delete(cId);
     });
     _dirtyCircuitIds.clear();
     _deletedCircuitIds.clear();
@@ -2355,12 +2411,20 @@
   }
 
   // Convierte S.circuitos (array) al mapa {id: circData} para escrituras completas (completar).
+  // juegos también se escribe como mapa {juegoId: juegoData}, nunca como array.
   function buildCircuitosMap(){
     var map={};
     S.circuitos.forEach(function(c,i){
-      var _cData={nombre:c.nombre,orden:i,juegos:c.juegos};
+      var juegosMap={};
+      (c.juegos||[]).forEach(function(j,ji){
+        var data=sanitizar(Object.assign({},j,{orden:ji}));
+        juegosMap[j.id]=data;
+        _juegoLastSaved[c.id+'|'+j.id]=JSON.stringify(data);
+      });
+      var _cData={nombre:c.nombre,orden:i,juegos:juegosMap};
       if(c.tipoElemento) _cData.tipoElemento=c.tipoElemento;
       map[c.id]=sanitizar(_cData);
+      _legacyJuegosCircIds.delete(c.id);
     });
     return map;
   }
