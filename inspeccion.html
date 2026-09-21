@@ -903,6 +903,20 @@
     return n;
   }
 
+  // Localiza el array de fotos vivo de un item pendiente por id estable (circuito+juego, o
+  // NC) — nunca por posición. Devuelve null si el juego/NC ya no existe (se borró mientras
+  // la foto subía): en ese caso el resultado se descarta en vez de escribirse en otro sitio.
+  function localizarArrayFotos(item) {
+    if (item.tipo==='j') {
+      var c = S.circuitos.find(function(x){ return x.id===item.circId; });
+      var j = c && (c.juegos||[]).find(function(x){ return x.id===item.juegoId; });
+      return j ? (j.fotos || (j.fotos=[])) : null;
+    }
+    var nc = S.ncs.find(function(x){ return x.id===item.ncId; });
+    if (!nc) return null;
+    return item.tipo==='d' ? (nc.fotosDefecto || (nc.fotosDefecto=[])) : (nc.fotosCorreccion || (nc.fotosCorreccion=[]));
+  }
+
   async function sincronizarFotosPendientes() {
     if (!navigator.onLine || !inspeccionId || _sincronizando) return;
     _sincronizando = true;
@@ -912,30 +926,40 @@
       if (firebase.auth().currentUser) {
         await firebase.auth().currentUser.getIdToken(true).catch(function() {});
       }
-      // Recopilar todas las fotos pendientes con su ubicación en S
+      // Recopilar todas las fotos pendientes — referenciadas por id estable (circuito/juego/NC
+      // y la propia foto, nunca por posición en el array). Antes se guardaba {ci,ji,fi} y el
+      // resultado se escribía de vuelta en esa misma posición cuando la subida terminaba —
+      // si el inspector borraba o reordenaba algo mientras tanto (fácil con mala cobertura,
+      // que es cuando más tardan las subidas), el índice ya no apuntaba a la foto correcta y
+      // el resultado se añadía como entrada nueva en vez de actualizar la que tocaba: la
+      // foto quedaba duplicada. Con ids estables, si algo desaparece mientras tanto el
+      // resultado simplemente se descarta — nunca se escribe en el sitio equivocado.
       var pendientes = [];
       var ts = Date.now();
-      for (var ci = 0; ci < S.circuitos.length; ci++) {
-        for (var ji = 0; ji < (S.circuitos[ci].juegos || []).length; ji++) {
-          var fotos = S.circuitos[ci].juegos[ji].fotos || [];
-          for (var fi = 0; fi < fotos.length; fi++) {
-            if (fotos[fi].pendiente) pendientes.push({ tipo:'j', ci:ci, ji:ji, fi:fi, foto:fotos[fi],
-              path:'inspecciones/'+inspeccionId+'/juegos/'+ci+'_'+ji+'/'+ts+'_'+ci+'_'+ji+'_'+fi+'.jpg' });
-          }
-        }
-      }
-      for (var ni = 0; ni < S.ncs.length; ni++) {
-        var fotsD = S.ncs[ni].fotosDefecto || [];
-        for (var fi = 0; fi < fotsD.length; fi++) {
-          if (fotsD[fi].pendiente) pendientes.push({ tipo:'d', ni:ni, fi:fi, foto:fotsD[fi],
+      S.circuitos.forEach(function(c, ci) {
+        (c.juegos||[]).forEach(function(j, ji) {
+          (j.fotos||[]).forEach(function(f, fi) {
+            if (!f.pendiente) return;
+            if (!f._fid) f._fid = 'f_'+uid();
+            pendientes.push({ tipo:'j', circId:c.id, juegoId:j.id, fid:f._fid, foto:f,
+              path:'inspecciones/'+inspeccionId+'/juegos/'+ci+'_'+ji+'/'+ts+'_'+fi+'.jpg' });
+          });
+        });
+      });
+      S.ncs.forEach(function(nc, ni) {
+        (nc.fotosDefecto||[]).forEach(function(f, fi) {
+          if (!f.pendiente) return;
+          if (!f._fid) f._fid = 'f_'+uid();
+          pendientes.push({ tipo:'d', ncId:nc.id, fid:f._fid, foto:f,
             path:'inspecciones/'+inspeccionId+'/ncs/'+ni+'/def_'+ts+'_'+fi+'.jpg' });
-        }
-        var fotsC = S.ncs[ni].fotosCorreccion || [];
-        for (var fi2 = 0; fi2 < fotsC.length; fi2++) {
-          if (fotsC[fi2].pendiente) pendientes.push({ tipo:'c', ni:ni, fi:fi2, foto:fotsC[fi2],
-            path:'inspecciones/'+inspeccionId+'/ncs/'+ni+'/corr_'+ts+'_'+fi2+'.jpg' });
-        }
-      }
+        });
+        (nc.fotosCorreccion||[]).forEach(function(f, fi) {
+          if (!f.pendiente) return;
+          if (!f._fid) f._fid = 'f_'+uid();
+          pendientes.push({ tipo:'c', ncId:nc.id, fid:f._fid, foto:f,
+            path:'inspecciones/'+inspeccionId+'/ncs/'+ni+'/corr_'+ts+'_'+fi+'.jpg' });
+        });
+      });
 
       // Subir en lotes de 5 en paralelo; abortar si todo el lote falla (sin cobertura)
       var LOTE = 5;
@@ -949,9 +973,12 @@
           var r = res.status === 'fulfilled' ? res.value : null;
           var item = grupo[idx];
           if (!r || r.timeout) return; // null=sin datos/red, timeout=lento — dejar como pendiente
-          if (item.tipo==='j') S.circuitos[item.ci].juegos[item.ji].fotos[item.fi]=r;
-          else if (item.tipo==='d') S.ncs[item.ni].fotosDefecto[item.fi]=r;
-          else S.ncs[item.ni].fotosCorreccion[item.fi]=r;
+          var destino = localizarArrayFotos(item);
+          if (!destino) return; // el juego/NC ya no existe — se descarta, nunca se duplica en otro sitio
+          var pos = destino.findIndex(function(f){ return f._fid===item.fid; });
+          if (pos===-1) return; // la foto se borró mientras subía
+          destino[pos] = Object.assign({}, r, { _fid: item.fid });
+          if (item.tipo==='j') _dirtyCircuitIds.add(item.circId); // las NC se guardan solas (buildNcUpdates diffea S.ncs directamente)
           cambios=true; subidas++; exitosGrupo++;
         });
         // Abortar solo si hay 0 éxitos Y 0 timeouts (red genuinamente cortada)
