@@ -151,6 +151,10 @@
       <span class="toggle-label">Instalación activa</span>
       <label class="toggle"><input type="checkbox" id="miActivo" checked><div class="toggle-track"></div></label>
     </div>
+    <div class="field" id="miInspeccionesWrap" style="display:none">
+      <label>Inspecciones recientes</label>
+      <div id="miInspeccionesLista"></div>
+    </div>
     <div class="modal2-actions">
       <button class="btn-cancel" onclick="cerrarModalInst()">Cancelar</button>
       <button class="btn-save" id="miBtnSave" onclick="guardarInstalacion()">Guardar</button>
@@ -339,10 +343,68 @@
 
     var btn = document.getElementById('miBtnSave');
     btn.disabled = false; btn.textContent = 'Guardar';
+
+    miInspVentanaAnios = 2;
+    var wrapInsp = document.getElementById('miInspeccionesWrap');
+    if (id) { wrapInsp.style.display = 'block'; cargarInspeccionesInstalacion(id); }
+    else { wrapInsp.style.display = 'none'; document.getElementById('miInspeccionesLista').innerHTML = ''; }
+
     document.getElementById('modalInst').classList.add('open');
   };
 
   window.cerrarModalInst = function() { document.getElementById('modalInst').classList.remove('open'); };
+
+  // ── INSPECCIONES RECIENTES DE ESTA INSTALACIÓN ──
+  var miInspVentanaAnios = 2; // 2 → 5 → null (todas)
+  var _todasInspInst = [];
+
+  function cargarInspeccionesInstalacion(instId) {
+    var lista = document.getElementById('miInspeccionesLista');
+    lista.innerHTML = '<div style="font-size:12px;color:var(--muted)">Cargando…</div>';
+    db.collection('inspecciones').where('instalacionId', '==', instId).get().then(function(snap) {
+      var todas = [];
+      snap.forEach(function(d) { todas.push(Object.assign({ id: d.id }, d.data())); });
+      todas.sort(function(a, b) { return (b.fechaInspeccion || '') < (a.fechaInspeccion || '') ? -1 : 1; });
+      renderInspeccionesInstalacion(todas);
+    }).catch(function(e) {
+      lista.innerHTML = '<div style="font-size:12px;color:var(--red)">Error cargando inspecciones: ' + escHtml(e.message) + '</div>';
+    });
+  }
+
+  function renderInspeccionesInstalacion(todas) {
+    _todasInspInst = todas;
+    var lista = document.getElementById('miInspeccionesLista');
+    if (!todas.length) {
+      lista.innerHTML = '<div style="font-size:12px;color:var(--muted)">Sin inspecciones registradas todavía.</div>';
+      return;
+    }
+    var umbral = miInspVentanaAnios ? fechaHace(miInspVentanaAnios * 12) : null;
+    var visibles = umbral ? todas.filter(function(i) { return (i.fechaInspeccion || '0000') >= umbral; }) : todas;
+    var html = '';
+    if (!visibles.length) {
+      html += '<div style="font-size:12px;color:var(--muted)">Ninguna en los últimos ' + miInspVentanaAnios + ' años.</div>';
+    } else {
+      visibles.forEach(function(i) {
+        var completada = i.estado === 'completada';
+        var badgeCls = completada ? (i.resultado === 'no_conforme' ? 'badge-no_conforme' : 'badge-conforme') : (i.estado === 'en_curso' ? 'badge-en_curso' : 'badge-pendiente');
+        var badgeTxt = completada ? (i.resultado === 'no_conforme' ? 'No Conforme' : 'Conforme') : (i.estado === 'en_curso' ? 'En curso' : 'Borrador');
+        html += '<a href="resultado.html?id=' + escHtml(i.id) + '" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;font-size:12px">' +
+          '<span>' + escHtml(i.fechaInspeccion || 'sin fecha') + (i.tipoAlcance ? ' &middot; ' + escHtml(i.tipoAlcance) : '') + '</span>' +
+          '<span class="badge ' + badgeCls + '">' + badgeTxt + '</span>' +
+          '</a>';
+      });
+    }
+    var restantes = todas.length - visibles.length;
+    if (miInspVentanaAnios && restantes > 0) {
+      html += '<button type="button" class="btn-sm" style="margin-top:8px" onclick="ampliarVentanaInsp()">Ampliar a ' + (miInspVentanaAnios === 2 ? '5 años' : 'todas') + ' (' + restantes + ' más)</button>';
+    }
+    lista.innerHTML = html;
+  }
+
+  window.ampliarVentanaInsp = function() {
+    miInspVentanaAnios = miInspVentanaAnios === 2 ? 5 : null;
+    renderInspeccionesInstalacion(_todasInspInst);
+  };
 
   function renderChipsAlcances() {
     var el = document.getElementById('miAlcances');
