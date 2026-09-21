@@ -81,6 +81,26 @@ service cloud.firestore {
       allow delete: if isAuth() && isAdmin();
     }
 
+    // NC (no conformidades) — subcolección de inspecciones/{id}, un documento por NC en vez
+    // de un array embebido en el documento padre (evita reescribir el listado entero por cada
+    // cambio pequeño). Mismo control de acceso que la propia inspección: quien puede
+    // leer/editar la inspección puede leer/editar sus NC.
+    match /inspecciones/{inspId}/ncs/{ncId} {
+      function inspeccionPadre() {
+        return get(/databases/$(database)/documents/inspecciones/$(inspId)).data;
+      }
+      allow read: if isAuth() && (
+        canReadAll() ||
+        inspeccionPadre().inspectorEmail  == myEmail() ||
+        inspeccionPadre().inspector2Email == myEmail()
+      );
+      allow write: if isAuth() && (
+        isAdminLike() ||
+        inspeccionPadre().inspectorEmail  == myEmail() ||
+        inspeccionPadre().inspector2Email == myEmail()
+      );
+    }
+
     // ── config ─────────────────────────────────────────────────────────────
     // resultado.html y inspeccion.html la leen en runtime (todos los roles)
     // Solo admin modifica config de empresa/formato

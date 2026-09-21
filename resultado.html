@@ -152,6 +152,20 @@
       if (!snap.exists) { document.getElementById('mainContent').innerHTML = '<p style="color:var(--red);padding:20px">Inspección no encontrada.</p>'; return; }
       D = { id: snap.id, ...snap.data() };
 
+      // NC: viven en la subcolección inspecciones/{id}/ncs desde que se creó la inspección con
+      // la versión nueva de la app — si existen documentos ahí, sustituyen a D.ncs (que en ese
+      // caso ya no se escribe en el documento padre). Si la subcolección está vacía, se usa el
+      // array embebido D.ncs tal cual venía de snap.data() (inspecciones antiguas).
+      try {
+        const ncsSnap = await db.collection('inspecciones').doc(inspeccionId).collection('ncs').get();
+        if (!ncsSnap.empty) {
+          const ncsSub = [];
+          ncsSnap.forEach(function(d) { var nc = d.data(); nc.id = d.id; ncsSub.push(nc); });
+          ncsSub.sort(function(a, b) { return (a.orden || 0) - (b.orden || 0); });
+          D.ncs = ncsSub;
+        }
+      } catch (e) { console.warn('No se pudo leer la subcolección de NC:', e.message); }
+
       // Config del alcance real de esta inspección (fallback usado solo cuando la
       // inspección no tiene formatoDocumento propio, ej. inspecciones antiguas anteriores
       // a ese snapshot). 'PAA' como último recurso porque esas inspecciones antiguas eran

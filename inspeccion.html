@@ -512,6 +512,8 @@
   let _dirtyCircuitIds=new Set();   // IDs de circuitos modificados desde el último save
   let _deletedCircuitIds=new Set(); // IDs de circuitos borrados — se eliminan de Firestore con FieldValue.delete()
   let _legacyArrayFormat=false;     // true cuando la inspección cargó circuitos en formato array (antiguo)
+  let _legacyNcArrayFormat=false;   // true cuando las NC cargaron como array embebido (antiguo) en vez de subcolección
+  let _ncLastSaved={};              // id de NC -> JSON de lo último escrito en su documento de la subcolección
   function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
   function markCircuitDirty(ci){ if(S.circuitos[ci]) _dirtyCircuitIds.add(S.circuitos[ci].id); }
   var tiposNCList=["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente","Riesgo de atrapamiento"];
@@ -1015,7 +1017,22 @@
           if(_wasArray) _dirtyCircuitIds.add(c.id);
         });
       }
-      if(data.ncs) S.ncs=data.ncs;
+      // NC: viven en la subcolección inspecciones/{id}/ncs (un documento por NC) para no tener
+      // que reescribir el listado entero cada vez que cambia una sola. Compatibilidad con
+      // inspecciones antiguas que aún tienen el array embebido en el propio documento (mismo
+      // patrón que _legacyArrayFormat para circuitos): si la subcolección está vacía pero el
+      // documento trae `ncs`, se usa ese array y se migra a la subcolección en el próximo guardado.
+      var _ncsSnap = await db.collection("inspecciones").doc(inspeccionId).collection("ncs").get().catch(function(){ return null; });
+      if (_ncsSnap && !_ncsSnap.empty) {
+        S.ncs = [];
+        _ncsSnap.forEach(function(d){ var nc=d.data(); nc.id=d.id; S.ncs.push(nc); });
+        S.ncs.sort(function(a,b){ return (a.orden||0)-(b.orden||0); });
+        S.ncs.forEach(function(nc,i){ _ncLastSaved[nc.id]=JSON.stringify(sanitizar(Object.assign({},nc,{orden:i}))); });
+      } else if (data.ncs && data.ncs.length) {
+        S.ncs = data.ncs;
+        S.ncs.forEach(function(nc){ if(!nc.id) nc.id = 'nc_'+uid(); });
+        _legacyNcArrayFormat = true;
+      }
       _aplicarFormato(data.formatoDocumento);
       actualizarBotonesAlcance();
       // fotos generales eliminadas — las fotos van en juegos y NCs
@@ -2255,11 +2272,12 @@
   function markDirty(){ isDirty=true; actualizarBadgeFotosPendientes(); }
 
   function buildPayload(estado){
+    // OJO: las NC ya NO van aquí — viven en la subcolección inspecciones/{id}/ncs
+    // (ver buildNcUpdates/guardarConNcs) para no reescribir el listado entero en cada guardado.
     const payload = sanitizar({
       checklist:S.gen,
       checklistObs:S.genObs,
       obsGral:document.getElementById("obsGral").value||"",
-      ncs:S.ncs,
       ensayos:document.getElementById("ensayos").value||"",
       equiposMedicion:S.equiposMedicion,
       fechaInspeccion:S.fechaInspeccion,
@@ -2271,6 +2289,49 @@
     payload.ultimaModificacion = firebase.firestore.FieldValue.serverTimestamp();
     if (S.sesiones.length) payload.sesiones = S.sesiones;
     return payload;
+  }
+
+  // Compara cada NC contra lo último escrito en su documento de la subcolección (_ncLastSaved)
+  // y solo devuelve operaciones para las que realmente cambiaron — así cualquier edición (venga
+  // de donde venga en la UI) se detecta sola, sin tener que marcar "sucio" cada NC a mano en
+  // cada uno de sus muchos puntos de edición. Detecta también borrados (id que ya no está en S.ncs).
+  function buildNcUpdates(){
+    var ops=[], vistos={};
+    S.ncs.forEach(function(nc,i){
+      if(!nc.id) nc.id='nc_'+uid();
+      vistos[nc.id]=true;
+      var data=sanitizar(Object.assign({},nc,{orden:i}));
+      var json=JSON.stringify(data);
+      if(_ncLastSaved[nc.id]!==json){
+        ops.push({id:nc.id,data:data});
+        _ncLastSaved[nc.id]=json;
+      }
+    });
+    Object.keys(_ncLastSaved).forEach(function(id){
+      if(!vistos[id]){ ops.push({id:id,delete:true}); delete _ncLastSaved[id]; }
+    });
+    return ops;
+  }
+
+  function executeNcOps(ops){
+    if(!ops.length) return Promise.resolve();
+    var batch=db.batch();
+    var ncsCol=db.collection("inspecciones").doc(inspeccionId).collection("ncs");
+    ops.forEach(function(op){
+      if(op.delete) batch.delete(ncsCol.doc(op.id));
+      else batch.set(ncsCol.doc(op.id), op.data);
+    });
+    return batch.commit();
+  }
+
+  // Guarda el documento principal (payload) y las NC modificadas (subcolección) a la vez.
+  async function guardarConNcs(payload){
+    var ncOps=buildNcUpdates();
+    if(_legacyNcArrayFormat) payload.ncs=firebase.firestore.FieldValue.delete();
+    var ops=[db.collection("inspecciones").doc(inspeccionId).update(payload)];
+    if(ncOps.length) ops.push(executeNcOps(ncOps));
+    await Promise.all(ops);
+    if(_legacyNcArrayFormat) _legacyNcArrayFormat=false;
   }
 
   // Genera las actualizaciones granulares de circuitos (dot-notation) para evitar
@@ -2336,7 +2397,7 @@
       var circUpd = _legacyArrayFormat
         ? { circuitos: buildCircuitosMap() }  // Formato antiguo: reemplazar array completo por mapa
         : buildCircuitUpdates();              // Formato nuevo: dot-notation por circuito
-      await db.collection("inspecciones").doc(inspeccionId).update(Object.assign(buildPayload("en_curso"), circUpd));
+      await guardarConNcs(Object.assign(buildPayload("en_curso"), circUpd));
       if (_legacyArrayFormat) {
         _legacyArrayFormat = false;
         _dirtyCircuitIds.clear();
@@ -2361,7 +2422,7 @@
       var circUpd = _legacyArrayFormat
         ? { circuitos: buildCircuitosMap() }
         : buildCircuitUpdates();
-      await db.collection("inspecciones").doc(inspeccionId).update(Object.assign(buildPayload("en_curso"), circUpd));
+      await guardarConNcs(Object.assign(buildPayload("en_curso"), circUpd));
       if (_legacyArrayFormat) { _legacyArrayFormat=false; _dirtyCircuitIds.clear(); _deletedCircuitIds.clear(); }
       isDirty=false; actualizarEstado("en_curso");
       const btn=document.querySelector(".btn-guardar");
@@ -2493,7 +2554,7 @@
     try {
       // En completar: escribir mapa completo de circuitos (estado definitivo, sin granularidad parcial)
       _dirtyCircuitIds.clear(); _deletedCircuitIds.clear();
-      await db.collection("inspecciones").doc(inspeccionId).update({
+      await guardarConNcs({
         ...buildPayload("completada"),
         circuitos:buildCircuitosMap(),
         resultado,
