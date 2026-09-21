@@ -1077,7 +1077,11 @@
         S.ncs.forEach(function(nc,i){ _ncLastSaved[nc.id]=JSON.stringify(sanitizar(Object.assign({},nc,{orden:i}))); });
       } else if (data.ncs && data.ncs.length) {
         S.ncs = data.ncs;
-        S.ncs.forEach(function(nc){ if(!nc.id) nc.id = 'nc_'+uid(); });
+        // Id de posición (nc_0, nc_1...), no aleatorio — si dos dispositivos abren esta misma
+        // inspección antigua y ambos disparan la migración a la vez, generan el mismo id para
+        // cada NC en vez de duplicarla en la subcolección (mismo motivo que circ_N/juego_N_M
+        // arriba para circuitos).
+        S.ncs.forEach(function(nc,i){ if(!nc.id) nc.id = 'nc_'+i; });
         _legacyNcArrayFormat = true;
       }
       _aplicarFormato(data.formatoDocumento);
