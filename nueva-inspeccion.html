@@ -855,7 +855,7 @@
         inspector2Nombre: selectedInspector2Nombre || "",
         creadoPor: currentUser.email,
         estado: "borrador",
-        sesiones: [{ fecha: fecha, horaInicio: horaInicio, horaFin: horaFin }],
+        sesiones: (function(){ var h={}; h[fecha]={horaInicio:horaInicio, horaFin:horaFin}; return h; })(),
         equiposMedicion: equiposMedicion,
         fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
         formatoDocumento: formatoDocumento

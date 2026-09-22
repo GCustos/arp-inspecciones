@@ -120,6 +120,15 @@
     });
   }
 
+  // sesiones: array (antiguo) o mapa {fecha:{horaInicio,horaFin}} (nuevo, ver
+  // buildSesionesUpdate en inspeccion.html) — el resto del informe asume siempre array.
+  function normalizarSesiones(D) {
+    if (D.sesiones && !Array.isArray(D.sesiones)) {
+      D.sesiones = Object.keys(D.sesiones).map(function(f) { return Object.assign({ fecha: f }, D.sesiones[f]); })
+        .sort(function(a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
+    }
+  }
+
   // ── CARGA ──
   initAuth({
     onReady: function(user, ud) { cargarDatos(); }
@@ -190,6 +199,7 @@
       if (D.circuitos && !Array.isArray(D.circuitos))
         D.circuitos = Object.values(D.circuitos).sort(function(a,b){ return (a.orden||0)-(b.orden||0); });
       normalizarJuegos(D.circuitos);
+      normalizarSesiones(D);
       D_actual = D;
 
       // Aplicar formato del snapshot guardado en la inspección
@@ -217,6 +227,7 @@
           if (D.circuitos && !Array.isArray(D.circuitos))
             D.circuitos = Object.values(D.circuitos).sort(function(a,b){ return (a.orden||0)-(b.orden||0); });
           normalizarJuegos(D.circuitos);
+          normalizarSesiones(D);
           D_actual = D;
           if (D.formatoDocumento) {
             if (D.formatoDocumento.checklist && D.formatoDocumento.checklist.length)

@@ -526,6 +526,73 @@
       .sort(function(a,b){ return (a.orden||0)-(b.orden||0); });
   }
   function markCircuitDirty(ci){ if(S.circuitos[ci]) _dirtyCircuitIds.add(S.circuitos[ci].id); }
+
+  // ── Diff genérico para checklist/checklistObs/obsGral/ensayos/equiposMedicion/sesiones ──
+  // Mismo motivo que ncs/circuitos: antes se reenviaba el campo entero en cada guardado, así
+  // que una sesión desactualizada podía borrar cambios ajenos que nunca llegó a cargar. Ahora
+  // cada uno se compara contra lo último escrito y solo se manda si cambió de verdad.
+  let _checklistLastSaved={};  // gId -> JSON de {v:valor, o:observación}
+  let _obsGralLastSaved=null;  // string
+  let _ensayosLastSaved=null;  // string
+  let _equiposMedicionLastSaved=null; // JSON string del array completo
+  let _legacySesionesArrayFormat=false; // true cuando sesiones cargó como array (antiguo)
+  let _dirtySesionFechas=new Set();     // fechas (YYYY-MM-DD) de sesiones modificadas
+
+  function buildChecklistUpdates(){
+    var upd={};
+    var keys={};
+    Object.keys(S.gen).forEach(function(k){keys[k]=true;});
+    Object.keys(S.genObs).forEach(function(k){keys[k]=true;});
+    Object.keys(keys).forEach(function(gId){
+      var v = S.gen[gId]!==undefined ? S.gen[gId] : '';
+      var o = S.genObs[gId]!==undefined ? S.genObs[gId] : '';
+      var json = JSON.stringify({v:v,o:o});
+      if (_checklistLastSaved[gId] !== json) {
+        if (S.gen[gId]!==undefined) upd['checklist.'+gId] = S.gen[gId];
+        if (S.genObs[gId]!==undefined) upd['checklistObs.'+gId] = S.genObs[gId];
+        _checklistLastSaved[gId] = json;
+      }
+    });
+    return upd;
+  }
+
+  // Sesiones: normaliza a array in-memory, venga como array (antiguo) o mapa {fecha: {...}} (nuevo)
+  function sesionesArrayFrom(sesiones){
+    if(!sesiones) return [];
+    if(Array.isArray(sesiones)) return sesiones;
+    return Object.keys(sesiones).map(function(f){ return Object.assign({fecha:f}, sesiones[f]); })
+      .sort(function(a,b){ return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:0; });
+  }
+  function sesionesMapFrom(arr){
+    var map={};
+    (arr||[]).forEach(function(s){ map[s.fecha] = {horaInicio:s.horaInicio||'', horaFin:s.horaFin||''}; });
+    return map;
+  }
+  function buildSesionesUpdate(){
+    var upd={};
+    if (_legacySesionesArrayFormat) {
+      if (S.sesiones.length) upd['sesiones'] = sesionesMapFrom(S.sesiones);
+      _legacySesionesArrayFormat = false;
+      _dirtySesionFechas.clear();
+      return upd;
+    }
+    _dirtySesionFechas.forEach(function(fecha){
+      var s = S.sesiones.find(function(x){ return x.fecha===fecha; });
+      if (s) upd['sesiones.'+fecha] = {horaInicio:s.horaInicio||'', horaFin:s.horaFin||''};
+    });
+    _dirtySesionFechas.clear();
+    return upd;
+  }
+
+  // Añade a un payload ya construido los campos "todo o nada" que cambiaron (obsGral, ensayos,
+  // equiposMedicion) — comparados contra lo último guardado, nunca reenviados si no cambiaron.
+  function addCamposSimples(payload, obsGralVal, ensayosVal){
+    if (_obsGralLastSaved !== obsGralVal) { payload.obsGral = obsGralVal; _obsGralLastSaved = obsGralVal; }
+    if (_ensayosLastSaved !== ensayosVal) { payload.ensayos = ensayosVal; _ensayosLastSaved = ensayosVal; }
+    var eqJson = JSON.stringify(S.equiposMedicion);
+    if (_equiposMedicionLastSaved !== eqJson) { payload.equiposMedicion = S.equiposMedicion; _equiposMedicionLastSaved = eqJson; }
+    return payload;
+  }
   var tiposNCList=["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente","Riesgo de atrapamiento"];
   var tiposNCNormaMap={};
   function _cargarTiposNC(alcance){
@@ -1026,6 +1093,17 @@
       if(data.checklist) Object.assign(S.gen,data.checklist);
       if(data.checklistObs) Object.assign(S.genObs,data.checklistObs);
       if(data.obsGral) S.obsGral=data.obsGral;
+      // Línea base para los diffs — nada de esto se considera "cambiado" hasta que el
+      // usuario lo toque de verdad (ver buildChecklistUpdates/addCamposSimples).
+      (function(){
+        var keys={};
+        Object.keys(S.gen).forEach(function(k){keys[k]=true;});
+        Object.keys(S.genObs).forEach(function(k){keys[k]=true;});
+        Object.keys(keys).forEach(function(gId){
+          _checklistLastSaved[gId]=JSON.stringify({v:S.gen[gId]!==undefined?S.gen[gId]:'', o:S.genObs[gId]!==undefined?S.genObs[gId]:''});
+        });
+      })();
+      _obsGralLastSaved = S.obsGral;
       if(data.circuitos){
         // Soporta formato antiguo (array) y nuevo (mapa {id: circData})
         var _wasArray=Array.isArray(data.circuitos);
@@ -1088,6 +1166,7 @@
       actualizarBotonesAlcance();
       // fotos generales eliminadas — las fotos van en juegos y NCs
       if(data.ensayos) S.ensayos=data.ensayos;
+      _ensayosLastSaved = S.ensayos;
       S.revision=data.revision!==undefined?data.revision:0;
       S.historialRevisiones=data.historialRevisiones||[];
       S.nRegistro=data.nRegistro||"";
@@ -1098,7 +1177,13 @@
       S.fechaInspeccion=data.fechaInspeccion||"";
       S.horaInicio=data.horaInicio||"";
       S.horaFin=data.horaFin||"";
-      S.sesiones=(data.sesiones||[]).slice();
+      // sesiones: soporta array (antiguo) o mapa {fecha:{...}} (nuevo) — ver buildSesionesUpdate.
+      if (Array.isArray(data.sesiones)) {
+        S.sesiones = (data.sesiones||[]).slice();
+        if (S.sesiones.length) _legacySesionesArrayFormat = true;
+      } else {
+        S.sesiones = sesionesArrayFrom(data.sesiones);
+      }
       // Detectar nueva jornada: si hoy es distinto a fechaInspeccion y la inspección está en curso
       if (S.estado !== 'completada') {
         var _hoyISO = new Date().toISOString().split('T')[0];
@@ -1126,6 +1211,7 @@
       }
       if(data.equiposMedicion&&data.equiposMedicion.length) {
         S.equiposMedicion=data.equiposMedicion;
+        _equiposMedicionLastSaved = JSON.stringify(S.equiposMedicion);
       } else {
         // Inspecciones antiguas: cargar equipos desde perfil del inspector en segundo plano
         cargarEquiposDesdeInspector(data.inspectorEmail||'');
@@ -1275,7 +1361,7 @@
         inspectorNombre:nombre,
         horaInicio:'',
         horaFin:'',
-        sesiones:[{fecha:new Date().toISOString().split('T')[0],horaInicio:'',horaFin:''}],
+        sesiones:(function(){ var h={}; h[new Date().toISOString().split('T')[0]]={horaInicio:'',horaFin:''}; return h; })(),
         ultimaModificacion:firebase.firestore.FieldValue.serverTimestamp()
       });
       location.reload();
@@ -2325,13 +2411,11 @@
 
   function buildPayload(estado){
     // OJO: las NC ya NO van aquí — viven en la subcolección inspecciones/{id}/ncs
-    // (ver buildNcUpdates/guardarConNcs) para no reescribir el listado entero en cada guardado.
+    // (ver buildNcUpdates/guardarConNcs). checklist, checklistObs, obsGral, ensayos,
+    // equiposMedicion y sesiones tampoco se reescriben enteros — ver buildChecklistUpdates/
+    // addCamposSimples/buildSesionesUpdate: mismo motivo que las NC, evitar que una sesión
+    // desactualizada borre cambios ajenos que nunca llegó a cargar.
     const payload = sanitizar({
-      checklist:S.gen,
-      checklistObs:S.genObs,
-      obsGral:document.getElementById("obsGral").value||"",
-      ensayos:document.getElementById("ensayos").value||"",
-      equiposMedicion:S.equiposMedicion,
       fechaInspeccion:S.fechaInspeccion,
       horaInicio:S.horaInicio,
       horaFin:S.horaFin,
@@ -2339,7 +2423,9 @@
       ultimaModificacion:firebase.firestore.FieldValue.serverTimestamp()
     });
     payload.ultimaModificacion = firebase.firestore.FieldValue.serverTimestamp();
-    if (S.sesiones.length) payload.sesiones = S.sesiones;
+    Object.assign(payload, buildChecklistUpdates());
+    Object.assign(payload, buildSesionesUpdate());
+    addCamposSimples(payload, document.getElementById("obsGral").value||"", document.getElementById("ensayos").value||"");
     return payload;
   }
 
@@ -2477,11 +2563,10 @@
     if (!_sesHoy) {
       _sesHoy = {fecha:_hoyISO2, horaInicio:ahoraStr, horaFin:''};
       S.sesiones.push(_sesHoy);
-      db.collection('inspecciones').doc(inspeccionId)
-        .update({sesiones: firebase.firestore.FieldValue.arrayUnion(_sesHoy)})
-        .catch(function(e){ console.warn('No se pudo registrar sesión del día:', e.message); });
+      _dirtySesionFechas.add(_hoyISO2);
     } else if (!_sesHoy.horaInicio) {
       _sesHoy.horaInicio = ahoraStr;
+      _dirtySesionFechas.add(_hoyISO2);
     }
   }
 
@@ -2604,7 +2689,7 @@
     // Registrar horaFin en la sesión de hoy (multi-jornada)
     var _hoyISOFin = new Date().toISOString().split('T')[0];
     var _sesHoyFin = S.sesiones.find(function(s){ return s.fecha === _hoyISOFin; });
-    if (_sesHoyFin && !_sesHoyFin.horaFin) _sesHoyFin.horaFin = _ahoraFin;
+    if (_sesHoyFin && !_sesHoyFin.horaFin) { _sesHoyFin.horaFin = _ahoraFin; _dirtySesionFechas.add(_hoyISOFin); }
     const ncsBloqueantes=S.ncs.filter(n=>n.prio&&n.prio!=="OBSERVACION"&&!n.cerrada);
     const resultado=ncsBloqueantes.length===0?"FAVORABLE":"DESFAVORABLE";
     const msg=ncsBloqueantes.length===0
@@ -2757,6 +2842,7 @@
     var ses = S.sesiones.find(function(s){ return s.fecha === fecha; });
     if (ses) {
       ses.horaFin = hora;
+      _dirtySesionFechas.add(fecha);
       guardarSilencioso();
     }
     document.getElementById('bannerSesionFin').classList.remove('vis');
