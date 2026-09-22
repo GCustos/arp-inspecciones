@@ -2095,7 +2095,7 @@
             <button class="nc-del" onclick="delNC(${i})">&#215;</button>
           </div>
           <div class="f"><label>Elemento afectado</label>
-            ${nc.autoId&&nc.origen==='auto' ? `<input type="text" value="${(nc.elem||'').replace(/"/g,'&quot;')}" disabled style="opacity:.7">` :
+            ${nc.autoId ? `<input type="text" value="${(nc.elem||'').replace(/"/g,'&quot;')}" disabled style="opacity:.7">` :
             `<div class="f" style="margin-bottom:4px"><select onchange="ncSelColumna(${i},this.value)">
               <option value="">— Pregunta checklist —</option>
               ${_ncColsInfo.cols.map(col=>`<option value="${col.key}"${nc._col===col.key?' selected':''}>${_ncColsInfo.labels[col.key]||col.key}</option>`).join('')}
@@ -2112,6 +2112,7 @@
           <div class="f"><label>Tipo de no conformidad</label>
             <select onchange="S.ncs[${i}].tipo=this.value;markDirty();renderNCs()">
               <option value="">&#8212; Selecciona &#8212;</option>
+              ${nc.tipo && tiposNCList.indexOf(nc.tipo)===-1 ? `<option selected>${nc.tipo}</option>` : ''}
               ${tiposNCList.map(t=>`<option ${nc.tipo===t?'selected':''}>${t}</option>`).join('')}
             </select>
           </div>
