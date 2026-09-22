@@ -9,11 +9,10 @@ certificados-publicos.js
 # Scripts de administración temporales — nunca subir
 _scripts/*.js
 _scripts/*.md
+_scripts/*.json
 _scripts/node_modules/
 _scripts/db-dump/
 _scripts/informe-*.txt
-_scripts/package-lock.json
-_scripts/package.json
 
 # Cloud Functions — dependencias y logs de emulador, nunca subir
 functions/node_modules/
