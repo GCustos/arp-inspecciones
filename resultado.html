@@ -891,7 +891,8 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
   }
 
   function loadImageAsBase64(url, localKey) {
-    function fromUrl(resolve) {
+    function fromUrl(resolve, intentos) {
+      intentos = intentos || 0;
       if (!url || url.startsWith('data:')) { resolve(url || null); return; }
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -907,27 +908,37 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         resolve(canvas.toDataURL('image/jpeg', 0.82));
       };
-      img.onerror = () => resolve(null);
+      // Reintenta hasta 2 veces (hueco de red puntual) antes de darla por perdida —
+      // ver incidente Rebollar 22/09: fotos que existían y funcionaban se quedaron en
+      // blanco en el PDF por un fallo de carga momentáneo, sin ningún aviso.
+      img.onerror = () => {
+        if (intentos < 2) setTimeout(() => fromUrl(resolve, intentos + 1), 500);
+        else resolve(null);
+      };
       img.src = url;
     }
     return new Promise((resolve) => {
       if (localKey) {
         leerFotoLocal_res(localKey).then(function(data) {
           if (data && data.dataUrl) { resolve(data.dataUrl); return; }
-          fromUrl(resolve);
-        }).catch(function() { fromUrl(resolve); });
+          fromUrl(resolve, 0);
+        }).catch(function() { fromUrl(resolve, 0); });
         return;
       }
-      fromUrl(resolve);
+      fromUrl(resolve, 0);
     });
   }
 
-  // Helper: preload all photos in inspection data
+  // Helper: preload all photos in inspection data. Devuelve la lista de fotos que no se
+  // pudieron cargar (con reintentos ya agotados) para poder avisar ANTES de generar el PDF,
+  // en vez de que salgan en blanco sin que nadie se entere.
   async function preloadFotos(data) {
+    const fallidas = [];
     // Fotos generales
     const fotos = data.fotos || [];
     for (let i = 0; i < fotos.length; i++) {
       fotos[i].dataUrl = await loadImageAsBase64(fotos[i].url, fotos[i].localKey);
+      if (!fotos[i].dataUrl && fotos[i].url) fallidas.push('Foto general');
     }
     // Fotos por juego
     for (const circ of (data.circuitos || [])) {
@@ -935,6 +946,7 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
         for (let i = 0; i < (j.fotos || []).length; i++) {
           const f = j.fotos[i];
           j.fotos[i].dataUrl = await loadImageAsBase64(f.url, f.localKey);
+          if (!j.fotos[i].dataUrl && f.url) fallidas.push((circ.nombre||'').trim() + ' — ' + (j.nombre || 'juego'));
         }
       }
     }
@@ -944,17 +956,28 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
         for (let i = 0; i < arr.length; i++) {
           const f = arr[i];
           arr[i].dataUrl = await loadImageAsBase64(f.url, f.localKey);
+          if (!arr[i].dataUrl && f.url) fallidas.push('NC: ' + (nc.tipo || nc.elem || ''));
         }
       }
     }
+    return fallidas;
   }
 
   async function generarInforme() {
     if (!D) return;
     const { jsPDF } = window.jspdf;
     showGenerating('Generando Informe PDF...', 'Cargando fotos...');
-    await preloadFotos(D);
-    showGenerating('Generando Informe PDF...', 'Preparando páginas');
+    const fotosFallidas = await preloadFotos(D);
+    if (fotosFallidas.length) {
+      hideGenerating();
+      const seguir = confirm(
+        fotosFallidas.length + ' foto(s) no se han podido cargar tras varios intentos:\n\n' +
+        fotosFallidas.slice(0, 10).join('\n') + (fotosFallidas.length > 10 ? '\n...y ' + (fotosFallidas.length - 10) + ' más' : '') +
+        '\n\n¿Generar el informe igualmente (esas fotos saldrán en blanco) o cancelar para comprobar la conexión y volver a intentarlo?'
+      );
+      if (!seguir) return;
+      showGenerating('Generando Informe PDF...', 'Preparando páginas');
+    }
     await new Promise(r => setTimeout(r, 100));
     try {
       const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
