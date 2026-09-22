@@ -969,14 +969,16 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
     showGenerating('Generando Informe PDF...', 'Cargando fotos...');
     const fotosFallidas = await preloadFotos(D);
     if (fotosFallidas.length) {
+      // Nunca se genera un PDF con fotos en blanco — se bloquea del todo y se avisa,
+      // en vez de dejar elegir "generar igual" (eso fue justo lo que pasó el 22/09).
       hideGenerating();
-      const seguir = confirm(
+      alert(
+        '⚠️ No se ha podido generar el informe.\n\n' +
         fotosFallidas.length + ' foto(s) no se han podido cargar tras varios intentos:\n\n' +
         fotosFallidas.slice(0, 10).join('\n') + (fotosFallidas.length > 10 ? '\n...y ' + (fotosFallidas.length - 10) + ' más' : '') +
-        '\n\n¿Generar el informe igualmente (esas fotos saldrán en blanco) o cancelar para comprobar la conexión y volver a intentarlo?'
+        '\n\nComprueba tu conexión y vuelve a intentarlo.'
       );
-      if (!seguir) return;
-      showGenerating('Generando Informe PDF...', 'Preparando páginas');
+      return;
     }
     await new Promise(r => setTimeout(r, 100));
     try {
