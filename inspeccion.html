@@ -1359,6 +1359,12 @@
         estado:'en_curso',
         inspectorEmail:email,
         inspectorNombre:nombre,
+        // El formulario de reabrir solo deja elegir UN inspector — si la revisión anterior
+        // tenía un segundo inspector puesto, se limpia aquí; si no, se quedaba heredado sin
+        // que el formulario diera ninguna opción de tocarlo (bug real, Cercedilla Rev.1
+        // 2026-09-24: inspector2 quedó igual al inspector principal, salía duplicado en el PDF).
+        inspector2Email:'',
+        inspector2Nombre:'',
         horaInicio:'',
         horaFin:'',
         sesiones:(function(){ var h={}; h[new Date().toISOString().split('T')[0]]={horaInicio:'',horaFin:''}; return h; })(),
