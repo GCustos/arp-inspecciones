@@ -1414,12 +1414,13 @@
 
   function setGen(id,v){
     const prev=S.gen[id]||"";
-    S.gen[id]=v;
-    markDirty();
+    // Igual que setJuego(): el "N" no se escribe hasta que la NC se confirme de verdad.
     if(v==="N"&&prev!=="N"){
       const item=GEN_ITEMS.find(i=>i.id===id);
       abrirModalNC({itemId:id,prevVal:prev,contexto:`Checklist general — ${item.ref} ${item.sec}`});
     } else {
+      S.gen[id]=v;
+      markDirty();
       renderGen();
     }
   }
@@ -1535,8 +1536,13 @@
 
   function setJuego(ci,ji,col,val){
     const prev=S.circuitos[ci].juegos[ji][col]||"";
-    S.circuitos[ci].juegos[ji][col]=val;
-    markCircuitDirty(ci); markDirty();
+    // Marcar "N" NO escribe el valor todavía — se escribe solo si la NC se confirma de
+    // verdad en el modal (ver confirmarNC). Antes se escribía aquí mismo y se marcaba para
+    // autoguardar antes de que el modal se completara; si algo interrumpía al inspector a
+    // media NC (se corta la cobertura, se cierra la pestaña, el móvil se apaga) el "N" ya
+    // se había guardado en Firestore sin que existiera ninguna NC que lo explicara —
+    // detectado en Forestal Park Tenerife, "TENERIFE — Tirolina plana" / Anclajes y
+    // fijaciones, un "N" huérfano desde la propia Rev.0 original.
     if(!["nombre","obs","rama"].includes(col)&&val==="N"&&prev!=="N"){
       const j=S.circuitos[ci].juegos[ji];
       const circ=S.circuitos[ci];
@@ -1546,6 +1552,8 @@
         contexto:circ.tipoElemento?`${circ.nombre} — ${_labels[col]||col}`:`${circ.nombre} — ${j.nombre||"Juego "+(ji+1)} — ${_labels[col]||COL_LABELS[col]}`
       });
     } else {
+      S.circuitos[ci].juegos[ji][col]=val;
+      markCircuitDirty(ci); markDirty();
       renderCircuitos();
     }
   }
@@ -2134,12 +2142,14 @@
     if(ref.itemId){
       const item=GEN_ITEMS.find(i=>i.id===ref.itemId);
       elem=item.sec; autoId=ref.itemId;
+      S.gen[ref.itemId]='N'; markDirty();
     } else {
       const j=S.circuitos[ref.ci].juegos[ref.ji];
       const circ=S.circuitos[ref.ci];
       elem=`${circ.nombre} — ${j.nombre||'Juego '+(ref.ji+1)}`;
       juegoId=j.id;
       autoId=`j_${j.id}_${ref.col}`; // formato estable: no depende de posición
+      j[ref.col]='N'; markCircuitDirty(ref.ci); markDirty();
     }
     if(tipoSel==='__otro__') origen='campo';
 
