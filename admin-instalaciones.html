@@ -392,10 +392,16 @@
         // nunca coincidía, así que siempre salía "Conforme" sin importar el resultado real.
         var badgeCls = completada ? (i.resultado === 'DESFAVORABLE' ? 'badge-no_conforme' : 'badge-conforme') : (i.estado === 'en_curso' ? 'badge-en_curso' : 'badge-pendiente');
         var badgeTxt = completada ? (i.resultado === 'DESFAVORABLE' ? 'No Conforme' : 'Conforme') : (i.estado === 'en_curso' ? 'En curso' : 'Borrador');
-        html += '<a href="resultado.html?id=' + escHtml(i.id) + '" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;font-size:12px">' +
-          '<span>' + escHtml(i.fechaInspeccion || 'sin fecha') + (i.tipoAlcance ? ' &middot; ' + escHtml(i.tipoAlcance) : '') + '</span>' +
+        // Dos enlaces: uno al informe (solo lectura) y otro directo a la edición/reabrir —
+        // antes solo había el primero, y para abrir una revisión nueva había que salir de
+        // aquí, ir a Inspecciones y rebuscar en el listado global sin buscador.
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid var(--border);font-size:12px">' +
+          '<a href="resultado.html?id=' + escHtml(i.id) + '" style="text-decoration:none;color:inherit;flex:1;min-width:0">' +
+          escHtml(i.fechaInspeccion || 'sin fecha') + (i.tipoAlcance ? ' &middot; ' + escHtml(i.tipoAlcance) : '') +
+          '</a>' +
           '<span class="badge ' + badgeCls + '">' + badgeTxt + '</span>' +
-          '</a>';
+          '<a href="inspeccion.html?id=' + escHtml(i.id) + '" style="color:var(--gold);font-weight:600;text-decoration:none;white-space:nowrap" title="Abrir para editar / iniciar nueva revisión">Editar &#8594;</a>' +
+          '</div>';
       });
     }
     var restantes = todas.length - visibles.length;
