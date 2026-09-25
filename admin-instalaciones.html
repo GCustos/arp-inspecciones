@@ -386,8 +386,12 @@
     } else {
       visibles.forEach(function(i) {
         var completada = i.estado === 'completada';
-        var badgeCls = completada ? (i.resultado === 'no_conforme' ? 'badge-no_conforme' : 'badge-conforme') : (i.estado === 'en_curso' ? 'badge-en_curso' : 'badge-pendiente');
-        var badgeTxt = completada ? (i.resultado === 'no_conforme' ? 'No Conforme' : 'Conforme') : (i.estado === 'en_curso' ? 'En curso' : 'Borrador');
+        // OJO: el campo `resultado` de la inspección usa 'FAVORABLE'/'DESFAVORABLE' (ver
+        // completar() en inspeccion.html) — es distinto de `ultimaInspeccionResultado` en la
+        // instalación, que usa 'conforme'/'no_conforme'. Comparar aquí contra 'no_conforme'
+        // nunca coincidía, así que siempre salía "Conforme" sin importar el resultado real.
+        var badgeCls = completada ? (i.resultado === 'DESFAVORABLE' ? 'badge-no_conforme' : 'badge-conforme') : (i.estado === 'en_curso' ? 'badge-en_curso' : 'badge-pendiente');
+        var badgeTxt = completada ? (i.resultado === 'DESFAVORABLE' ? 'No Conforme' : 'Conforme') : (i.estado === 'en_curso' ? 'En curso' : 'Borrador');
         html += '<a href="resultado.html?id=' + escHtml(i.id) + '" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;font-size:12px">' +
           '<span>' + escHtml(i.fechaInspeccion || 'sin fecha') + (i.tipoAlcance ? ' &middot; ' + escHtml(i.tipoAlcance) : '') + '</span>' +
           '<span class="badge ' + badgeCls + '">' + badgeTxt + '</span>' +
