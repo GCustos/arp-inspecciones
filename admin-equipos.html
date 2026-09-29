@@ -108,6 +108,8 @@
   var filtroActivo = 'todos';
   var tabActivo = 'calibracion';
   var editandoId = null;
+  var modalModo = 'editar'; // 'editar' (admin) | 'entregar' (entrega entre inspectores)
+  var modalEquipoId = null;
 
 
   // Convierte DD/MM/YYYY → Date
@@ -174,12 +176,12 @@
       res[1].forEach(function(d){ usuariosData.push(Object.assign({email:d.id},d.data())); });
       tiposEquipoData = [];
       res[2].forEach(function(d){ tiposEquipoData.push(Object.assign({id:d.id},d.data())); });
-      // Mapa inverso: equipoId → email del propietario (desde equiposAsignados en cada usuario)
+      // Asignación: campo asignadoA en el propio equipo (no un array en usuarios/*) — así
+      // un equipo solo puede tener un dueño a la vez, verificable en las reglas sin
+      // ambigüedad. Vacío = "en su sede", compartido, no es de nadie en concreto.
       asignacionPorEquipo = {};
-      usuariosData.forEach(function(u) {
-        (u.equiposAsignados || []).forEach(function(cod) {
-          asignacionPorEquipo[cod] = u.email;
-        });
+      equiposData.forEach(function(e) {
+        if (e.asignadoA) asignacionPorEquipo[e.id] = e.asignadoA;
       });
       renderCalib();
     }).catch(function(e){
@@ -208,11 +210,8 @@
   };
 
   function renderCalib() {
-    var hoy = new Date(); hoy.setHours(0,0,0,0);
-    var base = esAdminPleno ? equiposData : equiposData.filter(function(e){
-      return asignacionPorEquipo[e.id] === (currentUser && currentUser.email);
-    });
-    var lista = base.filter(function(e){
+    if (!esAdminPleno) { renderMisEquipos(); return; }
+    var lista = equiposData.filter(function(e){
       if (filtroActivo==='todos') return true;
       var st = estadoCal(e);
       if (filtroActivo==='pronto') return st.txt==='Próximo' || st.txt==='Vencido';
@@ -223,7 +222,7 @@
       btn_f('todos','Todos') + btn_f('pronto','Por caducar') + btn_f('vencido','Vencidos') +
       '</div>';
     if (!lista.length) {
-      html += '<div class="empty-state">' + (esAdminPleno ? 'No hay equipos con ese filtro.' : 'No tienes equipo asignado' + (filtroActivo!=='todos' ? ' con ese filtro' : '') + '.') + '</div>';
+      html += '<div class="empty-state">No hay equipos con ese filtro.</div>';
     } else {
       lista.forEach(function(e) {
         var st = estadoCal(e);
@@ -231,18 +230,130 @@
         var lab = (e.calibracion&&e.calibracion.laboratorio) ? e.calibracion.laboratorio : '—';
         var propEmail = asignacionPorEquipo[e.id] || '';
         var propU = propEmail ? usuariosData.find(function(u){ return u.email===propEmail; }) : null;
-        var asigNombre = propU ? (propU.nombre||propU.email) : 'Sin asignar';
-        // Sin gestión completa: tarjeta de solo lectura, sin abrir el editor.
-        var onclickAttr = esAdminPleno ? ' onclick="abrirEditar(\''+escHtml(e.id)+'\')"' : '';
-        html += '<div class="eq-card"'+onclickAttr+(esAdminPleno?'':' style="cursor:default"')+'>' +
+        var asigNombre = propU ? (propU.nombre||propU.email) : (e.sede ? 'En sede ('+escHtml(e.sede)+')' : 'Sin asignar');
+        var transitoTxt = e.transito ? ' <span class="badge badge-pronto">En tránsito a '+escHtml(e.transito.paraNombre||e.transito.paraEmail)+'</span>' : '';
+        html += '<div class="eq-card" onclick="abrirEditar(\''+escHtml(e.id)+'\')">' +
           '<div class="eq-row1"><span class="eq-cod">'+escHtml(e.id)+'</span><span class="eq-tipo">'+escHtml(e.tipo||'')+(e.tipoId?' · plantilla '+escHtml(e.tipoId):'')+'</span><span class="badge '+st.cls+'">'+st.txt+'</span></div>' +
           '<div class="eq-row2">'+escHtml(e.marca||'')+(e.modelo?' &middot; '+escHtml(e.modelo):'')+(e.sede?' &middot; '+escHtml(e.sede):'')+'</div>' +
-          (esAdminPleno ? '<div class="eq-row2">'+escHtml(asigNombre)+' &middot; '+lab+' &middot; hasta '+escHtml(fp)+'</div>' : '<div class="eq-row2">'+lab+' &middot; hasta '+escHtml(fp)+'</div>') +
+          '<div class="eq-row2">'+escHtml(asigNombre)+' &middot; '+lab+' &middot; hasta '+escHtml(fp)+transitoTxt+'</div>' +
           '</div>';
       });
     }
     document.getElementById('content').innerHTML = html;
   }
+
+  // ── VISTA PERSONAL (no esAdminPleno): mis equipos, pendientes de recepción, en tránsito ──
+  function renderMisEquipos() {
+    var myEmail = currentUser && currentUser.email;
+    var pendientes = equiposData.filter(function(e){ return e.transito && e.transito.paraEmail === myEmail; });
+    var enTransitoMios = equiposData.filter(function(e){ return e.transito && e.transito.deEmail === myEmail; });
+    var mios = equiposData.filter(function(e){ return e.asignadoA === myEmail; });
+    var lista = mios.filter(function(e){
+      if (filtroActivo==='todos') return true;
+      var st = estadoCal(e);
+      if (filtroActivo==='pronto') return st.txt==='Próximo' || st.txt==='Vencido';
+      if (filtroActivo==='vencido') return st.txt==='Vencido';
+      return true;
+    });
+
+    var html = '';
+    if (pendientes.length) {
+      html += '<div class="form-sec" style="margin-top:0">Pendiente de recepción</div>';
+      pendientes.forEach(function(e) {
+        html += '<div class="eq-card" style="cursor:default;border-color:var(--gold)">' +
+          '<div class="eq-row1"><span class="eq-cod">'+escHtml(e.id)+'</span><span class="eq-tipo">'+escHtml(e.tipo||'')+'</span></div>' +
+          '<div class="eq-row2">De '+escHtml(e.transito.deNombre||e.transito.deEmail)+'</div>' +
+          '<button class="btn-guardar" style="margin-top:8px;padding:8px;font-size:12px" onclick="confirmarRecepcion(\''+escHtml(e.id)+'\')">Confirmar recepción</button>' +
+          '</div>';
+      });
+    }
+    if (enTransitoMios.length) {
+      html += '<div class="form-sec">En tránsito</div>';
+      enTransitoMios.forEach(function(e) {
+        html += '<div class="eq-card" style="cursor:default;opacity:0.75">' +
+          '<div class="eq-row1"><span class="eq-cod">'+escHtml(e.id)+'</span><span class="eq-tipo">'+escHtml(e.tipo||'')+'</span></div>' +
+          '<div class="eq-row2">Hacia '+escHtml(e.transito.paraNombre||e.transito.paraEmail)+'</div>' +
+          '<button class="btn-cancelar" style="margin-top:8px;padding:8px;font-size:12px" onclick="cancelarEntrega(\''+escHtml(e.id)+'\')">Cancelar entrega</button>' +
+          '</div>';
+      });
+    }
+    html += '<div class="form-sec">Mis equipos</div>';
+    html += '<div class="filtros">' + btn_f('todos','Todos') + btn_f('pronto','Por caducar') + btn_f('vencido','Vencidos') + '</div>';
+    if (!lista.length) {
+      html += '<div class="empty-state">No tienes equipo asignado' + (filtroActivo!=='todos' ? ' con ese filtro' : '') + '.</div>';
+    } else {
+      lista.forEach(function(e) {
+        var st = estadoCal(e);
+        var fp = (e.calibracion&&e.calibracion.fechaProxima) ? e.calibracion.fechaProxima : '—';
+        var lab = (e.calibracion&&e.calibracion.laboratorio) ? e.calibracion.laboratorio : '—';
+        html += '<div class="eq-card" style="cursor:default">' +
+          '<div class="eq-row1"><span class="eq-cod">'+escHtml(e.id)+'</span><span class="eq-tipo">'+escHtml(e.tipo||'')+'</span><span class="badge '+st.cls+'">'+st.txt+'</span></div>' +
+          '<div class="eq-row2">'+escHtml(e.marca||'')+(e.modelo?' &middot; '+escHtml(e.modelo):'')+'</div>' +
+          '<div class="eq-row2">'+lab+' &middot; hasta '+escHtml(fp)+'</div>' +
+          '<div style="display:flex;gap:8px;margin-top:8px">' +
+            '<button class="btn-cancelar" style="flex:1;padding:8px;font-size:12px" onclick="abrirEntregar(\''+escHtml(e.id)+'\')">Entregar</button>' +
+            '<button class="btn-cancelar" style="flex:1;padding:8px;font-size:12px" onclick="devolverASede(\''+escHtml(e.id)+'\')">Devolver a sede</button>' +
+          '</div>' +
+          '</div>';
+      });
+    }
+    document.getElementById('content').innerHTML = html;
+  }
+
+  window.abrirEntregar = function(equipoId) {
+    modalModo = 'entregar';
+    modalEquipoId = equipoId;
+    document.getElementById('modalTitulo').textContent = 'Entregar ' + equipoId;
+    var opts = '<option value="">— Selecciona inspector —</option>';
+    usuariosData
+      .filter(function(u){ return u.activo !== false && u.email !== (currentUser&&currentUser.email); })
+      .forEach(function(u){ opts += '<option value="'+escHtml(u.email)+'">'+escHtml(u.nombre||u.email)+'</option>'; });
+    document.getElementById('modalBody').innerHTML =
+      '<div class="form-row"><label>Entregar a</label><select id="f_entregarA">'+opts+'</select></div>' +
+      '<div class="form-note">Quedará "en tránsito" hasta que esa persona confirme que lo ha recibido.</div>';
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('modal').classList.add('open');
+  };
+
+  function confirmarEntregaEquipo() {
+    var paraEmail = document.getElementById('f_entregarA').value;
+    if (!paraEmail) { alert('Selecciona a quién se lo entregas.'); return; }
+    var paraU = usuariosData.find(function(u){ return u.email===paraEmail; });
+    var meU = usuariosData.find(function(u){ return u.email===(currentUser&&currentUser.email); });
+    var btn = document.querySelector('.btn-guardar');
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    db.collection('equipos').doc(modalEquipoId).update({
+      transito: {
+        deEmail: currentUser.email,
+        deNombre: meU ? (meU.nombre||meU.email) : currentUser.email,
+        paraEmail: paraEmail,
+        paraNombre: paraU ? (paraU.nombre||paraU.email) : paraEmail,
+        fecha: firebase.firestore.FieldValue.serverTimestamp()
+      }
+    }).then(function() {
+      cerrarModal();
+      cargar();
+    }).catch(function(e){ alert('Error: '+e.message); })
+    .finally(function(){ btn.disabled=false; btn.textContent='Guardar'; });
+  }
+
+  window.devolverASede = function(equipoId) {
+    if (!confirm('¿Devolver este equipo a su sede? Quedará disponible para cualquiera que trabaje allí.')) return;
+    db.collection('equipos').doc(equipoId).update({ asignadoA: null })
+      .then(cargar).catch(function(e){ alert('Error: '+e.message); });
+  };
+
+  window.cancelarEntrega = function(equipoId) {
+    if (!confirm('¿Cancelar esta entrega? El equipo sigue contigo.')) return;
+    db.collection('equipos').doc(equipoId).update({ transito: null })
+      .then(cargar).catch(function(e){ alert('Error: '+e.message); });
+  };
+
+  window.confirmarRecepcion = function(equipoId) {
+    if (!confirm('¿Confirmas que has recibido este equipo?')) return;
+    db.collection('equipos').doc(equipoId).update({ asignadoA: currentUser.email, transito: null })
+      .then(cargar).catch(function(e){ alert('Error: '+e.message); });
+  };
 
   function btn_f(id, txt) {
     return '<button class="filtro-btn'+(filtroActivo===id?' active':'')+'" onclick="setFiltro(\''+id+'\',this)">'+txt+'</button>';
@@ -492,9 +603,12 @@
   window.cerrarModal = function() {
     document.getElementById('overlay').classList.remove('open');
     document.getElementById('modal').classList.remove('open');
+    modalModo = 'editar';
+    modalEquipoId = null;
   };
 
   window.guardar = function() {
+    if (modalModo === 'entregar') { confirmarEntregaEquipo(); return; }
     var tipoId = document.getElementById('f_tipoId').value;
     if (!tipoId) { alert('Selecciona el tipo de equipo.'); return; }
     var id = editandoId || siguienteCodigo(tipoId);
@@ -502,7 +616,6 @@
     var activo = document.getElementById('f_activo').classList.contains('on');
     var meses = parseInt(document.getElementById('f_cal_meses').value)||0;
     var nuevoAsignado  = document.getElementById('f_asignadoA').value; // email o ''
-    var anteriorAsignado = asignacionPorEquipo[id] || '';
     var elRangoMin = document.getElementById('f_rangoMin');
     var elRangoMax = document.getElementById('f_rangoMax');
     var rangoMin = elRangoMin ? parseFloat(elRangoMin.value) : NaN;
@@ -531,6 +644,9 @@
     else if (editandoId) data.rangoMin = firebase.firestore.FieldValue.delete();
     if (!isNaN(rangoMax)) data.rangoMax = rangoMax;
     else if (editandoId) data.rangoMax = firebase.firestore.FieldValue.delete();
+    // Asignación: campo directo en el equipo (ver arriba, ya no un array en usuarios/*).
+    if (nuevoAsignado) data.asignadoA = nuevoAsignado;
+    else if (editandoId) data.asignadoA = firebase.firestore.FieldValue.delete();
     var btn = document.querySelector('.btn-guardar');
     btn.disabled = true; btn.textContent = 'Guardando...';
     // Al crear, sin merge — el id se acaba de calcular como "el siguiente libre para ese
@@ -571,18 +687,6 @@
       }));
     }
 
-    if (nuevoAsignado !== anteriorAsignado) {
-      if (anteriorAsignado) {
-        ops.push(db.collection('usuarios').doc(anteriorAsignado).update({
-          equiposAsignados: firebase.firestore.FieldValue.arrayRemove(id)
-        }));
-      }
-      if (nuevoAsignado) {
-        ops.push(db.collection('usuarios').doc(nuevoAsignado).update({
-          equiposAsignados: firebase.firestore.FieldValue.arrayUnion(id)
-        }));
-      }
-    }
     Promise.all(ops).then(function() {
       cerrarModal();
       cargar();

@@ -158,6 +158,49 @@ service cloud.firestore {
     match /equipos/{docId} {
       allow read:  if isAuth();
       allow write: if isAuth() && isAdminLike();
+
+      // Entrega/recepción/devolución de equipo entre inspectores — todo ocurre sobre este
+      // mismo documento (el propio equipo es el "punto de encuentro" que ambos ya pueden
+      // leer), sin tocar usuarios/*. Cualquier autenticado puede tocar solo "asignadoA"
+      // y/o "transito", y solo en estas transiciones exactas.
+      allow update: if isAuth() && !isAdminLike() && (
+        // Iniciar entrega a otro inspector: soy el dueño actual, dejo transito apuntando
+        // a mí como emisor; no puede haber ya un tránsito en curso.
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['transito']) &&
+          resource.data.get('asignadoA', null) == myEmail() &&
+          resource.data.get('transito', null) == null &&
+          request.resource.data.transito.deEmail == myEmail() &&
+          request.resource.data.transito.paraEmail != myEmail()
+        )
+        ||
+        // Cancelar: el propio emisor limpia el tránsito, nada más cambia.
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['transito']) &&
+          resource.data.get('transito', null) != null &&
+          resource.data.transito.deEmail == myEmail() &&
+          request.resource.data.transito == null
+        )
+        ||
+        // Confirmar recepción: el propio receptor limpia el tránsito y pasa a ser el
+        // nuevo asignadoA, en la misma escritura.
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['transito','asignadoA']) &&
+          resource.data.get('transito', null) != null &&
+          resource.data.transito.paraEmail == myEmail() &&
+          request.resource.data.asignadoA == myEmail() &&
+          request.resource.data.transito == null
+        )
+        ||
+        // Devolver a sede: el dueño actual se desasigna a sí mismo — no hace falta que
+        // nadie lo confirme, vuelve a estar libre en su sede de origen.
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['asignadoA']) &&
+          resource.data.get('asignadoA', null) == myEmail() &&
+          resource.data.get('transito', null) == null &&
+          request.resource.data.asignadoA == null
+        )
+      );
     }
 
     // historial de calibraciones/verificaciones (subcolección de equipos/{id}) — cada

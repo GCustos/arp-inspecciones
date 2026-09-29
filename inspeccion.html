@@ -701,19 +701,15 @@
   // ── EQUIPOS DE MEDICIÓN ──
   function cargarEquiposDesdeInspector(email) {
     if (!email) { renderEquipos(); return; }
-    db.collection('usuarios').doc(email).get().then(function(uSnap) {
-      if (!uSnap.exists) { renderEquipos(); return; }
-      var asignados = uSnap.data().equiposAsignados || [];
-      if (!asignados.length) { renderEquipos(); return; }
-      return Promise.all(asignados.map(function(cod) { return db.collection('equipos').doc(cod).get(); }))
-        .then(function(snaps) {
-          S.equiposMedicion = snaps.filter(function(d) { return d.exists && d.data().activo !== false; }).map(function(d) {
-            var data = d.data();
-            return { codigo: d.id, tipo: data.tipo||'', medicion: data.medicion||'', marca: data.marca||'', nSerie: data.nSerie||'', calibracion: data.calibracion||{} };
-          });
-          renderEquipos();
-          markDirty();
-        });
+    // Equipo asignado: campo asignadoA en el propio equipo (no un array en usuarios/*) —
+    // ver migración a modelo de entrega/recepción entre inspectores.
+    db.collection('equipos').where('asignadoA', '==', email).get().then(function(snap) {
+      S.equiposMedicion = snap.docs.filter(function(d) { return d.data().activo !== false; }).map(function(d) {
+        var data = d.data();
+        return { codigo: d.id, tipo: data.tipo||'', medicion: data.medicion||'', marca: data.marca||'', nSerie: data.nSerie||'', calibracion: data.calibracion||{} };
+      });
+      renderEquipos();
+      markDirty();
     }).catch(function(e) { console.warn('Error cargando equipos:', e.message); renderEquipos(); });
   }
 
