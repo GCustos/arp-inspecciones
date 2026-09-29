@@ -230,7 +230,7 @@
         var lab = (e.calibracion&&e.calibracion.laboratorio) ? e.calibracion.laboratorio : '—';
         var propEmail = asignacionPorEquipo[e.id] || '';
         var propU = propEmail ? usuariosData.find(function(u){ return u.email===propEmail; }) : null;
-        var asigNombre = propU ? (propU.nombre||propU.email) : (e.sede ? 'En sede ('+escHtml(e.sede)+')' : 'Sin asignar');
+        var asigNombre = propU ? (propU.nombre||propU.email) : (e.sede ? 'En sede ('+e.sede+')' : 'Sin asignar');
         var transitoTxt = e.transito ? ' <span class="badge badge-pronto">En tránsito a '+escHtml(e.transito.paraNombre||e.transito.paraEmail)+'</span>' : '';
         html += '<div class="eq-card" onclick="abrirEditar(\''+escHtml(e.id)+'\')">' +
           '<div class="eq-row1"><span class="eq-cod">'+escHtml(e.id)+'</span><span class="eq-tipo">'+escHtml(e.tipo||'')+(e.tipoId?' · plantilla '+escHtml(e.tipoId):'')+'</span><span class="badge '+st.cls+'">'+st.txt+'</span></div>' +
@@ -247,7 +247,10 @@
     var myEmail = currentUser && currentUser.email;
     var pendientes = equiposData.filter(function(e){ return e.transito && e.transito.paraEmail === myEmail; });
     var enTransitoMios = equiposData.filter(function(e){ return e.transito && e.transito.deEmail === myEmail; });
-    var mios = equiposData.filter(function(e){ return e.asignadoA === myEmail; });
+    // Excluye los que ya están en tránsito (van en su propia sección de arriba, con
+    // botón Cancelar) — si no, saldrían duplicados con botones Entregar/Devolver a sede
+    // que las reglas rechazarían por haber ya un tránsito activo en curso.
+    var mios = equiposData.filter(function(e){ return e.asignadoA === myEmail && !(e.transito && e.transito.deEmail === myEmail); });
     var lista = mios.filter(function(e){
       if (filtroActivo==='todos') return true;
       var st = estadoCal(e);
@@ -306,7 +309,7 @@
     document.getElementById('modalTitulo').textContent = 'Entregar ' + equipoId;
     var opts = '<option value="">— Selecciona inspector —</option>';
     usuariosData
-      .filter(function(u){ return u.activo !== false && u.email !== (currentUser&&currentUser.email); })
+      .filter(function(u){ return u.activo !== false && u.rol !== 'oficina' && u.email !== (currentUser&&currentUser.email); })
       .forEach(function(u){ opts += '<option value="'+escHtml(u.email)+'">'+escHtml(u.nombre||u.email)+'</option>'; });
     document.getElementById('modalBody').innerHTML =
       '<div class="form-row"><label>Entregar a</label><select id="f_entregarA">'+opts+'</select></div>' +
@@ -535,6 +538,7 @@
   };
 
   window.abrirNuevo = function() {
+    modalModo = 'editar';
     editandoId = null;
     document.getElementById('modalTitulo').textContent = 'Nuevo equipo';
     document.getElementById('modalBody').innerHTML = formHtml(null);
@@ -546,6 +550,7 @@
   window.abrirEditar = function(id) {
     var e = equiposData.find(function(x){ return x.id===id; });
     if (!e) return;
+    modalModo = 'editar';
     editandoId = id;
     document.getElementById('modalTitulo').textContent = id + ' · ' + (e.tipo||'');
     document.getElementById('modalBody').innerHTML = formHtml(e);
