@@ -58,9 +58,9 @@
 <body>
 
 <div class="app-header">
-  <button class="btn-back" onclick="location.href='admin.html'">&#8592;</button>
+  <button class="btn-back" onclick="location.href='index.html'">&#8592;</button>
   <div class="hdr-mark" onclick="location.href='index.html'" style="cursor:pointer" title="Inicio">ARP</div>
-  <div class="hdr-title">Equipos</div>
+  <div class="hdr-title" id="hdrTitle">Equipos</div>
   <button class="btn-nuevo" id="btnTipos" onclick="location.href='admin-tipos-equipo.html'" style="display:none;background:none;border:1.5px solid var(--border);color:var(--muted);font-size:11px;font-weight:700;width:auto;padding:0 10px" title="Tipos de equipo">Tipos</button>
   <button class="btn-nuevo" id="btnNuevo" onclick="abrirNuevo()" style="display:none" title="Nuevo equipo">+</button>
 </div>
@@ -142,13 +142,21 @@
   }
 
   var currentUser = null;
+  var esAdminPleno = false;
 
   initAuth({
-    roles: ['admin', 'director', 'proyecto'],
+    // Abierto a cualquier usuario activo: admin/director gestionan todo el inventario,
+    // el resto (proyecto/oficina/inspector) ve solo su propio equipo asignado, de solo
+    // lectura — antes esta página era admin/director/proyecto o nada.
     onReady: function(user, ud) {
       currentUser = user;
-      document.getElementById('btnNuevo').style.display = 'flex';
-      document.getElementById('btnTipos').style.display = 'flex';
+      esAdminPleno = ud.rol === 'admin' || ud.rol === 'director';
+      if (esAdminPleno) {
+        document.getElementById('btnNuevo').style.display = 'flex';
+        document.getElementById('btnTipos').style.display = 'flex';
+      } else {
+        document.getElementById('hdrTitle').textContent = 'Mis equipos';
+      }
       cargar();
     }
   });
@@ -201,7 +209,10 @@
 
   function renderCalib() {
     var hoy = new Date(); hoy.setHours(0,0,0,0);
-    var lista = equiposData.filter(function(e){
+    var base = esAdminPleno ? equiposData : equiposData.filter(function(e){
+      return asignacionPorEquipo[e.id] === (currentUser && currentUser.email);
+    });
+    var lista = base.filter(function(e){
       if (filtroActivo==='todos') return true;
       var st = estadoCal(e);
       if (filtroActivo==='pronto') return st.txt==='Próximo' || st.txt==='Vencido';
@@ -212,7 +223,7 @@
       btn_f('todos','Todos') + btn_f('pronto','Por caducar') + btn_f('vencido','Vencidos') +
       '</div>';
     if (!lista.length) {
-      html += '<div class="empty-state">No hay equipos con ese filtro.</div>';
+      html += '<div class="empty-state">' + (esAdminPleno ? 'No hay equipos con ese filtro.' : 'No tienes equipo asignado' + (filtroActivo!=='todos' ? ' con ese filtro' : '') + '.') + '</div>';
     } else {
       lista.forEach(function(e) {
         var st = estadoCal(e);
@@ -221,10 +232,12 @@
         var propEmail = asignacionPorEquipo[e.id] || '';
         var propU = propEmail ? usuariosData.find(function(u){ return u.email===propEmail; }) : null;
         var asigNombre = propU ? (propU.nombre||propU.email) : 'Sin asignar';
-        html += '<div class="eq-card" onclick="abrirEditar(\''+escHtml(e.id)+'\')">' +
+        // Sin gestión completa: tarjeta de solo lectura, sin abrir el editor.
+        var onclickAttr = esAdminPleno ? ' onclick="abrirEditar(\''+escHtml(e.id)+'\')"' : '';
+        html += '<div class="eq-card"'+onclickAttr+(esAdminPleno?'':' style="cursor:default"')+'>' +
           '<div class="eq-row1"><span class="eq-cod">'+escHtml(e.id)+'</span><span class="eq-tipo">'+escHtml(e.tipo||'')+(e.tipoId?' · plantilla '+escHtml(e.tipoId):'')+'</span><span class="badge '+st.cls+'">'+st.txt+'</span></div>' +
           '<div class="eq-row2">'+escHtml(e.marca||'')+(e.modelo?' &middot; '+escHtml(e.modelo):'')+(e.sede?' &middot; '+escHtml(e.sede):'')+'</div>' +
-          '<div class="eq-row2">'+escHtml(asigNombre)+' &middot; '+lab+' &middot; hasta '+escHtml(fp)+'</div>' +
+          (esAdminPleno ? '<div class="eq-row2">'+escHtml(asigNombre)+' &middot; '+lab+' &middot; hasta '+escHtml(fp)+'</div>' : '<div class="eq-row2">'+lab+' &middot; hasta '+escHtml(fp)+'</div>') +
           '</div>';
       });
     }

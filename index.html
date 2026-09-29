@@ -145,11 +145,11 @@
         <div class="mod-desc" id="cardInspeccionesDesc">Nueva inspección, historial y seguimiento</div>
         <span class="badge badge-on">Activo</span>
       </div>
-      <div class="mod-card disabled">
+      <div class="mod-card" id="cardEquipos" onclick="location.href='admin-equipos.html'">
         <div class="mod-icon">&#128167;</div>
         <div class="mod-name">Equipos</div>
-        <div class="mod-desc">Inventario y calibraciones por sede</div>
-        <span class="badge badge-off">Próximamente</span>
+        <div class="mod-desc" id="cardEquiposDesc">Inventario y calibraciones por sede</div>
+        <span class="badge badge-on">Activo</span>
       </div>
       <div class="mod-card disabled">
         <div class="mod-icon">&#128119;</div>
@@ -157,17 +157,17 @@
         <div class="mod-desc">Autorizaciones y formaciones</div>
         <span class="badge badge-off">Próximamente</span>
       </div>
-      <div class="mod-card disabled">
+      <div class="mod-card" id="cardInstalaciones" style="display:none" onclick="location.href='admin-instalaciones.html'">
         <div class="mod-icon">&#127959;&#65039;</div>
         <div class="mod-name">Instalaciones</div>
         <div class="mod-desc">Clientes e historial de NC</div>
-        <span class="badge badge-off">Próximamente</span>
+        <span class="badge badge-on">Activo</span>
       </div>
-      <div class="mod-card disabled">
+      <div class="mod-card" id="cardOfertas" style="display:none" onclick="location.href='ofertas.html'">
         <div class="mod-icon">&#128196;</div>
         <div class="mod-name">Ofertas</div>
         <div class="mod-desc">Generación de ofertas</div>
-        <span class="badge badge-off">Próximamente</span>
+        <span class="badge badge-on">Activo</span>
       </div>
       <div class="mod-card" id="adminCard" style="display:none" onclick="location.href='admin.html'">
         <div class="mod-icon">&#9881;&#65039;</div>
@@ -335,7 +335,19 @@
     document.getElementById('welcomeRole').textContent = ud.rol || 'inspector';
     document.getElementById('menuName').textContent = nombre;
     document.getElementById('menuEmail').textContent = user.email || '';
-    if (ud.rol === 'admin' || ud.rol === 'director' || ud.rol === 'proyecto' || ud.rol === 'oficina') document.getElementById('adminCard').style.display = 'flex';
+    var esAdminPleno = ud.rol === 'admin' || ud.rol === 'director';
+    var esBaseAdmin = esAdminPleno || ud.rol === 'proyecto' || ud.rol === 'oficina';
+    if (esBaseAdmin) document.getElementById('adminCard').style.display = 'flex';
+    // Instalaciones: solo gestión completa (admin/director) — mismo criterio que tenía
+    // dentro de Administración antes de moverse aquí.
+    if (esAdminPleno) document.getElementById('cardInstalaciones').style.display = 'flex';
+    // Ofertas: mismo criterio que tenía dentro de Administración (admin/director/proyecto/oficina).
+    if (esBaseAdmin) document.getElementById('cardOfertas').style.display = 'flex';
+    // Equipos: visible para todos, pero solo admin/director ven la gestión completa
+    // (alta/edición/asignación) — el resto ve únicamente su propio material asignado.
+    if (!esAdminPleno) {
+      document.getElementById('cardEquiposDesc').textContent = 'Tu material asignado y su estado';
+    }
     if (ud.rol === 'oficina') {
       document.getElementById('cardInspecciones').setAttribute('onclick', "location.href='oficina.html'");
       document.getElementById('cardInspeccionesNombre').textContent = 'Oficina';

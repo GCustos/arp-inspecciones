@@ -130,17 +130,16 @@
 
   function renderMenu(rol) {
     var esAdmin = rol === 'admin' || rol === 'director';
+    // Equipos, Instalaciones y Ofertas se movieron a accesos directos en la pantalla de
+    // inicio (index.html) — ya no se listan aquí para no duplicar navegación.
     var html = '<div class="sec-label">Panel de administración</div>' +
       card('oficina',  '&#128197;', 'Oficina',       'Control de expedientes, seguimiento y facturación',             'oficina.html') +
       card('clientes', '&#128101;', 'Clientes',      'Gestión de empresas propietarias y solicitantes',               'admin-clientes.html') +
-      card('ofertas',  '&#128203;', 'Ofertas',       'Presupuestos y propuestas económicas para clientes',            'ofertas.html') +
       card('empresa',  '&#127970;', 'Empresa y Director', 'Datos de empresa, director técnico y alcances disponibles', 'admin-empresa.html') +
       card('config',   '&#9881;',   'Configuración', 'ENAC por alcance, número de acreditación y parámetros globales', null);
     if (esAdmin) {
       html +=
         card('cambios',       '&#128203;', 'Cambios propuestos',  'Revisión y aprobación de cambios en datos de instalaciones',    'admin-cambios.html') +
-        card('equipos',       '&#128295;', 'Equipos',             'Calibraciones próximas e inventario de material por inspector', 'admin-equipos.html') +
-        card('instalaciones', '&#127959;', 'Instalaciones',       'Instalaciones sin inspección en los últimos 12 meses',          'admin-instalaciones.html') +
         card('formatos', '&#128203;', 'Formatos', 'Editor de preguntas, criterios y revisiones por alcance', 'admin-formatos.html') +
         card('historial', '&#128220;', 'Historial de documentos', 'Revisiones y cambios de certificado, empresa y formatos — trazabilidad ENAC', 'admin-historial.html') +
         card('usuarios', '&#128119;', 'Usuarios', 'Alta, roles y acceso de los miembros del equipo', 'admin-usuarios.html');
@@ -376,10 +375,6 @@
       });
       setBadge('oficina', n ? n + ' pendiente' + (n !== 1 ? 's' : '') : 'Al d&#237;a', n ? 'warn' : 'ok');
     }).catch(function() { setBadge('oficina', '···', 'loading'); });
-    db.collection('ofertas').where('estado', 'in', ['borrador','enviada']).get().then(function(snap) {
-      var n = snap.size;
-      setBadge('ofertas', n ? n + ' activa' + (n !== 1 ? 's' : '') : 'Sin activas', n ? 'warn' : 'ok');
-    }).catch(function() { setBadge('ofertas', '···', 'loading'); });
     db.collection('clientes').where('activo', '==', true).get().then(function(snap) {
       setBadge('clientes', snap.size + ' activo' + (snap.size !== 1 ? 's' : ''), 'ok');
     }).catch(function() { setBadge('clientes', '···', 'loading'); });
@@ -389,31 +384,9 @@
       setBadge('cambios', n ? n + ' pendiente' + (n > 1 ? 's' : '') : 'Sin pendientes', n ? 'alert' : 'ok');
     }).catch(function() { setBadge('cambios', 'Error', 'warn'); });
 
-    var limStr = (function(){ var d = new Date(); d.setDate(d.getDate()+60); return d.toISOString().slice(0,10); })();
-    db.collection('equipos').get().then(function(snap) {
-      var n = 0;
-      snap.forEach(function(d) {
-        var f = d.data().calibracion && d.data().calibracion.fechaProxima;
-        if (f && f <= limStr) n++;
-      });
-      setBadge('equipos', n ? n + ' por caducar' : 'Todo en regla', n ? 'warn' : 'ok');
-    }).catch(function() { setBadge('equipos', 'Error', 'warn'); });
-
     db.collection('usuarios').where('activo','==',true).get().then(function(snap) {
       setBadge('usuarios', snap.size + ' activo' + (snap.size !== 1 ? 's' : ''), 'ok');
     }).catch(function() { setBadge('usuarios', '···', 'loading'); });
-
-    var hace12mStr = (function(){ var d = new Date(); d.setMonth(d.getMonth()-12); return d.toISOString().slice(0,10); })();
-    db.collection('instalaciones').get().then(function(snap) {
-      var n = 0;
-      snap.forEach(function(d) {
-        var data = d.data();
-        if (data.activo === false) return;
-        var u = data.ultimaInspeccion;
-        if (!u || u === '__PENDIENTE__' || u <= hace12mStr) n++;
-      });
-      setBadge('instalaciones', n ? n + ' pendientes' : 'Todo al día', n ? 'warn' : 'ok');
-    }).catch(function() { setBadge('instalaciones', 'Error', 'warn'); });
   }
 </script>
 </body>
