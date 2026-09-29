@@ -2536,13 +2536,23 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
           y = drawRegHeaderRow(doc, y, _colsTipoHeader, 5.5);
 
           filas.forEach(function(f){
-            if (y + 7 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; }
+            // Altura de fila dinámica según el contenido real de Observaciones — antes era
+            // fija a 7mm y el texto de notas se desbordaba por debajo de su caja sin que la
+            // comprobación de salto de página se enterara, dando la sensación de que la fila
+            // se "cortaba" antes de saltar de página (reportado: registro SAE, "Vía 7").
+            var jPat1b='c'+f.ci+'j'+f.ji;
+            var jPat2b='j_'+f.j.id+'_';
+            var jObsB=(D.ncs||[]).filter(function(nc){var aid=nc.autoId||'';return (aid.indexOf(jPat1b)===0&&(aid.length===jPat1b.length||aid[jPat1b.length]==='_'))||aid.indexOf(jPat2b)===0;}).map(function(nc){return nc.desc||nc.tipo||'';}).filter(Boolean).join('\n');
+            doc.setFontSize(5); doc.setFont('helvetica','normal');
+            var obsLinesB = jObsB ? doc.splitTextToSize(jObsB, obsWT-2) : [];
+            var rowHB = Math.max(7, obsLinesB.length * 2.8 + 4);
+            if (y + rowHB > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; }
             doc.setFillColor(...WHITE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.1);
-            doc.rect(ML, y, elemW, 7, 'D');
+            doc.rect(ML, y, elemW, rowHB, 'D');
             doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
             doc.text(f.circ.nombre||'', ML+1, y+4.5, {maxWidth:elemW-2});
             colsT.forEach(function(col, ki){
-              doc.rect(ML+elemW+ki*colWT, y, colWT, 7, 'D');
+              doc.rect(ML+elemW+ki*colWT, y, colWT, rowHB, 'D');
               var v2=f.j[col.id]||'';
               var prev=getPrevVal(f.ci,f.ji,col.id);
               doc.setFontSize(9); doc.setFont('helvetica','bold');
@@ -2553,17 +2563,14 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
               } else {
                 if(v2==='S'){doc.setTextColor(...GREEN_C);}else if(v2==='N'){doc.setTextColor(...RED);}else{doc.setTextColor(...MUTED);}
               }
-              doc.text(v2, ML+elemW+ki*colWT+colWT/2, y+5, {align:'center'});
+              doc.text(v2, ML+elemW+ki*colWT+colWT/2, y+rowHB/2+1.5, {align:'center'});
             });
-            doc.rect(ML+elemW+colsT.length*colWT, y, obsWT, 7, 'D');
-            var jPat1b='c'+f.ci+'j'+f.ji;
-            var jPat2b='j_'+f.j.id+'_';
-            var jObsB=(D.ncs||[]).filter(function(nc){var aid=nc.autoId||'';return (aid.indexOf(jPat1b)===0&&(aid.length===jPat1b.length||aid[jPat1b.length]==='_'))||aid.indexOf(jPat2b)===0;}).map(function(nc){return nc.desc||nc.tipo||'';}).filter(Boolean).join('\n');
+            doc.rect(ML+elemW+colsT.length*colWT, y, obsWT, rowHB, 'D');
             if (jObsB) {
               doc.setFontSize(5); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-              doc.text(doc.splitTextToSize(jObsB, obsWT-2), ML+elemW+colsT.length*colWT+1, y+3);
+              doc.text(obsLinesB, ML+elemW+colsT.length*colWT+1, y+3);
             }
-            y += 7;
+            y += rowHB;
           });
           y += 4;
         });
@@ -2612,20 +2619,29 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
           let circWritten = false;
           let jiIdx2 = 0;
           for (const j of (circ.juegos||[])) {
-            if (y + 7 > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; circWritten = false; }
+            // Altura de fila dinámica según Observaciones — mismo arreglo que en la rama
+            // SAE/FER de arriba: antes era fija a 7mm y el texto de notas se desbordaba sin
+            // que el salto de página se enterara ("Vía 7" cortada en el registro).
+            var jPat1 = 'c'+ciIdx2+'j'+jiIdx2;
+            var jPat2 = 'j_'+ciIdx2+'_'+jiIdx2+'_';
+            var jObs = (D.ncs||[]).filter(function(nc){ var aid=nc.autoId||''; return (aid.indexOf(jPat1)===0 && (aid.length===jPat1.length || aid[jPat1.length]==='_')) || aid.indexOf(jPat2)===0; }).map(function(nc){ return nc.desc||nc.tipo||''; }).filter(Boolean).join('\n');
+            doc.setFontSize(5.5); doc.setFont('helvetica','normal');
+            var obsLinesPaa = jObs ? doc.splitTextToSize(jObs, obsW2-2) : [];
+            var rowHPaa = Math.max(7, obsLinesPaa.length * 2.8 + 4);
+            if (y + rowHPaa > PH-15) { doc.addPage(); nPag2[0]++; addCabReg(nPag2[0], totPag2[0]); y = 18; circWritten = false; }
             doc.setFillColor(...WHITE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.1);
-            doc.rect(ML, y, cw0, 7, 'D');
+            doc.rect(ML, y, cw0, rowHPaa, 'D');
             if (!circWritten) {
               doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
               doc.text(circ.nombre, ML+1, y+4.5, {maxWidth:cw0-2});
               circWritten = true;
             }
-            doc.rect(ML+cw0, y, cw1, 7, 'D');
+            doc.rect(ML+cw0, y, cw1, rowHPaa, 'D');
             doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
             doc.text((j.tipo==='NR'?'*. ':j.tipo==='AUX'?'* ':'') + (j.nombre||''), ML+cw0+1, y+4.5, {maxWidth:cw1-2});
             KEYS.forEach((k,ki) => {
               doc.setFillColor(...WHITE);
-              doc.rect(ML+cw0+cw1+ki*cw2, y, cw2, 7, 'D');
+              doc.rect(ML+cw0+cw1+ki*cw2, y, cw2, rowHPaa, 'D');
               const v2 = j[k]||'';
               const prev = getPrevVal(ciIdx2,jiIdx2,k);
               doc.setFontSize(10); doc.setFont('helvetica','bold');
@@ -2638,18 +2654,15 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
                 // Rev.0: colores normales
                 if(v2==='S'){doc.setTextColor(...GREEN_C);}else if(v2==='N'){doc.setTextColor(...RED);}else{doc.setTextColor(...MUTED);}
               }
-              doc.text(v2, ML+cw0+cw1+ki*cw2+cw2/2, y+5, {align:'center'});
+              doc.text(v2, ML+cw0+cw1+ki*cw2+cw2/2, y+rowHPaa/2+1.5, {align:'center'});
             });
             doc.setFillColor(...WHITE);
-            doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, 7, 'D');
-            var jPat1 = 'c'+ciIdx2+'j'+jiIdx2;
-            var jPat2 = 'j_'+ciIdx2+'_'+jiIdx2+'_';
-            var jObs = (D.ncs||[]).filter(function(nc){ var aid=nc.autoId||''; return (aid.indexOf(jPat1)===0 && (aid.length===jPat1.length || aid[jPat1.length]==='_')) || aid.indexOf(jPat2)===0; }).map(function(nc){ return nc.desc||nc.tipo||''; }).filter(Boolean).join('\n');
+            doc.rect(ML+cw0+cw1+5*cw2, y, obsW2, rowHPaa, 'D');
             if (jObs) {
               doc.setFontSize(5.5); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
-              doc.text(doc.splitTextToSize(jObs, obsW2-2), ML+cw0+cw1+5*cw2+1, y+3);
+              doc.text(obsLinesPaa, ML+cw0+cw1+5*cw2+1, y+3);
             }
-            y += 7;
+            y += rowHPaa;
             jiIdx2++;
           }
           ciIdx2++;
