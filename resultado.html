@@ -1102,6 +1102,12 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       const ref = getNRegistro();
       const fmtRev = D.formatoDocumento?.informeRevision || D.formatoDocumento?.revision || CONFIG?.alcance?.formatoRevision || '';
       const fmtFechaStr = D.formatoDocumento?.informeFecha || D.formatoDocumento?.fechaVigencia || CONFIG?.alcance?.formatoFecha || '';
+      if (!fmtRev || !fmtFechaStr) {
+        // Ver bug FER 2026-09: config/{alcance} nunca publicado por el flujo normal deja
+        // Rev./Fecha en blanco en el PDF sin avisar a nadie — aviso en consola para detectarlo
+        // al primer informe generado de un alcance nuevo, no meses después.
+        console.warn('[informe] Rev./Fecha en blanco para alcance "' + D.tipoAlcance + '" — revisa config/' + (D.tipoAlcance||'').toLowerCase() + '.formatoRevision/formatoFecha en Firestore.');
+      }
       const norma = D.formatoDocumento?.normaAplicable || CONFIG?.alcance?.normaAplicable || { numero:'', titulo:'', tipoInstalacion:'la instalación' };
       // Alcances con columnas por tipo de elemento (ej. SAE: Vía/Muro; FER: Tramo, con un
       // único tipo) — cambia cómo se agrupa/titula la sección de resultados específicos y
@@ -1116,6 +1122,12 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       // si no cae al texto de PAA (placeholder genérico hasta tener el texto real de ese
       // alcance — nunca el texto de OTRO alcance con tiposJuego, sería contenido incorrecto).
       function textoPorAlcance(mapaAlcance, fallbackPaa) {
+        if (D.tipoAlcance && D.tipoAlcance !== 'PAA' && !mapaAlcance[D.tipoAlcance]) {
+          // Aviso en consola si un alcance no-PAA cae al texto genérico de PAA por no
+          // tener su propia variante — así se detecta en el primer PDF generado, no meses
+          // después (esto es justo lo que pasó con FER sin que nadie lo notara).
+          console.warn('[informe] Sin texto propio para alcance "' + D.tipoAlcance + '" — usando el genérico de PAA. Revisa resultado.html.');
+        }
         return mapaAlcance[D.tipoAlcance] || fallbackPaa;
       }
 
@@ -2217,6 +2229,9 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       const norma = D.formatoDocumento?.normaAplicable || CONFIG?.alcance?.normaAplicable || { numero:'', titulo:'', tipoInstalacion:'' };
       const fmtRev = D.formatoDocumento?.registroRevision || CONFIG?.alcance?.registroRevision || '';
       const fmtFechaStr = D.formatoDocumento?.registroFecha || CONFIG?.alcance?.registroFecha || '';
+      if (!fmtRev || !fmtFechaStr) {
+        console.warn('[registro] Rev./Fecha en blanco para alcance "' + D.tipoAlcance + '" — revisa config/' + (D.tipoAlcance||'').toLowerCase() + '.registroRevision/registroFecha en Firestore.');
+      }
 
       const totPag2 = [0];
       const nPag2 = [0];
