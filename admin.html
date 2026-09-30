@@ -146,8 +146,13 @@
     if (esAdmin) {
       html +=
         card('formatos', '&#128203;', 'Formatos', 'Editor de preguntas, criterios y revisiones por alcance', 'admin-formatos.html') +
-        card('historial', '&#128220;', 'Historial de documentos', 'Revisiones y cambios de certificado, empresa y formatos — trazabilidad ENAC', 'admin-historial.html') +
-        card('usuarios', '&#128119;', 'Usuarios', 'Alta, roles y acceso de los miembros del equipo', 'admin-usuarios.html');
+        card('historial', '&#128220;', 'Historial de documentos', 'Revisiones y cambios de certificado, empresa y formatos — trazabilidad ENAC', 'admin-historial.html');
+    }
+    // Usuarios (altas, roles y accesos): estrictamente admin, ni siquiera director —
+    // gestiona quién puede convertirse en admin, así que se queda más restringido que
+    // el resto del hub (antes director la veía y editaba, pero guardar fallaba siempre).
+    if (rol === 'admin') {
+      html += card('usuarios', '&#128119;', 'Usuarios', 'Alta, roles y acceso de los miembros del equipo', 'admin-usuarios.html');
     }
     document.getElementById('content').innerHTML = html;
   }

@@ -98,7 +98,11 @@
   var editandoEmail = null;
 
   initAuth({
-    roles: ['admin', 'director', 'proyecto'],
+    // Gestión de accesos y roles — se queda estrictamente para admin (podría cambiar el
+    // rol de cualquiera, incluido ascender a alguien a admin). Antes dejaba entrar y
+    // editar a director/proyecto, pero firestore.rules ya solo permitía guardar a admin
+    // exacto, así que su "Guardar" siempre fallaba en silencio.
+    roles: ['admin'],
     onDenied: 'message',
     onReady: function(user, ud) { cargar(); }
   });

@@ -106,7 +106,11 @@ service cloud.firestore {
     // Solo admin modifica config de empresa/formato
     match /config/{docId} {
       allow read:  if isAuth();
-      allow write: if isAuth() && isAdmin();
+      // admin-formatos.html y admin-empresa.html dejan entrar y guardar a director (su
+      // propia lista de roles ya es ['admin','director'], nunca 'proyecto') — antes esta
+      // regla solo dejaba escribir a admin exacto y el guardado de director fallaba
+      // siempre en silencio.
+      allow write: if isAuth() && myRole() in ['admin', 'director'];
     }
 
     // config/empresa y config/tarifas también los lee la web pública
