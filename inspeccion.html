@@ -1143,7 +1143,20 @@
       // inspecciones antiguas que aún tienen el array embebido en el propio documento (mismo
       // patrón que _legacyArrayFormat para circuitos): si la subcolección está vacía pero el
       // documento trae `ncs`, se usa ese array y se migra a la subcolección en el próximo guardado.
-      var _ncsSnap = await db.collection("inspecciones").doc(inspeccionId).collection("ncs").get().catch(function(){ return null; });
+      // Si esta lectura falla de verdad (red, permisos...) NO se trata igual que "sin NC
+      // todavía" — antes un .catch silencioso dejaba S.ncs vacío como si la inspección no
+      // tuviera ninguna, arriesgando que un guardado posterior las diera por borradas.
+      // Se aborta la carga entera y se avisa, igual que "inspección no encontrada" arriba.
+      var _ncsSnap = null, _ncsError = null;
+      try {
+        _ncsSnap = await db.collection("inspecciones").doc(inspeccionId).collection("ncs").get();
+      } catch (e) {
+        _ncsError = e;
+      }
+      if (_ncsError) {
+        showError('No se han podido cargar las No Conformidades de esta inspección (' + _ncsError.message + '). No sigas trabajando aquí sin recargar la página — podrías dar por borradas NC que sí existen.');
+        return;
+      }
       if (_ncsSnap && !_ncsSnap.empty) {
         S.ncs = [];
         _ncsSnap.forEach(function(d){ var nc=d.data(); nc.id=d.id; S.ncs.push(nc); });
