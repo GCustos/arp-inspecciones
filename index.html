@@ -169,6 +169,12 @@
         <div class="mod-desc">Generación de ofertas</div>
         <span class="badge badge-on">Activo</span>
       </div>
+      <div class="mod-card" id="cardOficina" style="display:none" onclick="location.href='oficina.html'">
+        <div class="mod-icon">&#128197;</div>
+        <div class="mod-name">Oficina</div>
+        <div class="mod-desc">Control de expedientes, seguimiento y facturación</div>
+        <span class="badge badge-on">Activo</span>
+      </div>
       <div class="mod-card" id="adminCard" style="display:none" onclick="location.href='admin.html'">
         <div class="mod-icon">&#9881;&#65039;</div>
         <div class="mod-name">Administración</div>
@@ -343,6 +349,10 @@
     if (esAdminPleno) document.getElementById('cardInstalaciones').style.display = 'flex';
     // Ofertas: mismo criterio que tenía dentro de Administración (admin/director/proyecto/oficina).
     if (esBaseAdmin) document.getElementById('cardOfertas').style.display = 'flex';
+    // Oficina: admin/director/proyecto la ven como acceso directo nuevo. Quien tiene
+    // rol "oficina" no la necesita aparte — su propia tarjeta "Inspecciones" ya se
+    // repropone más abajo para llevar directo a oficina.html.
+    if (esBaseAdmin && ud.rol !== 'oficina') document.getElementById('cardOficina').style.display = 'flex';
     // Equipos: visible para todos, pero solo admin/director ven la gestión completa
     // (alta/edición/asignación) — el resto ve únicamente su propio material asignado.
     if (!esAdminPleno) {

@@ -232,7 +232,7 @@
           '<td style="font-size:11px">' + escHtml(i.fechaInspeccion || '') + '</td>' +
           '<td style="font-weight:700;font-size:12px">' + escHtml(ini) + '</td>' +
           '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="' + escHtml(i.nombreInstalacion || '') + '">' + escHtml(nombreDisplay) + '</td>' +
-          '<td><span style="font-size:9px;font-weight:700;padding:2px 6px;background:rgba(200,153,58,.15);color:var(--gold);border-radius:4px">' + escHtml(i.tipoAlcance || '') + '</span></td>' +
+          '<td><span class="badge-alcance badge-' + (i.tipoAlcance||'').toLowerCase() + '">' + escHtml(i.tipoAlcance || '') + '</span></td>' +
           '<td style="font-family:monospace;font-size:10px" title="' + escHtml(nReg) + '">' + escHtml(nRegDisplay) + '</td>' +
           '<td>' + (res === 'FAVORABLE' ? '<span class="tag-fav">FAV</span>' : res === 'DESFAVORABLE' ? '<span class="tag-des">DES</span>' : '<span style="font-size:10px;color:var(--muted)">' + escHtml(res) + '</span>') + '</td>' +
           '<td style="font-size:11px;color:var(--muted)">' + (cert ? escHtml(cert) : '—') + '</td>' +
