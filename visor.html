@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visor de inspección archivada — ARP</title>
+<style>
+  :root{--gold:#C8993A;--dark:#1A1A1A;--surf:#F5F3EF;--border:#E2DDD5;--text:#2C2C2C;--muted:#8A8278;--red:#C0392B;--green:#27AE60;--orange:#E67E22;--blue:#2980B9}
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surf);color:var(--text);margin:0;padding:0}
+  .top{background:var(--dark);color:white;padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+  .top .mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  .top .ttl{font-size:14px;font-weight:600}
+  .top .sub{font-size:11px;color:#bbb}
+  .wrap{max-width:820px;margin:0 auto;padding:16px}
+  .picker{background:white;border:1.5px dashed var(--border);border-radius:14px;padding:40px 20px;text-align:center;margin-top:20px}
+  .picker.drag{border-color:var(--gold);background:#FFF8F0}
+  .picker input{display:none}
+  .btn{display:inline-block;padding:12px 22px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  .picker p{color:var(--muted);font-size:13px;margin-top:10px}
+  .err{background:#FDECEA;color:var(--red);border-radius:10px;padding:12px 14px;font-size:13px;margin-top:14px;display:none}
+  .err.vis{display:block}
+  .card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+  .sec-ttl{font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:6px}
+  .kv{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:13px}
+  .kv div span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px}
+  .res-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
+  .res-fav{background:#E8F5E9;color:var(--green)}
+  .res-des{background:#FDECEA;color:var(--red)}
+  .item{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  .item-row1{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:600}
+  .val{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px}
+  .val-S{background:#E8F5E9;color:var(--green)}
+  .val-N{background:#FDECEA;color:var(--red)}
+  .val-NA{background:var(--surf);color:var(--muted)}
+  .item-desc{font-size:11px;color:var(--muted);margin-top:4px}
+  .item-obs{font-size:11px;color:var(--text);margin-top:6px;background:var(--surf);padding:6px 8px;border-radius:6px}
+  .circ-ttl{font-size:13px;font-weight:700;color:var(--dark);margin:14px 0 8px}
+  .circ-ttl:first-child{margin-top:0}
+  .nc-card{border-left:4px solid var(--muted);background:var(--surf);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+  .nc-card.grave{border-color:var(--red)}
+  .nc-card.media{border-color:var(--orange)}
+  .nc-card.leve{border-color:var(--green)}
+  .nc-card.documental{border-color:var(--blue)}
+  .nc-head{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:700}
+  .nc-tag{font-size:9px;font-weight:700;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:white}
+  .nc-desc{font-size:12px;margin-top:6px}
+  .nc-estado{font-size:10px;color:var(--muted);margin-top:4px}
+  .fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:8px}
+  .fotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer}
+  .fotos-lbl{font-size:10px;color:var(--muted);margin-top:6px;margin-bottom:2px;font-weight:600;text-transform:uppercase}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:100%;max-height:100%;border-radius:8px}
+  .empty{color:var(--muted);font-size:12px;text-align:center;padding:20px}
+  .reload{background:none;border:none;color:var(--gold);font-size:12px;cursor:pointer;text-decoration:underline;margin-left:auto}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="mark">ARP</div>
+  <div>
+    <div class="ttl">Visor de inspección archivada</div>
+    <div class="sub" id="subTtl">Selecciona el archivo .zip de la inspección</div>
+  </div>
+  <button class="reload" id="btnOtra" style="display:none" onclick="location.reload()">Abrir otra</button>
+</div>
+
+<div class="wrap">
+  <div class="picker" id="picker">
+    <input type="file" id="fileInput" accept=".zip">
+    <button class="btn" onclick="document.getElementById('fileInput').click()">Seleccionar archivo .zip</button>
+    <p>O arrastra aquí el .zip de la inspección archivada</p>
+  </div>
+  <div class="err" id="errBox"></div>
+  <div id="contenido"></div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('open')"><img id="lightboxImg" src=""></div>
+
+<script src="jszip.min.js"></script>
+<script>
+  function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  var picker = document.getElementById('picker');
+  var fileInput = document.getElementById('fileInput');
+  ['dragover','dragenter'].forEach(function(ev){ picker.addEventListener(ev, function(e){ e.preventDefault(); picker.classList.add('drag'); }); });
+  ['dragleave','drop'].forEach(function(ev){ picker.addEventListener(ev, function(e){ e.preventDefault(); picker.classList.remove('drag'); }); });
+  picker.addEventListener('drop', function(e){
+    var f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) cargarZip(f);
+  });
+  fileInput.addEventListener('change', function(){
+    if (fileInput.files[0]) cargarZip(fileInput.files[0]);
+  });
+
+  function mostrarError(msg) {
+    var el = document.getElementById('errBox');
+    el.textContent = msg;
+    el.classList.add('vis');
+  }
+
+  function cargarZip(file) {
+    document.getElementById('errBox').classList.remove('vis');
+    document.getElementById('subTtl').textContent = 'Leyendo ' + file.name + '...';
+    JSZip.loadAsync(file).then(function(zip) {
+      var datosFile = zip.file('datos.json');
+      if (!datosFile) { mostrarError('Este archivo no contiene datos.json — no parece un archivo de inspección de ARP válido.'); return; }
+      return datosFile.async('string').then(function(txt) {
+        var paquete;
+        try { paquete = JSON.parse(txt); } catch(e) { mostrarError('datos.json no es un JSON válido: ' + e.message); return; }
+        return resolverFotos(zip, paquete).then(function() {
+          render(paquete);
+          picker.style.display = 'none';
+          document.getElementById('btnOtra').style.display = 'inline';
+          document.getElementById('subTtl').textContent = (paquete.inspeccion.nombreInstalacion||'') + ' — archivo local, sin conexión';
+        });
+      });
+    }).catch(function(e) {
+      mostrarError('No se ha podido leer el .zip: ' + e.message);
+    });
+  }
+
+  // Convierte cada foto {path:"fotos/xxx.jpg"} en {path, dataUrl} leyendo el binario del
+  // propio zip como base64 — todo en memoria, nunca sale de este navegador.
+  function resolverFotos(zip, paquete) {
+    var tareas = [];
+    function resolverArray(arr) {
+      if (!arr) return;
+      arr.forEach(function(f) {
+        if (!f || !f.path) return;
+        var entry = zip.file(f.path);
+        if (!entry) return;
+        tareas.push(entry.async('base64').then(function(b64) {
+          var ext = (f.path.split('.').pop()||'jpg').toLowerCase();
+          var mime = ext === 'png' ? 'image/png' : 'image/jpeg';
+          f.dataUrl = 'data:' + mime + ';base64,' + b64;
+        }));
+      });
+    }
+    var D = paquete.inspeccion;
+    resolverArray(D.fotos);
+    (D.circuitos||[]).forEach(function(c){ (c.juegos||[]).forEach(function(j){ resolverArray(j.fotos); }); });
+    (paquete.ncs||[]).forEach(function(nc){ resolverArray(nc.fotosDefecto); resolverArray(nc.fotosCorreccion); });
+    return Promise.all(tareas);
+  }
+
+  function badgeValor(v) {
+    if (!v) return '';
+    return '<span class="val val-' + escHtml(v) + '">' + (v==='N'?'NO':v==='NA'?'N/A':'SÍ') + '</span>';
+  }
+
+  function prioClase(p) {
+    p = (p||'').toLowerCase();
+    return ['grave','media','leve','documental'].indexOf(p) !== -1 ? p : '';
+  }
+
+  function fotosHtml(arr, etiqueta) {
+    if (!arr || !arr.length) return '';
+    var imgs = arr.filter(function(f){ return f.dataUrl; }).map(function(f) {
+      return '<img src="' + f.dataUrl + '" onclick="abrirLightbox(this.src)">';
+    }).join('');
+    if (!imgs) return '';
+    return (etiqueta ? '<div class="fotos-lbl">' + escHtml(etiqueta) + '</div>' : '') + '<div class="fotos">' + imgs + '</div>';
+  }
+
+  window.abrirLightbox = function(src) {
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightbox').classList.add('open');
+  };
+
+  function render(paquete) {
+    var D = paquete.inspeccion;
+    var ncs = paquete.ncs || [];
+    var fmt = D.formatoDocumento || {};
+    var checklistDef = fmt.checklist || [];
+    var esTiposJuego = !!(fmt.tiposJuego && fmt.tiposJuego.length);
+
+    var html = '';
+
+    // Datos generales
+    html += '<div class="card"><div class="sec-ttl">Datos generales</div>' +
+      '<div class="kv">' +
+        '<div><span>Instalación</span>' + escHtml(D.nombreInstalacion) + '</div>' +
+        '<div><span>Alcance</span>' + escHtml(D.tipoAlcance) + '</div>' +
+        '<div><span>Dirección</span>' + escHtml([D.direccion, D.municipio, D.provincia].filter(Boolean).join(', ')) + '</div>' +
+        '<div><span>Nº registro</span>' + escHtml(D.nRegistro) + '</div>' +
+        '<div><span>Fecha inspección</span>' + escHtml(D.fechaInspeccion) + '</div>' +
+        '<div><span>Inspector(es)</span>' + escHtml([D.inspectorNombre, D.inspector2Nombre].filter(Boolean).join(' / ')) + '</div>' +
+        '<div><span>Propietario</span>' + escHtml(D.propietario) + '</div>' +
+        '<div><span>Gestor</span>' + escHtml(D.gestor) + '</div>' +
+      '</div>' +
+      (D.resultado ? '<div style="margin-top:12px"><span class="res-badge ' + (D.resultado==='FAVORABLE'?'res-fav':'res-des') + '">' + escHtml(D.resultado) + '</span></div>' : '') +
+    '</div>';
+
+    // Checklist general
+    if (checklistDef.length) {
+      html += '<div class="card"><div class="sec-ttl">Checklist general</div>';
+      checklistDef.forEach(function(item) {
+        var v = (D.checklist||{})[item.id] || '';
+        var obs = (D.checklistObs||{})[item.id] || '';
+        html += '<div class="item"><div class="item-row1"><span>' + escHtml(item.ref) + ' ' + escHtml(item.sec) + '</span>' + badgeValor(v) + '</div>' +
+          (item.desc ? '<div class="item-desc">' + escHtml(item.desc) + '</div>' : '') +
+          (obs ? '<div class="item-obs">' + escHtml(obs) + '</div>' : '') +
+          '</div>';
+      });
+      if (D.obsGral) html += '<div class="item-obs" style="margin-top:8px">' + escHtml(D.obsGral) + '</div>';
+      html += '</div>';
+    }
+
+    // Circuitos y juegos
+    var circuitos = D.circuitos || [];
+    if (circuitos.length) {
+      html += '<div class="card"><div class="sec-ttl">Circuitos y elementos</div>';
+      var colsPorTipo = {};
+      if (esTiposJuego) (fmt.tiposJuego||[]).forEach(function(t){ colsPorTipo[t.id] = t.columnas||[]; });
+      circuitos.forEach(function(circ) {
+        html += '<div class="circ-ttl">' + escHtml(circ.nombre) + (circ.tipoElemento ? ' · ' + escHtml(circ.tipoElemento) : '') + '</div>';
+        var cols = esTiposJuego ? (colsPorTipo[circ.tipoElemento]||[]) : (fmt.columnas||[]);
+        (circ.juegos||[]).forEach(function(j) {
+          html += '<div class="item"><div class="item-row1"><span>' + escHtml(j.nombre) + '</span></div>';
+          cols.forEach(function(col) {
+            var v = j[col.id];
+            if (v) html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px"><span>' + escHtml(col.label||col.id) + '</span>' + badgeValor(v) + '</div>';
+          });
+          html += fotosHtml(j.fotos, '');
+          html += '</div>';
+        });
+      });
+      html += '</div>';
+    }
+
+    // No conformidades
+    html += '<div class="card"><div class="sec-ttl">No conformidades (' + ncs.length + ')</div>';
+    if (!ncs.length) {
+      html += '<div class="empty">Sin no conformidades registradas.</div>';
+    } else {
+      ncs.forEach(function(nc) {
+        html += '<div class="nc-card ' + prioClase(nc.prio) + '">' +
+          '<div class="nc-head"><span>' + escHtml(nc.elem || nc.tipo || '') + '</span><span class="nc-tag">' + escHtml(nc.prio||'') + '</span></div>' +
+          (nc.desc ? '<div class="nc-desc">' + escHtml(nc.desc) + '</div>' : '') +
+          '<div class="nc-estado">' + (nc.cerrada ? '✓ Cerrada' : '● Abierta') + (nc.norma ? ' · ' + escHtml(nc.norma) : '') + '</div>' +
+          fotosHtml(nc.fotosDefecto, 'Fotos del defecto') +
+          fotosHtml(nc.fotosCorreccion, 'Fotos de la corrección') +
+          '</div>';
+      });
+    }
+    html += '</div>';
+
+    // Fotos generales
+    var fg = fotosHtml(D.fotos, '');
+    if (fg) html += '<div class="card"><div class="sec-ttl">Fotos generales</div>' + fg + '</div>';
+
+    html += '<div class="empty">Generado el ' + escHtml((paquete.generadoEn||'').slice(0,10)) + ' · archivo local, no requiere conexión ni la app de ARP Inspecciones.</div>';
+
+    document.getElementById('contenido').innerHTML = html;
+  }
+</script>
+</body>
+</html>

@@ -68,9 +68,42 @@
   <div class="generating-sub" id="generatingSub">Esto puede tardar unos segundos</div>
 </div>
 
+<!-- Modal archivar inspección: 2 pasos forzados, sin poder saltar ni cerrar a medias -->
+<div class="overlay-archivar" id="overlayArchivar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300">
+  <div style="background:white;border-radius:16px;max-width:440px;margin:8vh auto;padding:22px;max-height:80vh;overflow-y:auto">
+    <div style="font-size:16px;font-weight:700;color:var(--dark);margin-bottom:4px">Archivar inspección</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Descarga un archivo local con todo (fotos, datos, visor) y, solo después de confirmarlo, borra las fotos y los datos de Firebase.</div>
+
+    <div id="archPaso1">
+      <div id="archEstado1" style="font-size:13px;color:var(--text);margin-bottom:12px">Preparando…</div>
+      <div id="archErr1" style="display:none;background:#FDECEA;color:var(--red);border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:12px"></div>
+      <button class="btn-pdf" id="btnGenerarZip" onclick="generarArchivo()">Generar y descargar</button>
+    </div>
+
+    <div id="archPaso2" style="display:none;border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
+      <div id="archNoAdmin" style="display:none;font-size:12px;color:var(--muted);background:var(--surf);border-radius:8px;padding:10px 12px">Archivo descargado correctamente. Para borrar los datos de Firebase hace falta una cuenta con rol Admin — pide a alguien con ese rol que abra esta misma pantalla y complete el borrado.</div>
+      <div id="archConfirmAuto" style="display:none;font-size:13px;color:var(--green);font-weight:600;margin-bottom:12px">&#10003; Guardado confirmado por el navegador</div>
+      <label id="archConfirmManual" style="display:none;align-items:flex-start;gap:8px;font-size:12px;color:var(--text);margin-bottom:14px;cursor:pointer">
+        <input type="checkbox" id="chkConfirmManual" onchange="document.getElementById('btnBorrar').disabled=!this.checked" style="margin-top:2px">
+        He comprobado que el archivo .zip se ha descargado y se abre correctamente.
+      </label>
+      <button class="btn-pdf" id="btnBorrar" onclick="confirmarBorrado()" style="background:var(--red)" disabled>Confirmar y borrar de Firebase</button>
+    </div>
+
+    <div id="archPaso3" style="display:none;text-align:center;padding:10px 0">
+      <div style="font-size:32px">&#9989;</div>
+      <div style="font-size:13px;color:var(--text);margin-top:8px">Archivado. Fotos y datos borrados de Firebase.</div>
+    </div>
+
+    <button onclick="cerrarModalArchivar()" id="btnCerrarArchivar" style="width:100%;margin-top:14px;padding:10px;background:none;border:1.5px solid var(--border);border-radius:10px;color:var(--muted);font-family:inherit;font-size:13px;cursor:pointer">Cerrar</button>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+<script src="jszip.min.js"></script>
 <script src="utils.js"></script>
 <script>
   if (!firebase.apps.length) {
@@ -83,10 +116,11 @@
       appId:"1:35880168451:web:090e3c250b4416ed0b3236"
     });
   }
-  let auth, db;
+  let auth, db, storage;
   try {
     auth = firebase.auth();
     db = firebase.firestore();
+    storage = firebase.storage();
     db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
   } catch(e) {
     console.error('Firebase init error:', e);
@@ -130,8 +164,9 @@
   }
 
   // ── CARGA ──
+  var miRol = null;
   initAuth({
-    onReady: function(user, ud) { cargarDatos(); }
+    onReady: function(user, ud) { miRol = ud.rol; cargarDatos(); }
   });
 
   setTimeout(async () => {
@@ -362,6 +397,13 @@
         </button>
         ${(D.ncs||[]).filter(function(n){return n.prio&&n.prio!=='OBSERVACION';}).length?`<button class="btn-pdf" style="background:#2C3E50;color:white;" onclick="generarPlanCorrecciones()">&#9998; Plan de Correcciones (cliente)</button>`:''}
       </div>
+
+      ${(D.estado==='completada' && D.seguimientoAdmin && D.seguimientoAdmin.finalizado && viendoRevisionIdx===null)?`
+      <div class="card">
+        <div class="card-title">Archivar</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Expediente finalizado. Puedes descargar todo (fotos, datos, visor) y liberar espacio en Firebase.</div>
+        <button class="btn-pdf" style="background:#2C3E50;color:white" onclick="abrirModalArchivar()">&#128230; Archivar inspección</button>
+      </div>`:''}
 
       ${(D_actual.historialRevisiones&&D_actual.historialRevisiones.length)?`
       <div class="card">
@@ -2897,6 +2939,205 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
     if (!navigator.onLine) document.getElementById('alertOffline').classList.add('vis');
   }
   window.addEventListener('offline', updateOnline);
+
+  // ═══════════════════════════════════════════════════
+  //   ARCHIVAR INSPECCIÓN — ZIP local (fotos+datos+visor) y borrado en Firebase
+  // ═══════════════════════════════════════════════════
+  var _archivoGuardadoAuto = false;
+
+  window.abrirModalArchivar = function() {
+    document.getElementById('overlayArchivar').style.display = 'block';
+    document.getElementById('archPaso1').style.display = 'block';
+    document.getElementById('archPaso2').style.display = 'none';
+    document.getElementById('archPaso3').style.display = 'none';
+    document.getElementById('archErr1').style.display = 'none';
+    document.getElementById('archEstado1').textContent = 'Pulsa "Generar y descargar" para empezar.';
+    document.getElementById('btnGenerarZip').disabled = false;
+    document.getElementById('btnGenerarZip').textContent = 'Generar y descargar';
+    document.getElementById('btnCerrarArchivar').style.display = 'block';
+    document.getElementById('archNoAdmin').style.display = 'none';
+    document.getElementById('archConfirmAuto').style.display = 'none';
+    document.getElementById('archConfirmManual').style.display = 'none';
+    document.getElementById('chkConfirmManual').checked = false;
+    document.getElementById('btnBorrar').disabled = true;
+    _archivoGuardadoAuto = false;
+  };
+
+  window.cerrarModalArchivar = function() {
+    document.getElementById('overlayArchivar').style.display = 'none';
+  };
+
+  async function fetchFotoBlob(url) {
+    var r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.blob();
+  }
+
+  window.generarArchivo = async function() {
+    var btn = document.getElementById('btnGenerarZip');
+    var estadoEl = document.getElementById('archEstado1');
+    var errEl = document.getElementById('archErr1');
+    errEl.style.display = 'none';
+    btn.disabled = true;
+    document.getElementById('btnCerrarArchivar').style.display = 'none';
+
+    try {
+      estadoEl.textContent = 'Descargando fotos…';
+      var zip = new JSZip();
+      var fotosFolder = zip.folder('fotos');
+      var fallidas = [];
+
+      // Clona D sin mutar el original — cada foto pasa de {url} a {path} apuntando al zip.
+      var Dclon = JSON.parse(JSON.stringify(D));
+
+      async function procesarArray(arr, prefijo) {
+        if (!arr) return;
+        for (var i = 0; i < arr.length; i++) {
+          var f = arr[i];
+          if (!f || !f.url) continue;
+          var nombre = prefijo + '_' + i + (f.url.indexOf('.png') !== -1 ? '.png' : '.jpg');
+          try {
+            var blob = await fetchFotoBlob(f.url);
+            fotosFolder.file(nombre, blob);
+            f.path = 'fotos/' + nombre;
+          } catch (e) {
+            fallidas.push(prefijo + '_' + i);
+          }
+          delete f.url; delete f.localKey; delete f.dataUrl;
+        }
+      }
+
+      await procesarArray(Dclon.fotos, 'general');
+      for (var ci = 0; ci < (Dclon.circuitos||[]).length; ci++) {
+        var circ = Dclon.circuitos[ci];
+        for (var ji = 0; ji < (circ.juegos||[]).length; ji++) {
+          await procesarArray(circ.juegos[ji].fotos, 'juego_' + ci + '_' + ji);
+        }
+      }
+      for (var ni = 0; ni < (Dclon.ncs||[]).length; ni++) {
+        await procesarArray(Dclon.ncs[ni].fotosDefecto, 'nc_' + ni + '_defecto');
+        await procesarArray(Dclon.ncs[ni].fotosCorreccion, 'nc_' + ni + '_correccion');
+      }
+
+      if (fallidas.length) {
+        // Misma política que el PDF: nunca se archiva con fotos incompletas.
+        throw new Error(fallidas.length + ' foto(s) no se han podido descargar (' + fallidas.slice(0,5).join(', ') + (fallidas.length>5?'…':'') + '). Comprueba la conexión y vuelve a intentarlo.');
+      }
+
+      estadoEl.textContent = 'Empaquetando datos…';
+      var ncsClon = Dclon.ncs || [];
+      delete Dclon.ncs;
+      var paquete = { version: 1, generadoEn: new Date().toISOString(), inspeccion: Dclon, ncs: ncsClon };
+      zip.file('datos.json', JSON.stringify(paquete, null, 2));
+
+      estadoEl.textContent = 'Añadiendo visor…';
+      var textos = await Promise.all([
+        fetch('visor.html').then(function(r){ return r.text(); }),
+        fetch('jszip.min.js').then(function(r){ return r.text(); })
+      ]);
+      zip.file('visor.html', textos[0]);
+      zip.file('jszip.min.js', textos[1]);
+      zip.file('LEEME.txt', 'Para ver esta inspección archivada, abre visor.html con doble clic y selecciona (o arrastra) este mismo archivo .zip.\nNo hace falta conexión a internet ni la aplicación de ARP Inspecciones.');
+
+      estadoEl.textContent = 'Comprimiendo…';
+      var blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+
+      var nombreArchivo = (D.nRegistro || inspeccionId || 'inspeccion').replace(/[\/\\]/g, '_') + '.zip';
+      await guardarArchivoLocal(blob, nombreArchivo);
+
+      document.getElementById('archPaso1').style.display = 'none';
+      document.getElementById('archPaso2').style.display = 'block';
+      document.getElementById('btnCerrarArchivar').style.display = 'block';
+
+      if (miRol !== 'admin') {
+        document.getElementById('archNoAdmin').style.display = 'block';
+      } else if (_archivoGuardadoAuto) {
+        document.getElementById('archConfirmAuto').style.display = 'block';
+        document.getElementById('btnBorrar').disabled = false;
+      } else {
+        document.getElementById('archConfirmManual').style.display = 'flex';
+      }
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+      estadoEl.textContent = 'No se ha podido generar el archivo.';
+      btn.disabled = false;
+      document.getElementById('btnCerrarArchivar').style.display = 'block';
+    }
+  };
+
+  // API del sistema de archivos: si el navegador la soporta (Chrome/Edge/Brave), confirma
+  // de verdad que el fichero se escribió en disco antes de desbloquear el borrado. Si no
+  // (Safari/Firefox), cae a la descarga clásica, que no puede confirmar nada — de ahí la
+  // casilla manual del paso 2.
+  async function guardarArchivoLocal(blob, nombreArchivo) {
+    if (window.showSaveFilePicker) {
+      try {
+        var handle = await window.showSaveFilePicker({
+          suggestedName: nombreArchivo,
+          types: [{ description: 'Archivo ZIP', accept: { 'application/zip': ['.zip'] } }]
+        });
+        var writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        _archivoGuardadoAuto = true;
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') throw new Error('Descarga cancelada.');
+        // Cualquier otro fallo cae a la descarga clásica de abajo.
+      }
+    }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = nombreArchivo;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    _archivoGuardadoAuto = false;
+  }
+
+  window.confirmarBorrado = async function() {
+    if (miRol !== 'admin') return; // las reglas de Firestore lo bloquearían igualmente
+    var btn = document.getElementById('btnBorrar');
+    btn.disabled = true; btn.textContent = 'Borrando…';
+    document.getElementById('btnCerrarArchivar').style.display = 'none';
+    try {
+      // 1) Fotos en Storage — todo vive bajo el mismo prefijo inspecciones/{id}/
+      async function borrarCarpeta(ref) {
+        var res = await ref.listAll();
+        await Promise.all(res.items.map(function(it){ return it.delete().catch(function(){}); }));
+        await Promise.all(res.prefixes.map(borrarCarpeta));
+      }
+      await borrarCarpeta(storage.ref('inspecciones/' + inspeccionId));
+
+      // 2) NCs (subcolección) + documento de la inspección
+      var ncsSnap = await db.collection('inspecciones').doc(inspeccionId).collection('ncs').get();
+      var batch = db.batch();
+      ncsSnap.forEach(function(d){ batch.delete(d.ref); });
+      batch.delete(db.collection('inspecciones').doc(inspeccionId));
+      await batch.commit();
+
+      // 3) Limpiar referencias en la instalación, solo si siguen apuntando a esta inspección
+      if (D.instalacionId) {
+        var instRef = db.collection('instalaciones').doc(D.instalacionId);
+        var instSnap = await instRef.get();
+        if (instSnap.exists) {
+          var inst = instSnap.data();
+          var upd = {};
+          if (inst.ultimaInspeccionId === inspeccionId) upd.ultimaInspeccionId = firebase.firestore.FieldValue.delete();
+          if (inst.inspeccionActivaId === inspeccionId) { upd.inspeccionActivaId = null; upd.inspeccionActivaEstado = null; }
+          if (Object.keys(upd).length) await instRef.update(upd);
+        }
+      }
+
+      document.getElementById('archPaso2').style.display = 'none';
+      document.getElementById('archPaso3').style.display = 'block';
+      document.getElementById('btnCerrarArchivar').style.display = 'block';
+    } catch (e) {
+      alert('Error al borrar: ' + e.message + '\n\nEl archivo ya está descargado a salvo; puedes reintentar el borrado más tarde.');
+      btn.disabled = false; btn.textContent = 'Confirmar y borrar de Firebase';
+      document.getElementById('btnCerrarArchivar').style.display = 'block';
+    }
+  };
 </script>
 </body>
 </html>
