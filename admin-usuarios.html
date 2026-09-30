@@ -160,11 +160,7 @@
     document.getElementById('content').innerHTML = html;
   }
 
-  function computeIni(s) {
-    if (!s) return '?';
-    var partes = s.trim().split(/\s+/);
-    return (partes[0]&&partes[0][0]||'').toUpperCase() + (partes[1]&&partes[1][0]||'').toUpperCase() || s.slice(0,2).toUpperCase();
-  }
+  function computeIni(s) { return computeIniciales(s); } // delega en utils.js
 
   function formHtml(u) {
     u = u || {};

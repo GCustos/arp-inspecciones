@@ -133,18 +133,13 @@ initAuth({
     usuarioActual = {
       email:     user.email,
       nombre:    ud.nombre || '',
-      iniciales: ud.nombreCorto || computeIniciales(ud.nombre),
+      iniciales: ud.nombreCorto || computeIniciales(ud.nombre, 'XX'),
       rol:       ud.rol
     };
     cargarClientes();
     cargarOfertas();
   }
 });
-
-function computeIniciales(nombre) {
-  var words = (nombre || '').trim().split(/\s+/).filter(Boolean);
-  return words.slice(0, 2).map(function(w) { return w[0].toUpperCase(); }).join('') || 'XX';
-}
 
 // ─── NAVEGACIÓN ─────────────────────────────────────────────────────────────
 

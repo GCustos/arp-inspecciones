@@ -1473,7 +1473,7 @@
       if(importTxt) importTxt.textContent='estructura de circuitos y juegos';
     }
   }
-  function escHtmlLocal(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escHtmlLocal(s){ return escHtml(s); } // delega en utils.js — antes no escapaba comillas dobles
 
   // Crea un elemento de un tipoJuego (ej. SAE Vía/Muro, FER Tramo): circuito + su único
   // juego en un solo paso — el tipo queda fijo al crear, nunca seleccionable/editable

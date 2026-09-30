@@ -9,6 +9,19 @@ function escHtml(s) {
 }
 
 /**
+ * Iniciales de un nombre (hasta 2 letras, mayúsculas) para avatares/badges.
+ * fallback: qué devolver si no hay nombre — por defecto '?'.
+ */
+function computeIniciales(nombre, fallback) {
+  fallback = fallback || '?';
+  if (!nombre) return fallback;
+  var p = String(nombre).trim().split(/\s+/).filter(Boolean);
+  if (!p.length) return fallback;
+  var ini = ((p[0][0]||'') + (p[1]&&p[1][0]||'')).toUpperCase();
+  return ini || nombre.slice(0,2).toUpperCase() || fallback;
+}
+
+/**
  * Muestra un toast de notificación breve (2,5 s).
  * Requiere <div id="toast"> en el DOM con clase CSS .show para visibilidad.
  */

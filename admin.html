@@ -130,15 +130,21 @@
 
   function renderMenu(rol) {
     var esAdmin = rol === 'admin' || rol === 'director';
+    // proyecto tiene acceso total como director en Cambios propuestos (así lo autorizan
+    // tanto firestore.rules/isAdminLike() como admin-cambios.html), pero antes no tenía
+    // ningún enlace visible para llegar ahí — solo funcionaba con la URL puesta a mano.
+    var veCambios = esAdmin || rol === 'proyecto';
     // Equipos, Instalaciones, Ofertas y Oficina se movieron a accesos directos en la
     // pantalla de inicio (index.html) — ya no se listan aquí para no duplicar navegación.
     var html = '<div class="sec-label">Panel de administración</div>' +
       card('clientes', '&#128101;', 'Clientes',      'Gestión de empresas propietarias y solicitantes',               'admin-clientes.html') +
       card('empresa',  '&#127970;', 'Empresa y Director', 'Datos de empresa, director técnico y alcances disponibles', 'admin-empresa.html') +
       card('config',   '&#9881;',   'Configuración', 'ENAC por alcance, número de acreditación y parámetros globales', null);
+    if (veCambios) {
+      html += card('cambios', '&#128203;', 'Cambios propuestos', 'Revisión y aprobación de cambios en datos de instalaciones', 'admin-cambios.html');
+    }
     if (esAdmin) {
       html +=
-        card('cambios',       '&#128203;', 'Cambios propuestos',  'Revisión y aprobación de cambios en datos de instalaciones',    'admin-cambios.html') +
         card('formatos', '&#128203;', 'Formatos', 'Editor de preguntas, criterios y revisiones por alcance', 'admin-formatos.html') +
         card('historial', '&#128220;', 'Historial de documentos', 'Revisiones y cambios de certificado, empresa y formatos — trazabilidad ENAC', 'admin-historial.html') +
         card('usuarios', '&#128119;', 'Usuarios', 'Alta, roles y acceso de los miembros del equipo', 'admin-usuarios.html');
