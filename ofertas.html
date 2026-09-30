@@ -51,6 +51,8 @@
     /* botones */
     .btn-primary{width:100%;padding:14px;background:var(--gold);color:white;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px}
     .btn-row{display:flex;gap:10px;margin-top:10px}
+    .chk-inline{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer}
+    .chk-inline input{width:auto!important}
     .btn-sec{flex:1;padding:11px;background:white;color:var(--dark);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
     .btn-ok{flex:1;padding:11px;background:var(--green);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
     .btn-del{flex:1;padding:11px;background:white;color:var(--red);border:1.5px solid var(--red);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
@@ -103,6 +105,7 @@ var db   = firebase.firestore();
 var vistaActual  = 'lista';
 var usuarioActual = null;
 var clientes      = [];
+var instalaciones = [];
 var ofertaCache   = null; // datos de la oferta en vista detalle
 
 var NORMAS = [
@@ -137,6 +140,7 @@ initAuth({
       rol:       ud.rol
     };
     cargarClientes();
+    cargarInstalaciones();
     cargarOfertas();
   }
 });
@@ -160,6 +164,15 @@ function mostrarLista() {
 
 // ─── LISTA ──────────────────────────────────────────────────────────────────
 
+function cargarInstalaciones() {
+  db.collection('instalaciones').get().then(function(snap) {
+    instalaciones = [];
+    snap.forEach(function(d) {
+      if (d.data().activo !== false) instalaciones.push(Object.assign({ id: d.id }, d.data()));
+    });
+  }).catch(function() {});
+}
+
 function cargarClientes() {
   db.collection('clientes').orderBy('nombre').get().then(function(snap) {
     clientes = [];
@@ -167,20 +180,37 @@ function cargarClientes() {
   }).catch(function() {});
 }
 
+var ofertasCache  = [];
+var filtroEstado  = null; // null = todas
+
 function cargarOfertas() {
   document.getElementById('content').innerHTML = '<div class="spinner"></div>';
   db.collection('ofertas').orderBy('fechaCreacion', 'desc').get().then(function(snap) {
-    if (snap.empty) {
-      document.getElementById('content').innerHTML =
-        '<div class="empty-state">No hay ofertas todavía.<br>Pulsa <strong>+ Nueva</strong> para crear la primera.</div>';
-      return;
-    }
-    var html = '';
-    snap.forEach(function(d) { html += renderOfertaCard(d.id, d.data()); });
-    document.getElementById('content').innerHTML = html;
+    ofertasCache = [];
+    snap.forEach(function(d) { ofertasCache.push(Object.assign({ id: d.id }, d.data())); });
+    renderListaOfertas();
   }).catch(function() {
     document.getElementById('content').innerHTML = '<div class="empty-state">Error al cargar ofertas.</div>';
   });
+}
+
+window.setFiltroEstado = function(estado) { filtroEstado = estado; renderListaOfertas(); };
+
+function renderListaOfertas() {
+  var ESTADOS = [['borrador','Borrador'], ['enviada','Enviada'], ['aceptada','Aceptada'], ['rechazada','Rechazada']];
+  var filtros = '<div class="toolbar" style="margin-bottom:12px;flex-wrap:wrap">' +
+    '<button class="filtro-btn' + (filtroEstado === null ? ' active' : '') + '" onclick="setFiltroEstado(null)">Todas</button>' +
+    ESTADOS.map(function(e) {
+      return '<button class="filtro-btn' + (filtroEstado === e[0] ? ' active' : '') + '" onclick="setFiltroEstado(\'' + e[0] + '\')">' + e[1] + '</button>';
+    }).join('') +
+  '</div>';
+  var lista = filtroEstado ? ofertasCache.filter(function(o){ return o.estado === filtroEstado; }) : ofertasCache;
+  if (!lista.length) {
+    document.getElementById('content').innerHTML = filtros +
+      '<div class="empty-state">' + (ofertasCache.length ? 'No hay ofertas con ese filtro.' : 'No hay ofertas todavía.<br>Pulsa <strong>+ Nueva</strong> para crear la primera.') + '</div>';
+    return;
+  }
+  document.getElementById('content').innerHTML = filtros + lista.map(function(o) { return renderOfertaCard(o.id, o); }).join('');
 }
 
 function renderOfertaCard(id, o) {
@@ -190,7 +220,7 @@ function renderOfertaCard(id, o) {
   return '<div class="oferta-card" onclick="mostrarDetalle(\'' + id + '\')">' +
     '<div class="oferta-num">' + escHtml(o.nOferta || '') + '</div>' +
     '<div class="oferta-cliente">' + escHtml(o.clienteNombre || '') + '</div>' +
-    '<div class="oferta-proyecto">' + escHtml(o.proyecto || '') + '</div>' +
+    '<div class="oferta-proyecto">' + escHtml(o.instalacionNombre || o.proyecto || '') + (o.alcances && o.alcances.length ? ' · ' + escHtml(o.alcances.join('/')) : '') + '</div>' +
     '<div class="oferta-foot">' +
     '<span class="badge ' + (BADGES[o.estado] || 'badge-borrador') + '">' + (LABELS[o.estado] || o.estado) + '</span>' +
     '<span class="oferta-fecha">' + fecha + '</span>' +
@@ -216,6 +246,17 @@ function mostrarForm(ofertaId, datos) {
     return '<option value="' + escHtml(c.id) + '"' + sel + '>' + escHtml(c.nombre) + '</option>';
   }).join('');
 
+  var instSelActual = (datos && datos.instalacionId) || '';
+  var optsInstalacion = instalaciones.map(function(i) {
+    var sel = instSelActual === i.id ? ' selected' : '';
+    return '<option value="' + escHtml(i.id) + '"' + sel + '>' + escHtml(i.nombre || i.id) + (i.codigo ? ' · ' + escHtml(i.codigo) : '') + '</option>';
+  }).join('');
+  var alcanceActual = (datos && datos.alcances) || [];
+  var alcanceChkHtml = ['PAA', 'SAE', 'FER'].map(function(a) {
+    var chk = alcanceActual.indexOf(a) >= 0 ? 'checked' : '';
+    return '<label class="chk-inline"><input type="checkbox" class="fAlcance" value="' + a + '" ' + chk + '> ' + a + '</label>';
+  }).join('');
+
   var normasHtml = NORMAS.map(function(n, i) {
     var chk    = normasChk.indexOf(n.ref) >= 0 ? 'checked' : '';
     var refTxt = n.ref + (n.partes ? ' ' + n.partes : '');
@@ -239,8 +280,17 @@ function mostrarForm(ofertaId, datos) {
     '<div class="form-card">' +
       '<div class="form-field"><label>Cliente</label>' +
         '<select id="fCliente"><option value="">— Selecciona cliente —</option>' + optsCliente + '</select></div>' +
-      '<div class="form-field"><label>Proyecto / instalación</label>' +
-        '<textarea id="fProyecto" rows="2" placeholder="Inspección Técnica de la Instalación, ...">' + escHtml((datos && datos.proyecto) || '') + '</textarea></div>' +
+      '<div class="form-field"><label>Instalación</label>' +
+        '<select id="fInstalacion" onchange="onCambioInstalacion()">' +
+          '<option value="">— Selecciona instalación —</option>' + optsInstalacion +
+          '<option value="__nueva__">+ Crear instalación nueva</option>' +
+        '</select></div>' +
+      '<div class="form-field" id="fInstalacionNuevaWrap" style="display:none">' +
+        '<label>Nombre de la instalación nueva</label><input type="text" id="fInstalacionNuevaNombre" placeholder="Nombre">' +
+        '<label style="margin-top:8px">Código corto (ej. CLF)</label><input type="text" id="fInstalacionNuevaCodigo" placeholder="CÓDIGO" style="text-transform:uppercase">' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:4px">Dirección, gestor y demás se completan más adelante — no hace falta tenerlos ahora para hacer la oferta.</div>' +
+      '</div>' +
+      '<div class="form-field"><label>Alcance</label><div class="alcance-chk-row" style="display:flex;gap:14px">' + alcanceChkHtml + '</div></div>' +
     '</div>' +
     '<div class="sec-label">Normas aplicables</div>' +
     '<div class="form-card">' + normasHtml + '</div>' +
@@ -257,6 +307,22 @@ function mostrarForm(ofertaId, datos) {
 
   recalc();
 }
+
+window.onCambioInstalacion = function() {
+  var val = (document.getElementById('fInstalacion') || {}).value || '';
+  var wrap = document.getElementById('fInstalacionNuevaWrap');
+  if (wrap) wrap.style.display = val === '__nueva__' ? '' : 'none';
+  // Instalación ya existente: precargar su alcance ya conocido (editable igual — esta
+  // oferta puede añadir un alcance que la instalación todavía no tenía).
+  if (val && val !== '__nueva__') {
+    var inst = instalaciones.find(function(i) { return i.id === val; });
+    if (inst && inst.alcances) {
+      document.querySelectorAll('.fAlcance').forEach(function(cb) {
+        cb.checked = inst.alcances.indexOf(cb.value) >= 0;
+      });
+    }
+  }
+};
 
 function recalc() {
   var total = 0;
@@ -288,10 +354,21 @@ function guardarOferta() {
   var sel        = document.getElementById('fCliente');
   var clienteId  = sel ? sel.value : '';
   var clienteNom = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
-  var proyecto   = (document.getElementById('fProyecto') || {}).value || '';
+  var instSel    = (document.getElementById('fInstalacion') || {}).value || '';
+  var alcances   = Array.prototype.slice.call(document.querySelectorAll('.fAlcance:checked')).map(function(cb){ return cb.value; });
 
-  if (!clienteId)         { showToast('Selecciona un cliente'); return; }
-  if (!proyecto.trim())   { showToast('Indica el proyecto o instalación'); return; }
+  if (!clienteId) { showToast('Selecciona un cliente'); return; }
+  if (!instSel)   { showToast('Selecciona o crea una instalación'); return; }
+  var nombreNueva = '', codigoNueva = '';
+  if (instSel === '__nueva__') {
+    nombreNueva = ((document.getElementById('fInstalacionNuevaNombre') || {}).value || '').trim();
+    codigoNueva = ((document.getElementById('fInstalacionNuevaCodigo') || {}).value || '').trim().toUpperCase();
+    if (!nombreNueva) { showToast('Indica el nombre de la instalación nueva'); return; }
+    if (!codigoNueva) { showToast('Indica un código corto para la instalación nueva'); return; }
+    if (instalaciones.some(function(i){ return (i.codigo||'').toUpperCase() === codigoNueva; })) {
+      showToast('Ese código de instalación ya existe'); return;
+    }
+  }
 
   var normas = [];
   NORMAS.forEach(function(n, i) {
@@ -313,20 +390,35 @@ function guardarOferta() {
   var btn = document.querySelector('.btn-primary');
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
 
-  if (editId) {
-    db.collection('ofertas').doc(editId).update({
-      clienteId: clienteId, clienteNombre: clienteNom, proyecto: proyecto.trim(),
+  // Si se eligió "+ Crear instalación nueva", se crea primero (datos mínimos — nombre y
+  // código; el resto __PENDIENTE__, mismo criterio que ya usa el resto de la app para no
+  // bloquear por datos que comercial aún no tiene en fase de oferta) y se usa su id.
+  // Si es una instalación existente, se resuelve directo sin ninguna escritura.
+  var resolverInstalacion = instSel === '__nueva__'
+    ? db.collection('instalaciones').add({
+        nombre: nombreNueva, codigo: codigoNueva, alcances: alcances,
+        propietarioId: clienteId, propietario: clienteNom,
+        municipio: '__PENDIENTE__', direccion: '__PENDIENTE__', provincia: '__PENDIENTE__',
+        gestorActual: '__PENDIENTE__', solicitanteActual: '', cif: '',
+        activo: true
+      }).then(function(ref) { return { id: ref.id, nombre: nombreNueva }; })
+    : Promise.resolve({ id: instSel, nombre: (instalaciones.find(function(i){return i.id===instSel;})||{}).nombre || '' });
+
+  resolverInstalacion.then(function(inst) {
+    var datosComunes = {
+      clienteId: clienteId, clienteNombre: clienteNom,
+      instalacionId: inst.id, instalacionNombre: inst.nombre, alcances: alcances,
       normas: normas, partidas: partidas, descuento: desc,
-      totalSinIVA: total, totalTrasDescuento: trasDes, ivaImporte: iva, totalConIVA: trasDes + iva,
-      ultimaModificacion: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function() {
-      showToast('Oferta actualizada');
-      mostrarDetalle(editId);
-    }).catch(function(e) {
-      showToast('Error: ' + e.message);
-      if (btn) { btn.disabled = false; btn.textContent = 'Guardar oferta'; }
-    });
-  } else {
+      totalSinIVA: total, totalTrasDescuento: trasDes, ivaImporte: iva, totalConIVA: trasDes + iva
+    };
+    if (editId) {
+      return db.collection('ofertas').doc(editId).update(Object.assign({}, datosComunes, {
+        ultimaModificacion: firebase.firestore.FieldValue.serverTimestamp()
+      })).then(function() {
+        showToast('Oferta actualizada');
+        mostrarDetalle(editId);
+      });
+    }
     var hoy       = new Date();
     var yy        = String(hoy.getFullYear()).slice(-2);
     var mm        = String(hoy.getMonth() + 1).padStart(2, '0');
@@ -335,33 +427,30 @@ function guardarOferta() {
     var iniciales = usuarioActual ? usuarioActual.iniciales : 'XX';
 
     // Contar ofertas de hoy de este mismo usuario para obtener el correlativo del día
-    db.collection('ofertas')
+    return db.collection('ofertas')
       .where('fechaDoc', '==', fechaDoc)
       .where('creadoPorIniciales', '==', iniciales)
       .get()
       .then(function(snap) {
         var n       = snap.size; // 0, 1, 2…
         var nOferta = fechaDoc + '/' + iniciales + '/' + n + '/Rev.0';
-        return db.collection('ofertas').add({
+        return db.collection('ofertas').add(Object.assign({}, datosComunes, {
           nOferta: nOferta, fechaDoc: fechaDoc, secuenciaDia: n, iniciales: iniciales, revision: 0,
-          clienteId: clienteId, clienteNombre: clienteNom, proyecto: proyecto.trim(),
-          normas: normas, partidas: partidas, descuento: desc,
-          totalSinIVA: total, totalTrasDescuento: trasDes, ivaImporte: iva, totalConIVA: trasDes + iva,
           estado: 'borrador',
           fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
           fechaEnvio: null,
           creadoPor: usuarioActual ? usuarioActual.email : '',
           creadoPorNombre: usuarioActual ? usuarioActual.nombre : '',
           creadoPorIniciales: iniciales
-        });
+        }));
       }).then(function(ref) {
         showToast('Oferta creada');
         mostrarDetalle(ref.id);
-      }).catch(function(e) {
-        showToast('Error: ' + e.message);
-        if (btn) { btn.disabled = false; btn.textContent = 'Guardar oferta'; }
       });
-  }
+  }).catch(function(e) {
+    showToast('Error: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar oferta'; }
+  });
 }
 
 // ─── DETALLE ────────────────────────────────────────────────────────────────
@@ -433,16 +522,39 @@ function renderDetalle(id, o) {
       '</div>';
   }
 
+  // Crear inspección(es): solo con la oferta aceptada — por cada alcance marcado, o ya se
+  // generó (se ve el enlace a su resultado) o se puede crear ahora (lleva a
+  // nueva-inspeccion.html con instalación/alcance ya preseleccionados, que es donde de
+  // verdad se elige fecha e inspector con el formulario que ya existe y está probado).
+  var crearInspHtml = '';
+  if (o.estado === 'aceptada' && o.instalacionId && o.alcances && o.alcances.length) {
+    var creadas = o.inspeccionesCreadas || [];
+    var filasAlcance = o.alcances.map(function(a) {
+      var ya = creadas.filter(function(c) { return c.alcance === a; });
+      if (ya.length) {
+        return '<div class="btn-row" style="margin-top:6px">' +
+          '<a class="btn-sec" style="text-decoration:none;text-align:center;flex:1" href="resultado.html?id=' + escHtml(ya[ya.length-1].inspeccionId) + '">' + escHtml(a) + ' — Ver inspección</a>' +
+        '</div>';
+      }
+      var url = 'nueva-inspeccion.html?instalacionId=' + encodeURIComponent(o.instalacionId) + '&alcance=' + encodeURIComponent(a) + '&ofertaId=' + encodeURIComponent(id);
+      return '<div class="btn-row" style="margin-top:6px">' +
+        '<a class="btn-ok" style="text-decoration:none;text-align:center;flex:1" href="' + url + '">Crear inspección ' + escHtml(a) + '</a>' +
+      '</div>';
+    }).join('');
+    crearInspHtml = '<div class="sec-label">Inspecciones</div><div class="form-card">' + filasAlcance + '</div>';
+  }
+
   document.getElementById('content').innerHTML =
     '<div class="form-card det-block">' +
       '<span class="badge ' + (BADGES[o.estado] || 'badge-borrador') + '">' + (LABELS[o.estado] || o.estado) + '</span>' +
       '<div style="margin-top:12px"><div class="det-label">Oferta nº</div>' +
         '<div class="det-val" style="font-size:16px;font-weight:700;color:var(--gold);font-family:monospace">' + escHtml(o.nOferta) + '</div></div>' +
       '<div><div class="det-label">Cliente</div><div class="det-val">' + escHtml(o.clienteNombre) + '</div></div>' +
-      '<div><div class="det-label">Proyecto</div><div class="det-val">' + escHtml(o.proyecto) + '</div></div>' +
+      '<div><div class="det-label">Instalación</div><div class="det-val">' + escHtml(o.instalacionNombre || o.proyecto || '') + (o.alcances && o.alcances.length ? ' · ' + escHtml(o.alcances.join('/')) : '') + '</div></div>' +
       '<div><div class="det-label">Normas aplicables</div><div class="det-val" style="font-size:12px">' + escHtml(normasTxt) + '</div></div>' +
       '<div><div class="det-label">Fecha creación</div><div class="det-val">' + fecha + ' · ' + escHtml(o.creadoPorNombre || o.creadoPor || '') + '</div></div>' +
     '</div>' +
+    crearInspHtml +
     '<div class="sec-label">Presupuesto</div>' +
     '<div class="form-card"><div class="partidas-wrap"><table class="partidas-table">' +
       '<thead><tr><th>Concepto</th><th style="text-align:right">€/ud.</th><th style="text-align:right">Uds.</th><th style="text-align:right">Subtotal</th></tr></thead>' +
@@ -512,7 +624,7 @@ function buildPDF(o) {
   var lugarFecha = 'Dos Hermanas, a ' + fechaHoy.getDate() + ' de ' + mesStr + ' de ' + fechaHoy.getFullYear();
   var nOferta    = o.nOferta || '';
   var clienteNom = o.clienteNombre || '';
-  var proyecto   = o.proyecto || '';
+  var proyecto   = o.instalacionNombre || o.proyecto || '';
   var rev        = 'Rev. ' + (o.revision || 0);
 
   function sf(style, size, color) {

@@ -259,6 +259,13 @@
   var codigoNuevoValido = false;
   var todosInspectores = [];
 
+  // Preselección al llegar desde una oferta aceptada (ofertas.html "Crear inspección") —
+  // instalación y alcance ya elegidos ahí, no hace falta repetirlos aquí. ofertaId se
+  // guarda para, al crear con éxito, avisar a la oferta de qué inspección generó.
+  var paramsUrl = new URLSearchParams(location.search);
+  var preInstalacionId = paramsUrl.get('instalacionId') || null;
+  var preAlcance = paramsUrl.get('alcance') || null;
+  var preOfertaId = paramsUrl.get('ofertaId') || null;
 
   document.getElementById("fechaInspeccion").value = new Date().toISOString().split("T")[0];
 
@@ -299,7 +306,10 @@
       grid.innerHTML = '<span style="font-size:12px;color:var(--muted)">No hay alcances configurados. Añádelos en Empresa y Director.</span>';
       return;
     }
-    var primeraDisponible = alcances.find(function(a) { return a.tieneChecklist; });
+    // Si se llega desde una oferta con alcance ya elegido, prevalece sobre "el primero
+    // disponible" — pero solo si ese alcance realmente tiene checklist configurado.
+    var preferida = preAlcance ? alcances.find(function(a){ return a.id === preAlcance && a.tieneChecklist; }) : null;
+    var primeraDisponible = preferida || alcances.find(function(a) { return a.tieneChecklist; });
     selectedAlcance = primeraDisponible ? primeraDisponible.id : '';
     grid.innerHTML = alcances.map(function(a) {
       var sel = a.id === selectedAlcance ? ' selected' : '';
@@ -365,6 +375,9 @@
           instalacionesList.push(Object.assign({ id: d.id }, d.data()));
         }
       });
+      if (preInstalacionId && instalacionesList.some(function(i){ return i.id === preInstalacionId; })) {
+        seleccionarInstalacion(preInstalacionId);
+      }
     }).catch(function(e) { console.warn("No se pudieron cargar instalaciones:", e.message); });
   }
 
@@ -865,6 +878,14 @@
           db.collection("instalaciones").doc(instalacionId).update({
             inspeccionActivaId: ref.id,
             inspeccionActivaEstado: 'pendiente'
+          }).catch(function(){});
+        }
+        // Venimos de una oferta aceptada (ofertas.html "Crear inspección") — le avisamos
+        // de qué inspección se generó para este alcance, así no se puede duplicar por
+        // error y desde la oferta se puede volver a verla.
+        if (preOfertaId) {
+          db.collection("ofertas").doc(preOfertaId).update({
+            inspeccionesCreadas: firebase.firestore.FieldValue.arrayUnion({ alcance: selectedAlcance, inspeccionId: ref.id })
           }).catch(function(){});
         }
         return ref;
