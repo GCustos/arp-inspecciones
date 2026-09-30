@@ -156,6 +156,16 @@ service cloud.firestore {
       allow write: if isAuth() && canReadAll();
     }
 
+    // ── ofertas ────────────────────────────────────────────────────────────
+    // No tenía ninguna regla — Firestore deniega por defecto lo que no coincide con
+    // ningún match, así que ofertas.html estaba roto en producción para todo el mundo.
+    // Mismo criterio que clientes/contactos (ofertas.html ya deja entrar a admin/
+    // director/proyecto/oficina; se incluye también contabilidad, igual que en esas dos).
+    match /ofertas/{docId} {
+      allow read:  if isAuth() && canReadAll();
+      allow write: if isAuth() && canReadAll();
+    }
+
     // ── equipos ────────────────────────────────────────────────────────────
     // Todos leen (inspectores ven sus equipos asignados)
     // Solo admin/director/proyecto modifican fichas de calibración
