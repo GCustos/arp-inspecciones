@@ -1,50 +1,8 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-
-    function isAuth() {
-      return request.auth != null;
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
     }
-    function myEmail() {
-      return request.auth.token.email;
-    }
-    // Lee el doc del usuario autenticado para obtener su rol — mismo patrón que
-    // firestore.rules (1 lectura extra por comprobación, aceptable a este volumen).
-    function myRole() {
-      return firestore.get(/databases/(default)/documents/usuarios/$(myEmail())).data.rol;
-    }
-    function isAdminLike() {
-      return myRole() in ['admin', 'director', 'proyecto'];
-    }
-    function canReadAll() {
-      return myRole() in ['admin', 'director', 'proyecto', 'oficina', 'contabilidad'];
-    }
-    function esInspectorDe(inspeccionId) {
-      let insp = firestore.get(/databases/(default)/documents/inspecciones/$(inspeccionId)).data;
-      return insp.inspectorEmail == myEmail() || insp.inspector2Email == myEmail();
-    }
-
-    // ── inspecciones/{id}/... — fotos de inspección, dato confidencial de la empresa ──
-    // Antes cualquier autenticado podía leer/escribir/borrar las fotos de CUALQUIER
-    // inspección, incluidas las de otros inspectores. Mismo criterio que ya usa
-    // firestore.rules para el propio documento de la inspección: quien puede leer/editar
-    // la inspección puede leer/editar sus fotos, nadie más.
-    match /inspecciones/{inspeccionId}/{allPaths=**} {
-      allow read:  if isAuth() && (canReadAll()  || esInspectorDe(inspeccionId));
-      allow write: if isAuth() && (isAdminLike() || esInspectorDe(inspeccionId));
-    }
-
-    // ── config/... — imágenes de ayuda de admin-formatos.html — sin cambios ──
-    match /config/{allPaths=**} {
-      allow read, write: if isAuth();
-    }
-
-    // ── posts/... — imágenes del blog público (arp-web-preview) — sin cambios ──
-    match /posts/{allPaths=**} {
-      allow read, write: if isAuth();
-    }
-
-    // Cualquier otra ruta no prevista: denegada por defecto (antes era
-    // allow read,write: if isAuth() para *todo*, sin ningún tipo de acotación).
   }
 }
