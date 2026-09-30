@@ -398,10 +398,10 @@
         ${(D.ncs||[]).filter(function(n){return n.prio&&n.prio!=='OBSERVACION';}).length?`<button class="btn-pdf" style="background:#2C3E50;color:white;" onclick="generarPlanCorrecciones()">&#9998; Plan de Correcciones (cliente)</button>`:''}
       </div>
 
-      ${(D.estado==='completada' && D.seguimientoAdmin && D.seguimientoAdmin.finalizado && viendoRevisionIdx===null)?`
+      ${(D.estado==='completada' && viendoRevisionIdx===null)?`
       <div class="card">
         <div class="card-title">Archivar</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Expediente finalizado. Puedes descargar todo (fotos, datos, visor) y liberar espacio en Firebase.</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Puedes descargar todo (fotos, datos, visor) y liberar espacio en Firebase cuando consideres que ya no hace falta tenerlo activo.</div>
         <button class="btn-pdf" style="background:#2C3E50;color:white" onclick="abrirModalArchivar()">&#128230; Archivar inspección</button>
       </div>`:''}
 
