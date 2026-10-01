@@ -345,8 +345,38 @@ window.onCambioInstalacion = function() {
         if (cb && inst.alcances.indexOf(n.alcanceApp) >= 0) cb.checked = true;
       });
     }
+    // Solo en oferta nueva (no al editar una ya guardada, para no pisar datos existentes).
+    if (!editId) precargarJuegosUltimaInspeccion(val);
   }
 };
+
+// Precarga "Unidades" de la primera partida con el nº de juegos de la última inspección
+// de esta instalación — solo orienta, el campo sigue siendo editable (el nº de juegos
+// puede haber cambiado desde entonces).
+function precargarJuegosUltimaInspeccion(instalacionId) {
+  db.collection('inspecciones').where('instalacionId', '==', instalacionId).get().then(function(snap) {
+    if (snap.empty) return;
+    var docs = [];
+    snap.forEach(function(d) { docs.push(d.data()); });
+    docs.sort(function(a, b) { return (b.fechaCreacion && b.fechaCreacion.seconds || 0) - (a.fechaCreacion && a.fechaCreacion.seconds || 0); });
+    var ultima = docs[0];
+    var circuitos = ultima.circuitos;
+    if (!circuitos) return;
+    if (!Array.isArray(circuitos)) circuitos = Object.values(circuitos);
+    var totalJuegos = circuitos.reduce(function(s, c) {
+      var juegos = c.juegos;
+      if (!juegos) return s;
+      if (!Array.isArray(juegos)) juegos = Object.values(juegos);
+      return s + juegos.filter(function(j) { return j.tipo === 'R'; }).length;
+    }, 0);
+    if (!totalJuegos) return;
+    var ud0 = document.getElementById('ud-0');
+    if (ud0 && (!ud0.value || parseFloat(ud0.value) === 0)) {
+      ud0.value = totalJuegos;
+      recalc();
+    }
+  }).catch(function(e) { console.warn('No se pudo precargar nº de juegos:', e.message); });
+}
 
 window.onCambioClienteNueva = function() {
   var val = (document.getElementById('fClienteNueva') || {}).value || '';
