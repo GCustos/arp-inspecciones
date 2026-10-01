@@ -53,6 +53,18 @@
   </button>
   <!-- FIX: banner offline visible -->
   <div class="offline-info" id="offlineInfo">&#128317; Sin conexión — mostrando datos guardados localmente</div>
+  <div id="filtroBar" style="display:none;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <select id="fInspector" onchange="aplicarFiltro()" style="flex:1;min-width:120px;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:white">
+      <option value="">Todos los inspectores</option>
+    </select>
+    <select id="fAlcance" onchange="aplicarFiltro()" style="flex:1;min-width:100px;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:white">
+      <option value="">Todos los alcances</option>
+      <option value="PAA">PAA</option>
+      <option value="SAE">SAE</option>
+      <option value="FER">FER</option>
+    </select>
+    <input type="text" id="fInstalacion" oninput="aplicarFiltro()" placeholder="Buscar instalación…" style="flex:2;min-width:140px;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:12px">
+  </div>
   <div id="listContainer">
     <div class="spinner"></div>
     <div class="loading-text">Cargando inspecciones...</div>
@@ -89,6 +101,7 @@
   let currentUser = null;
   let userRole = null;
   let listaCompleta = [];
+  let listaTodas = [];     // lista sin filtrar (solo admin/director, para poblar el filtro)
   const LIMITE_COMPLETADAS = 5;
   initAuth({
     offline: true,
@@ -113,6 +126,9 @@
       if (userRole === 'admin' || userRole === 'director' || userRole === 'proyecto') {
         document.getElementById('btnAdminLink').style.display = 'flex';
         q = db.collection('inspecciones').orderBy('fechaCreacion', 'desc');
+        if (userRole === 'admin' || userRole === 'director') {
+          document.getElementById('filtroBar').style.display = 'flex';
+        }
       } else {
         const q1 = db.collection('inspecciones')
           .where('inspectorEmail', '==', currentUser.email)
@@ -139,6 +155,10 @@
       const snap = await q.get();
       const lista = [];
       snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
+      if (userRole === 'admin' || userRole === 'director') {
+        listaTodas = lista;
+        poblarFiltroInspectores(lista);
+      }
       renderInspecciones(lista);
     } catch(e) {
       console.error('Error cargando inspecciones:', e.message);
@@ -155,14 +175,44 @@
     }
   }
 
+  function poblarFiltroInspectores(lista) {
+    var sel = document.getElementById('fInspector');
+    var nombres = [];
+    lista.forEach(function(i) {
+      if (i.inspectorNombre && nombres.indexOf(i.inspectorNombre) < 0) nombres.push(i.inspectorNombre);
+    });
+    nombres.sort();
+    nombres.forEach(function(n) {
+      sel.insertAdjacentHTML('beforeend', '<option value="' + escHtml(n) + '">' + escHtml(n) + '</option>');
+    });
+  }
+
+  window.aplicarFiltro = function() {
+    var fInsp = document.getElementById('fInspector').value;
+    var fAlc  = document.getElementById('fAlcance').value;
+    var fTxt  = document.getElementById('fInstalacion').value.trim().toLowerCase();
+    var filtrada = listaTodas.filter(function(i) {
+      if (fInsp && i.inspectorNombre !== fInsp) return false;
+      if (fAlc && i.tipoAlcance !== fAlc) return false;
+      if (fTxt && (i.nombreInstalacion || '').toLowerCase().indexOf(fTxt) < 0) return false;
+      return true;
+    });
+    renderInspecciones(filtrada);
+  };
+
   function renderInspecciones(lista) {
     const container = document.getElementById('listContainer');
     if (!lista.length) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-icon">&#128203;</div>
-          <div class="empty-text">No hay inspecciones todavía.<br>Pulsa el botón para crear la primera.</div>
-        </div>`;
+      const filtroActivo = listaTodas.length > 0 && lista !== listaTodas;
+      container.innerHTML = filtroActivo
+        ? `<div class="empty-state">
+            <div class="empty-icon">&#128269;</div>
+            <div class="empty-text">Ninguna inspección coincide con el filtro.</div>
+          </div>`
+        : `<div class="empty-state">
+            <div class="empty-icon">&#128203;</div>
+            <div class="empty-text">No hay inspecciones todavía.<br>Pulsa el botón para crear la primera.</div>
+          </div>`;
       return;
     }
 
