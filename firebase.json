@@ -6,8 +6,12 @@
   "storage": {
     "rules": "storage.rules"
   },
+  "functions": {
+    "source": "functions",
+    "codebase": "inspecciones"
+  },
   "hosting": {
     "public": ".",
-    "ignore": ["firebase.json", "**/.git/**", "_scripts/**", "*.rules", "node_modules/**"]
+    "ignore": ["firebase.json", "**/.git/**", "_scripts/**", "functions/**", "*.rules", "node_modules/**"]
   }
 }
