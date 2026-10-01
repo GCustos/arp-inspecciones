@@ -108,15 +108,20 @@ var clientes      = [];
 var instalaciones = [];
 var ofertaCache   = null; // datos de la oferta en vista detalle
 
+// alcanceApp: a qué alcance de la app corresponde esta norma (null = servicio que ARP
+// factura pero sin módulo de inspección en la app todavía). El alcance de una oferta se
+// calcula SOLO a partir de qué normas se marcan aquí — nunca es un campo aparte que
+// alguien pueda desincronizar a mano. Añadir un alcance nuevo en el futuro (ej.
+// hinchables) es solo rellenar este campo en la fila correspondiente, nada más que tocar.
 var NORMAS = [
-  { ref:'UNE-EN 1176',          partes:'(Partes aplicables)', titulo:'Equipamiento de áreas de juego',                            fecha:'2017' },
-  { ref:'UNE-EN 15567',         partes:'(Partes aplicables)', titulo:'Parques de aventura. Recorridos Acrobáticos en Altura.',    fecha:'2021' },
-  { ref:'UNE-EN 16869',         partes:'',                    titulo:'Diseño y construcción de vías ferrata',                    fecha:'2018' },
-  { ref:'UNE-EN 12572',         partes:'(Partes aplicables)', titulo:'Estructuras artificiales de escalada',                     fecha:'2017' },
-  { ref:'UNE-EN 14960',         partes:'',                    titulo:'Equipos de juego hinchables',                              fecha:'2019' },
-  { ref:'UNE-EN Deportivo',     partes:'(según aplicación)',  titulo:'Equipos deportivos',                                       fecha:'Según Norma' },
-  { ref:'UNE-EN ISO 23659:2023',partes:'',                    titulo:'Trampoline Park',                                          fecha:'2023' },
-  { ref:'Otras',                partes:'',                    titulo:'Otras normativas aplicables',                              fecha:'' }
+  { ref:'UNE-EN 1176',          partes:'(Partes aplicables)', titulo:'Equipamiento de áreas de juego',                            fecha:'2017', alcanceApp:null },
+  { ref:'UNE-EN 15567',         partes:'(Partes aplicables)', titulo:'Parques de aventura. Recorridos Acrobáticos en Altura.',    fecha:'2021', alcanceApp:'PAA' },
+  { ref:'UNE-EN 16869',         partes:'',                    titulo:'Diseño y construcción de vías ferrata',                    fecha:'2018', alcanceApp:'FER' },
+  { ref:'UNE-EN 12572',         partes:'(Partes aplicables)', titulo:'Estructuras artificiales de escalada',                     fecha:'2017', alcanceApp:'SAE' },
+  { ref:'UNE-EN 14960',         partes:'',                    titulo:'Equipos de juego hinchables',                              fecha:'2019', alcanceApp:null },
+  { ref:'UNE-EN Deportivo',     partes:'(según aplicación)',  titulo:'Equipos deportivos',                                       fecha:'Según Norma', alcanceApp:null },
+  { ref:'UNE-EN ISO 23659:2023',partes:'',                    titulo:'Trampoline Park',                                          fecha:'2023', alcanceApp:null },
+  { ref:'Otras',                partes:'',                    titulo:'Otras normativas aplicables',                              fecha:'', alcanceApp:null }
 ];
 
 var PARTIDAS = [
@@ -249,13 +254,13 @@ function mostrarForm(ofertaId, datos) {
   var instSelActual = (datos && datos.instalacionId) || '';
   var optsInstalacion = instalaciones.map(function(i) {
     var sel = instSelActual === i.id ? ' selected' : '';
-    return '<option value="' + escHtml(i.id) + '"' + sel + '>' + escHtml(i.nombre || i.id) + (i.codigo ? ' · ' + escHtml(i.codigo) : '') + '</option>';
+    var propNombre = (clientes.find(function(c){ return c.id === i.propietarioId; }) || {}).nombre || i.propietario || '';
+    return '<option value="' + escHtml(i.id) + '"' + sel + '>' + escHtml(i.nombre || i.id) + (propNombre ? ' · ' + escHtml(propNombre) : '') + '</option>';
   }).join('');
-  var alcanceActual = (datos && datos.alcances) || [];
-  var alcanceChkHtml = ['PAA', 'SAE', 'FER'].map(function(a) {
-    var chk = alcanceActual.indexOf(a) >= 0 ? 'checked' : '';
-    return '<label class="chk-inline"><input type="checkbox" class="fAlcance" value="' + a + '" ' + chk + '> ' + a + '</label>';
-  }).join('');
+  // Cliente actual para mostrarlo ya resuelto si se está editando una oferta con
+  // instalación existente ya elegida (no es un campo editable aparte, ver más abajo).
+  var instActual = instSelActual ? instalaciones.find(function(i){ return i.id === instSelActual; }) : null;
+  var clienteDerivadoTxt = instActual ? ((clientes.find(function(c){ return c.id === instActual.propietarioId; }) || {}).nombre || instActual.propietario || '—') : '—';
 
   var normasHtml = NORMAS.map(function(n, i) {
     var chk    = normasChk.indexOf(n.ref) >= 0 ? 'checked' : '';
@@ -276,21 +281,31 @@ function mostrarForm(ofertaId, datos) {
   }).join('');
 
   document.getElementById('content').innerHTML =
-    '<div class="sec-label">Datos del cliente</div>' +
+    '<div class="sec-label">Instalación</div>' +
     '<div class="form-card">' +
-      '<div class="form-field"><label>Cliente</label>' +
-        '<select id="fCliente"><option value="">— Selecciona cliente —</option>' + optsCliente + '</select></div>' +
       '<div class="form-field"><label>Instalación</label>' +
         '<select id="fInstalacion" onchange="onCambioInstalacion()">' +
           '<option value="">— Selecciona instalación —</option>' + optsInstalacion +
-          '<option value="__nueva__">+ Crear instalación nueva</option>' +
+          '<option value="__nueva__"' + (instSelActual === '__nueva__' ? ' selected' : '') + '>+ Crear instalación nueva</option>' +
         '</select></div>' +
+      '<div class="form-field" id="fClienteDerivadoWrap"' + (instSelActual && instSelActual !== '__nueva__' ? '' : ' style="display:none"') + '>' +
+        '<label>Cliente (de la instalación)</label>' +
+        '<div class="det-val" id="fClienteDerivadoTxt" style="padding:9px 0">' + escHtml(clienteDerivadoTxt) + '</div>' +
+      '</div>' +
       '<div class="form-field" id="fInstalacionNuevaWrap" style="display:none">' +
         '<label>Nombre de la instalación nueva</label><input type="text" id="fInstalacionNuevaNombre" placeholder="Nombre">' +
         '<label style="margin-top:8px">Código corto (ej. CLF)</label><input type="text" id="fInstalacionNuevaCodigo" placeholder="CÓDIGO" style="text-transform:uppercase">' +
-        '<div style="font-size:11px;color:var(--muted);margin-top:4px">Dirección, gestor y demás se completan más adelante — no hace falta tenerlos ahora para hacer la oferta.</div>' +
+        '<label style="margin-top:8px">Cliente</label>' +
+        '<select id="fClienteNueva" onchange="onCambioClienteNueva()">' +
+          '<option value="">— Selecciona cliente —</option>' + optsCliente +
+          '<option value="__nuevo__">+ Crear cliente nuevo</option>' +
+        '</select>' +
+        '<div id="fClienteNuevoWrap" style="display:none;margin-top:8px">' +
+          '<label>Nombre del cliente nuevo</label><input type="text" id="fClienteNuevoNombre" placeholder="Nombre / razón social">' +
+          '<label style="margin-top:8px">CIF (opcional)</label><input type="text" id="fClienteNuevoCif" placeholder="CIF" style="text-transform:uppercase">' +
+        '</div>' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:8px">Dirección, gestor y demás se completan más adelante — no hace falta tenerlos ahora para hacer la oferta.</div>' +
       '</div>' +
-      '<div class="form-field"><label>Alcance</label><div class="alcance-chk-row" style="display:flex;gap:14px">' + alcanceChkHtml + '</div></div>' +
     '</div>' +
     '<div class="sec-label">Normas aplicables</div>' +
     '<div class="form-card">' + normasHtml + '</div>' +
@@ -310,18 +325,33 @@ function mostrarForm(ofertaId, datos) {
 
 window.onCambioInstalacion = function() {
   var val = (document.getElementById('fInstalacion') || {}).value || '';
-  var wrap = document.getElementById('fInstalacionNuevaWrap');
-  if (wrap) wrap.style.display = val === '__nueva__' ? '' : 'none';
-  // Instalación ya existente: precargar su alcance ya conocido (editable igual — esta
-  // oferta puede añadir un alcance que la instalación todavía no tenía).
+  var wrapNueva = document.getElementById('fInstalacionNuevaWrap');
+  var wrapDerivado = document.getElementById('fClienteDerivadoWrap');
+  if (wrapNueva)    wrapNueva.style.display    = val === '__nueva__' ? '' : 'none';
+  if (wrapDerivado) wrapDerivado.style.display = (val && val !== '__nueva__') ? '' : 'none';
   if (val && val !== '__nueva__') {
     var inst = instalaciones.find(function(i) { return i.id === val; });
+    // Cliente: se muestra ya resuelto desde el propietario real de la instalación — no
+    // es un campo que se pueda elegir aparte, para que nunca puedan desincronizarse.
+    var propNombre = inst ? ((clientes.find(function(c){ return c.id === inst.propietarioId; }) || {}).nombre || inst.propietario || '—') : '—';
+    var txtEl = document.getElementById('fClienteDerivadoTxt');
+    if (txtEl) txtEl.textContent = propNombre;
+    // Precargar las normas de los alcances que la instalación ya tenía — editable igual
+    // (esta oferta puede añadir un alcance nuevo marcando otra norma).
     if (inst && inst.alcances) {
-      document.querySelectorAll('.fAlcance').forEach(function(cb) {
-        cb.checked = inst.alcances.indexOf(cb.value) >= 0;
+      NORMAS.forEach(function(n, i) {
+        if (!n.alcanceApp) return;
+        var cb = document.getElementById('norma-' + i);
+        if (cb && inst.alcances.indexOf(n.alcanceApp) >= 0) cb.checked = true;
       });
     }
   }
+};
+
+window.onCambioClienteNueva = function() {
+  var val = (document.getElementById('fClienteNueva') || {}).value || '';
+  var wrap = document.getElementById('fClienteNuevoWrap');
+  if (wrap) wrap.style.display = val === '__nuevo__' ? '' : 'none';
 };
 
 function recalc() {
@@ -351,15 +381,23 @@ function recalc() {
 }
 
 function guardarOferta() {
-  var sel        = document.getElementById('fCliente');
-  var clienteId  = sel ? sel.value : '';
-  var clienteNom = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
-  var instSel    = (document.getElementById('fInstalacion') || {}).value || '';
-  var alcances   = Array.prototype.slice.call(document.querySelectorAll('.fAlcance:checked')).map(function(cb){ return cb.value; });
+  var instSel = (document.getElementById('fInstalacion') || {}).value || '';
+  if (!instSel) { showToast('Selecciona o crea una instalación'); return; }
 
-  if (!clienteId) { showToast('Selecciona un cliente'); return; }
-  if (!instSel)   { showToast('Selecciona o crea una instalación'); return; }
+  var normas = [];
+  NORMAS.forEach(function(n, i) {
+    var el = document.getElementById('norma-' + i);
+    if (el && el.checked) normas.push(n.ref);
+  });
+  // El alcance NUNCA se elige aparte — se calcula solo a partir de qué normas tienen
+  // alcanceApp y están marcadas, para que no pueda desincronizarse de la norma real.
+  var alcances = [];
+  NORMAS.forEach(function(n) {
+    if (n.alcanceApp && normas.indexOf(n.ref) >= 0 && alcances.indexOf(n.alcanceApp) < 0) alcances.push(n.alcanceApp);
+  });
+
   var nombreNueva = '', codigoNueva = '';
+  var clienteSelNueva = '', clienteNuevoNombre = '', clienteNuevoCif = '';
   if (instSel === '__nueva__') {
     nombreNueva = ((document.getElementById('fInstalacionNuevaNombre') || {}).value || '').trim();
     codigoNueva = ((document.getElementById('fInstalacionNuevaCodigo') || {}).value || '').trim().toUpperCase();
@@ -368,13 +406,14 @@ function guardarOferta() {
     if (instalaciones.some(function(i){ return (i.codigo||'').toUpperCase() === codigoNueva; })) {
       showToast('Ese código de instalación ya existe'); return;
     }
+    clienteSelNueva = (document.getElementById('fClienteNueva') || {}).value || '';
+    if (!clienteSelNueva) { showToast('Selecciona o crea un cliente para la instalación nueva'); return; }
+    if (clienteSelNueva === '__nuevo__') {
+      clienteNuevoNombre = ((document.getElementById('fClienteNuevoNombre') || {}).value || '').trim();
+      clienteNuevoCif    = ((document.getElementById('fClienteNuevoCif') || {}).value || '').trim().toUpperCase();
+      if (!clienteNuevoNombre) { showToast('Indica el nombre del cliente nuevo'); return; }
+    }
   }
-
-  var normas = [];
-  NORMAS.forEach(function(n, i) {
-    var el = document.getElementById('norma-' + i);
-    if (el && el.checked) normas.push(n.ref);
-  });
 
   var partidas = PARTIDAS.map(function(c, i) {
     var cu = parseFloat((document.getElementById('cu-' + i) || {}).value) || 0;
@@ -390,24 +429,49 @@ function guardarOferta() {
   var btn = document.querySelector('.btn-primary');
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
 
-  // Si se eligió "+ Crear instalación nueva", se crea primero (datos mínimos — nombre y
-  // código; el resto __PENDIENTE__, mismo criterio que ya usa el resto de la app para no
-  // bloquear por datos que comercial aún no tiene en fase de oferta) y se usa su id.
-  // Si es una instalación existente, se resuelve directo sin ninguna escritura.
-  var resolverInstalacion = instSel === '__nueva__'
-    ? db.collection('instalaciones').add({
-        nombre: nombreNueva, codigo: codigoNueva, alcances: alcances,
-        propietarioId: clienteId, propietario: clienteNom,
-        municipio: '__PENDIENTE__', direccion: '__PENDIENTE__', provincia: '__PENDIENTE__',
-        gestorActual: '__PENDIENTE__', solicitanteActual: '', cif: '',
-        activo: true
-      }).then(function(ref) { return { id: ref.id, nombre: nombreNueva }; })
-    : Promise.resolve({ id: instSel, nombre: (instalaciones.find(function(i){return i.id===instSel;})||{}).nombre || '' });
+  // Cliente: nunca se elige aparte de la instalación — o se deriva del propietario real
+  // de una instalación ya existente, o (solo si la instalación también es nueva) se crea/
+  // elige aquí porque todavía no hay instalación de la que derivarlo.
+  var resolverCliente;
+  if (instSel !== '__nueva__') {
+    var instExistente = instalaciones.find(function(i){ return i.id === instSel; });
+    var clExistente = instExistente ? clientes.find(function(c){ return c.id === instExistente.propietarioId; }) : null;
+    resolverCliente = Promise.resolve({
+      id: instExistente ? instExistente.propietarioId : '',
+      nombre: clExistente ? clExistente.nombre : (instExistente ? instExistente.propietario : '') || ''
+    });
+  } else if (clienteSelNueva === '__nuevo__') {
+    resolverCliente = db.collection('clientes').add({
+      nombre: clienteNuevoNombre, cif: clienteNuevoCif, activo: true,
+      contactos: [], creadoEn: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function(ref) { return { id: ref.id, nombre: clienteNuevoNombre }; });
+  } else {
+    resolverCliente = Promise.resolve({
+      id: clienteSelNueva,
+      nombre: (clientes.find(function(c){ return c.id === clienteSelNueva; }) || {}).nombre || ''
+    });
+  }
 
-  resolverInstalacion.then(function(inst) {
+  resolverCliente.then(function(cliente) {
+    // Si se eligió "+ Crear instalación nueva", se crea ahora (datos mínimos — nombre,
+    // código y el cliente ya resuelto; el resto __PENDIENTE__, mismo criterio que ya usa
+    // el resto de la app para no bloquear por datos que comercial aún no tiene en fase de
+    // oferta). Si es una instalación existente, se resuelve directo sin ninguna escritura.
+    var resolverInstalacion = instSel === '__nueva__'
+      ? db.collection('instalaciones').add({
+          nombre: nombreNueva, codigo: codigoNueva, alcances: alcances,
+          propietarioId: cliente.id, propietario: cliente.nombre,
+          municipio: '__PENDIENTE__', direccion: '__PENDIENTE__', provincia: '__PENDIENTE__',
+          gestorActual: '__PENDIENTE__', solicitanteActual: '', cif: '',
+          activo: true
+        }).then(function(ref) { return { id: ref.id, nombre: nombreNueva }; })
+      : Promise.resolve({ id: instSel, nombre: (instalaciones.find(function(i){return i.id===instSel;})||{}).nombre || '' });
+
+    return resolverInstalacion.then(function(inst) { return { cliente: cliente, inst: inst }; });
+  }).then(function(r) {
     var datosComunes = {
-      clienteId: clienteId, clienteNombre: clienteNom,
-      instalacionId: inst.id, instalacionNombre: inst.nombre, alcances: alcances,
+      clienteId: r.cliente.id, clienteNombre: r.cliente.nombre,
+      instalacionId: r.inst.id, instalacionNombre: r.inst.nombre, alcances: alcances,
       normas: normas, partidas: partidas, descuento: desc,
       totalSinIVA: total, totalTrasDescuento: trasDes, ivaImporte: iva, totalConIVA: trasDes + iva
     };
