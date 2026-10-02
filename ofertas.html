@@ -287,7 +287,8 @@ function mostrarForm(ofertaId, datos) {
 
   document.getElementById('content').innerHTML =
     '<div class="sec-label">Instalación</div>' +
-    '<div class="form-card">' +
+    // overflow visible: si no, el desplegable del buscador queda recortado por la tarjeta.
+    '<div class="form-card" style="overflow:visible">' +
       '<div class="form-field"><label>Instalación</label>' +
         // fInstalacion guarda el id elegido (o "__nueva__"); el texto visible es solo para buscar.
         '<input type="hidden" id="fInstalacion" value="' + escHtml(instSelActual) + '">' +
