@@ -29,6 +29,15 @@
     .form-field input,.form-field select,.form-field textarea{width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text);background:white}
     .form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--gold);outline:none}
     .form-field textarea{resize:vertical;min-height:60px}
+    /* autocomplete instalación (igual que nueva-inspeccion.html) */
+    .ac-wrap{position:relative}
+    .ac-dropdown{position:absolute;top:calc(100% + 3px);left:0;right:0;background:white;border:1.5px solid var(--gold);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;max-height:260px;overflow-y:auto;display:none}
+    .ac-item{padding:10px 13px;cursor:pointer;border-bottom:1px solid var(--border)}
+    .ac-item:last-child{border-bottom:none}
+    .ac-item:hover{background:rgba(200,153,58,.08)}
+    .ac-nombre{display:block;font-size:13px;font-weight:600;color:var(--text)}
+    .ac-lugar{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+    .ac-item.ac-crear .ac-nombre{color:var(--gold)}
     /* normas */
     .norma-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer}
     .norma-row:last-child{border-bottom:none}
@@ -239,6 +248,7 @@ var editId = null;
 function mostrarForm(ofertaId, datos) {
   vistaActual = 'form';
   editId = ofertaId || null;
+  udPrecargado = null;
   document.getElementById('hdrTitle').textContent = ofertaId ? 'Editar oferta' : 'Nueva oferta';
   document.getElementById('btnNueva').style.display = 'none';
 
@@ -252,11 +262,6 @@ function mostrarForm(ofertaId, datos) {
   }).join('');
 
   var instSelActual = (datos && datos.instalacionId) || '';
-  var optsInstalacion = instalaciones.map(function(i) {
-    var sel = instSelActual === i.id ? ' selected' : '';
-    var propNombre = (clientes.find(function(c){ return c.id === i.propietarioId; }) || {}).nombre || i.propietario || '';
-    return '<option value="' + escHtml(i.id) + '"' + sel + '>' + escHtml(i.nombre || i.id) + (propNombre ? ' · ' + escHtml(propNombre) : '') + '</option>';
-  }).join('');
   // Cliente actual para mostrarlo ya resuelto si se está editando una oferta con
   // instalación existente ya elegida (no es un campo editable aparte, ver más abajo).
   var instActual = instSelActual ? instalaciones.find(function(i){ return i.id === instSelActual; }) : null;
@@ -284,10 +289,12 @@ function mostrarForm(ofertaId, datos) {
     '<div class="sec-label">Instalación</div>' +
     '<div class="form-card">' +
       '<div class="form-field"><label>Instalación</label>' +
-        '<select id="fInstalacion" onchange="onCambioInstalacion()">' +
-          '<option value="">— Selecciona instalación —</option>' + optsInstalacion +
-          '<option value="__nueva__"' + (instSelActual === '__nueva__' ? ' selected' : '') + '>+ Crear instalación nueva</option>' +
-        '</select></div>' +
+        // fInstalacion guarda el id elegido (o "__nueva__"); el texto visible es solo para buscar.
+        '<input type="hidden" id="fInstalacion" value="' + escHtml(instSelActual) + '">' +
+        '<div class="ac-wrap">' +
+          '<input type="text" id="fInstalacionBuscar" placeholder="Buscar por nombre, municipio o código..." autocomplete="off" oninput="onBuscarInstalacion()" value="' + escHtml(instActual ? (instActual.nombre || '') : '') + '">' +
+          '<div class="ac-dropdown" id="acDropdown"></div>' +
+        '</div></div>' +
       '<div class="form-field" id="fClienteDerivadoWrap"' + (instSelActual && instSelActual !== '__nueva__' ? '' : ' style="display:none"') + '>' +
         '<label>Cliente (de la instalación)</label>' +
         '<div class="det-val" id="fClienteDerivadoTxt" style="padding:9px 0">' + escHtml(clienteDerivadoTxt) + '</div>' +
@@ -323,6 +330,57 @@ function mostrarForm(ofertaId, datos) {
   recalc();
 }
 
+// Buscador de instalación (mismo criterio que nueva-inspeccion.html: nombre, municipio,
+// código y alias). Al escribir se deshace la selección anterior hasta elegir otra.
+window.onBuscarInstalacion = function() {
+  var v = document.getElementById('fInstalacionBuscar').value;
+  var dropdown = document.getElementById('acDropdown');
+  document.getElementById('fInstalacion').value = '';
+  onCambioInstalacion();
+  if (v.trim().length < 2) { dropdown.style.display = 'none'; return; }
+  var norm = function(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); };
+  var q = norm(v.trim());
+  var resultados = instalaciones.filter(function(i) {
+    return norm(i.nombre).includes(q) ||
+           norm(i.municipio).includes(q) ||
+           norm(i.codigo).includes(q) ||
+           (i.aliases || []).some(function(a) { return norm(a).includes(q); }) ||
+           (i.aka    || []).some(function(a) { return norm(a).includes(q); });
+  }).slice(0, 8);
+  dropdown.innerHTML = resultados.map(function(i) {
+    var propNombre = (clientes.find(function(c){ return c.id === i.propietarioId; }) || {}).nombre || i.propietario || '';
+    var lugar = [propNombre, [i.municipio, i.provincia].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+    var cod = i.codigo ? ' <span style="font-size:10px;font-family:monospace;color:var(--gold)">(' + escHtml(i.codigo) + ')</span>' : '';
+    return '<div class="ac-item" data-id="' + escHtml(i.id) + '" onclick="seleccionarInstalacionOferta(this.dataset.id)">' +
+      '<span class="ac-nombre">' + escHtml(i.nombre || 'Sin nombre') + cod + '</span>' +
+      (lugar ? '<span class="ac-lugar">' + escHtml(lugar) + '</span>' : '') +
+      '</div>';
+  }).join('') +
+  '<div class="ac-item ac-crear" onclick="seleccionarInstalacionOferta(\'__nueva__\')">' +
+    '<span class="ac-nombre">+ Crear instalación nueva «' + escHtml(v.trim()) + '»</span>' +
+  '</div>';
+  dropdown.style.display = 'block';
+};
+
+window.seleccionarInstalacionOferta = function(id) {
+  var buscar = document.getElementById('fInstalacionBuscar');
+  document.getElementById('fInstalacion').value = id;
+  document.getElementById('acDropdown').style.display = 'none';
+  if (id === '__nueva__') {
+    var nom = document.getElementById('fInstalacionNuevaNombre');
+    if (nom && !nom.value) nom.value = buscar.value.trim();
+  } else {
+    var inst = instalaciones.find(function(i) { return i.id === id; });
+    if (inst) buscar.value = inst.nombre || '';
+  }
+  onCambioInstalacion();
+};
+
+document.addEventListener('click', function(e) {
+  var dd = document.getElementById('acDropdown');
+  if (dd && !e.target.closest('.ac-wrap')) dd.style.display = 'none';
+});
+
 window.onCambioInstalacion = function() {
   var val = (document.getElementById('fInstalacion') || {}).value || '';
   var wrapNueva = document.getElementById('fInstalacionNuevaWrap');
@@ -353,8 +411,16 @@ window.onCambioInstalacion = function() {
 // Precarga "Unidades" de la primera partida con el nº de juegos de la última inspección
 // de esta instalación — solo orienta, el campo sigue siendo editable (el nº de juegos
 // puede haber cambiado desde entonces).
+// Si el valor actual lo puso esta precarga (no el usuario), se sustituye al cambiar de
+// instalación; si el usuario ya lo tocó a mano, se respeta.
+var udPrecargado = null;
 function precargarJuegosUltimaInspeccion(instalacionId) {
+  var ud0 = document.getElementById('ud-0');
+  var autoAnterior = ud0 && udPrecargado !== null && parseFloat(ud0.value) === udPrecargado;
+  if (autoAnterior) { ud0.value = 0; udPrecargado = null; recalc(); }
   db.collection('inspecciones').where('instalacionId', '==', instalacionId).get().then(function(snap) {
+    // Respuesta tardía de una instalación que ya no está elegida: se ignora.
+    if ((document.getElementById('fInstalacion') || {}).value !== instalacionId) return;
     if (snap.empty) return;
     var docs = [];
     snap.forEach(function(d) { docs.push(d.data()); });
@@ -373,6 +439,7 @@ function precargarJuegosUltimaInspeccion(instalacionId) {
     var ud0 = document.getElementById('ud-0');
     if (ud0 && (!ud0.value || parseFloat(ud0.value) === 0)) {
       ud0.value = totalJuegos;
+      udPrecargado = totalJuegos;
       recalc();
     }
   }).catch(function(e) { console.warn('No se pudo precargar nº de juegos:', e.message); });
@@ -412,7 +479,7 @@ function recalc() {
 
 function guardarOferta() {
   var instSel = (document.getElementById('fInstalacion') || {}).value || '';
-  if (!instSel) { showToast('Selecciona o crea una instalación'); return; }
+  if (!instSel) { showToast('Busca y elige una instalación de la lista, o crea una nueva'); return; }
 
   var normas = [];
   NORMAS.forEach(function(n, i) {
