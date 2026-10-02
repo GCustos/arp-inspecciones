@@ -855,11 +855,12 @@ Control anual principal: se efectúa para constatar, al menos una vez al año, e
 
   const TEXTO_RESULTADOS = `Los resultados de la inspección están organizados por capítulos, listando el conjunto de los puntos de inspección que componen el diagnóstico de seguridad, para el recorrido en su conjunto. En el presente informe se detallan tanto las observaciones de carácter más grave, como los consejos o recomendaciones de seguridad que puedan ser aportados por el inspector en la inspección in situ de las instalaciones.
 
-Las observaciones consideradas como NO CONFORMIDAD a norma, vendrán reflejadas por 3 niveles de severidad:
+Las observaciones consideradas como NO CONFORMIDAD a norma, vendrán reflejadas por 4 niveles de severidad:
 
 — Graves: puntos de no cumplimiento normativo que presentan riesgos para la integridad estructural o la seguridad de los usuarios, y que por tanto deben ser modificados o corregidos lo antes posible.
 — Medio: puntos de divergencia respecto a la normativa en vigor que deben ser tenidos en consideración por parte del gestor de la actividad para que el riesgo no vaya a más y cumplir con la normativa. En este caso se deberán realizar operaciones correctivas pero sin carácter de urgencia.
-— Leve/Documentales: en este caso ARP PREVENCIÓN se referirá a la falta de documentos técnicos para revisar o informes técnicos que necesiten ser entregados por el gestor/constructor del parque.
+— Leves: puntos de no cumplimiento normativo cuyo riesgo de daño para los usuarios es bajo. Precisan de acción correctora por parte del gestor de la actividad para que no se agraven.
+— Documentales: en este caso ARP PREVENCIÓN se referirá a la falta de documentos técnicos para revisar o informes técnicos que necesiten ser entregados por el gestor/constructor del parque.
 
 En caso de que la inspección resulte con NO CONFORMIDADES, la metodología será la siguiente:
 
@@ -1379,26 +1380,43 @@ Documentos realizados en el informe de inspección por ADELL RIESGOS Y PREVENCI�
       }
       doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
       doc.text('II. Resultados de la inspección', ML, y); y += 6;
-      y = addTextBlock(doc, textoPorAlcance({SAE: TEXTO_RESULTADOS_SAE, FER: TEXTO_RESULTADOS_FER}, TEXTO_RESULTADOS), ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+      // La tabla de colores va justo después de la lista de niveles de severidad, que es lo
+      // que explica, y antes de la metodología ("En caso de que la inspección resulte con...").
+      const textoRes = textoPorAlcance({SAE: TEXTO_RESULTADOS_SAE, FER: TEXTO_RESULTADOS_FER}, TEXTO_RESULTADOS);
+      const corteRes = textoRes.indexOf('\n\nEn caso de que la inspección resulte con NO CONFORMIDADES');
+      const textoResNiveles = corteRes >= 0 ? textoRes.slice(0, corteRes) : textoRes;
+      const textoResMetodo  = corteRes >= 0 ? textoRes.slice(corteRes + 2) : '';
+      y = addTextBlock(doc, textoResNiveles, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
 
       // Tabla colores NC
-      y += 4;
+      y += 3;
       const ncColors = [
         {color:RED,    text:'NO CONFORMIDAD GRAVE, NECESITA ACCIÓN CORRECTORA URGENTE AL PODER PROVOCAR UN RIESGO INMEDIATO.'},
         {color:ORANGE, text:'NO CONFORMIDAD MEDIA, NECESITA ACCIÓN CORRECTORA.'},
         {color:GREEN_C,text:'NO CONFORMIDAD LEVE, NECESITA ACCIÓN, EL RIESGO DE DAÑO ES BAJO.'},
         {color:BLUE_C, text:'NO CONFORMIDAD DOCUMENTAL, FALTA DOCUMENTACIÓN.'},
       ];
-      ncColors.forEach(({color, text}) => {
+      // La leyenda es un bloque: si no cabe entera, pasa completa a la página siguiente
+      // (antes se cortaba franja a franja y la última quedaba sola en otra página).
+      doc.setFontSize(8); doc.setFont('helvetica','bold');
+      const ncFilas = ncColors.map(({color, text}) => {
         const lines = doc.splitTextToSize(text, CW-4);
-        const bh = Math.max(8, lines.length * 4.5 + 4);
-        if (y + bh > PH-22) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+        return { color, lines, bh: Math.max(8, lines.length * 4.5 + 4) };
+      });
+      const ncAltoTotal = ncFilas.reduce((s, f) => s + f.bh + 1, 0);
+      if (y + ncAltoTotal > PH-22) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
+      ncFilas.forEach(({color, lines, bh}) => {
         doc.setFillColor(...color);
         doc.rect(ML, y, CW, bh, 'F');
         doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
         lines.forEach((l,i) => doc.text(l, ML+2, y+4.5+i*4.5));
         y += bh + 1;
       });
+
+      if (textoResMetodo) {
+        y += 6;
+        y = addTextBlock(doc, textoResMetodo, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+      }
 
 
       // ═══ DESCRIPCIÓN DEL RECORRIDO ═══
