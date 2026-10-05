@@ -101,7 +101,7 @@
   let currentUser = null;
   let userRole = null;
   let listaCompleta = [];
-  let listaTodas = [];     // lista sin filtrar (solo admin/director, para poblar el filtro)
+  let listaTodas = [];     // lista sin filtrar (admin/director/proyecto, para poblar el filtro)
   const LIMITE_COMPLETADAS = 5;
   initAuth({
     offline: true,
@@ -126,9 +126,7 @@
       if (userRole === 'admin' || userRole === 'director' || userRole === 'proyecto') {
         document.getElementById('btnAdminLink').style.display = 'flex';
         q = db.collection('inspecciones').orderBy('fechaCreacion', 'desc');
-        if (userRole === 'admin' || userRole === 'director') {
-          document.getElementById('filtroBar').style.display = 'flex';
-        }
+        document.getElementById('filtroBar').style.display = 'flex';
       } else {
         const q1 = db.collection('inspecciones')
           .where('inspectorEmail', '==', currentUser.email)
@@ -155,11 +153,9 @@
       const snap = await q.get();
       const lista = [];
       snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
-      if (userRole === 'admin' || userRole === 'director') {
-        listaTodas = lista;
-        poblarFiltroInspectores(lista);
-      }
-      renderInspecciones(lista);
+      listaTodas = lista;
+      poblarFiltroInspectores(lista);
+      aplicarFiltro();
     } catch(e) {
       console.error('Error cargando inspecciones:', e.message);
       // FIX: mostrar error útil en lugar de lista vacía silenciosa
@@ -175,16 +171,28 @@
     }
   }
 
+  // Admin/director/proyecto entran viendo solo lo suyo (para no abrir sin querer la inspección de
+  // otro); el desplegable permite pasar a "Todos" o a un inspector concreto. Se filtra por
+  // email, contando también al segundo inspector.
   function poblarFiltroInspectores(lista) {
     var sel = document.getElementById('fInspector');
-    var nombres = [];
+    var yo = (currentUser.email || '').toLowerCase();
+    var nombres = {};
     lista.forEach(function(i) {
-      if (i.inspectorNombre && nombres.indexOf(i.inspectorNombre) < 0) nombres.push(i.inspectorNombre);
+      [[i.inspectorEmail, i.inspectorNombre], [i.inspector2Email, i.inspector2Nombre]].forEach(function(p) {
+        var em = (p[0] || '').toLowerCase();
+        if (em && !nombres[em]) nombres[em] = p[1] || p[0];
+      });
     });
-    nombres.sort();
-    nombres.forEach(function(n) {
-      sel.insertAdjacentHTML('beforeend', '<option value="' + escHtml(n) + '">' + escHtml(n) + '</option>');
-    });
+    var otros = Object.keys(nombres).filter(function(em) { return em !== yo; })
+      .sort(function(a, b) { return String(nombres[a]).localeCompare(String(nombres[b]), 'es'); });
+    sel.innerHTML =
+      '<option value="' + escHtml(yo) + '">Mis inspecciones</option>' +
+      '<option value="">Todos los inspectores</option>' +
+      otros.map(function(em) {
+        return '<option value="' + escHtml(em) + '">' + escHtml(nombres[em]) + '</option>';
+      }).join('');
+    sel.value = yo;
   }
 
   window.aplicarFiltro = function() {
@@ -192,7 +200,7 @@
     var fAlc  = document.getElementById('fAlcance').value;
     var fTxt  = document.getElementById('fInstalacion').value.trim().toLowerCase();
     var filtrada = listaTodas.filter(function(i) {
-      if (fInsp && i.inspectorNombre !== fInsp) return false;
+      if (fInsp && (i.inspectorEmail || '').toLowerCase() !== fInsp && (i.inspector2Email || '').toLowerCase() !== fInsp) return false;
       if (fAlc && i.tipoAlcance !== fAlc) return false;
       if (fTxt && (i.nombreInstalacion || '').toLowerCase().indexOf(fTxt) < 0) return false;
       return true;
@@ -207,7 +215,7 @@
       container.innerHTML = filtroActivo
         ? `<div class="empty-state">
             <div class="empty-icon">&#128269;</div>
-            <div class="empty-text">Ninguna inspección coincide con el filtro.</div>
+            <div class="empty-text">Ninguna inspección coincide con el filtro.<br>Para ver las del resto, elige «Todos los inspectores».</div>
           </div>`
         : `<div class="empty-state">
             <div class="empty-icon">&#128203;</div>
