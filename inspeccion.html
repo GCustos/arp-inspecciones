@@ -2703,7 +2703,17 @@
       irAlJuego(firstCol.ci,firstCol.ji);
       return;
     }
-    // Auto-captura horas (solo después de pasar todas las validaciones)
+    const ncsBloqueantes=S.ncs.filter(n=>n.prio&&n.prio!=="OBSERVACION"&&!n.cerrada);
+    const resultado=ncsBloqueantes.length===0?"FAVORABLE":"DESFAVORABLE";
+    const msg=ncsBloqueantes.length===0
+      ?"La inspección tiene resultado FAVORABLE.\n¿Deseas completarla?"
+      :`${ncsBloqueantes.length} NC(s) bloqueantes (GRAVE/MEDIA/LEVE/DOCUMENTAL). Resultado DESFAVORABLE.\n¿Deseas completarla de todas formas?`;
+    if(!confirm(msg)) return;
+    // Auto-captura horas — SOLO tras confirmar. Si se cancela el diálogo, no debe
+    // quedar ninguna huella (ni horaFin ni horaInicio) de este intento de completar;
+    // antes se capturaba ANTES del confirm() y el autosave de 30s lo persistía igual
+    // aunque se cancelara (bug real: Amazonia Marbella quedó con horaFin 8:48 pese a
+    // cancelar y seguir trabajando hasta las 13:12).
     autoCapturarHoraInicio();
     var _ahoraFin = new Date().toTimeString().slice(0, 5);
     if (!S.horaFin) {
@@ -2715,12 +2725,6 @@
     var _hoyISOFin = new Date().toISOString().split('T')[0];
     var _sesHoyFin = S.sesiones.find(function(s){ return s.fecha === _hoyISOFin; });
     if (_sesHoyFin && !_sesHoyFin.horaFin) { _sesHoyFin.horaFin = _ahoraFin; _dirtySesionFechas.add(_hoyISOFin); }
-    const ncsBloqueantes=S.ncs.filter(n=>n.prio&&n.prio!=="OBSERVACION"&&!n.cerrada);
-    const resultado=ncsBloqueantes.length===0?"FAVORABLE":"DESFAVORABLE";
-    const msg=ncsBloqueantes.length===0
-      ?"La inspección tiene resultado FAVORABLE.\n¿Deseas completarla?"
-      :`${ncsBloqueantes.length} NC(s) bloqueantes (GRAVE/MEDIA/LEVE/DOCUMENTAL). Resultado DESFAVORABLE.\n¿Deseas completarla de todas formas?`;
-    if(!confirm(msg)) return;
     // Subir fotos pendientes antes de guardar para que aparezcan en PDFs generados desde otros dispositivos
     const btnComp = document.querySelector('.btn-completar');
     if (navigator.onLine) {
