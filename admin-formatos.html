@@ -939,9 +939,9 @@
             +'</div>'
             +'<div style="display:flex;gap:4px;align-items:center;flex-shrink:0">'
             +(h.checklist?'<button class="btn-hist-pdf" onclick="event.stopPropagation();generarPdfFormato('+idx+')">PDF</button>':'')
-            // "↕ Cambios" abre la comparativa del informe completo (textos, maquetación,
-            // checklist y criterios) frente a la revisión anterior, con descarga en PDF.
-            +(idx<docs.length-1?'<button class="btn-hist-pdf" onclick="event.stopPropagation();location.href=\'comparar-informe.html?alc='+encodeURIComponent(alcanceActual)+'&de='+docs[idx+1].revision+'&a='+h.revision+'\'" title="Informe completo de la Rev anterior frente a esta, con los cambios en color (ENAC)">↕ Cambios</button>':'')
+            // "↕ Cambios": el informe completo (como el de una inspección) con los cambios
+            // frente a la revisión anterior marcados — ver modo comparativa en resultado.html.
+            +(idx<docs.length-1?'<button class="btn-hist-pdf" onclick="event.stopPropagation();location.href=\'resultado.html?comparar=1&alc='+encodeURIComponent(alcanceActual)+'&de='+docs[idx+1].revision+'&a='+h.revision+'\'" title="Informe con los cambios frente a la Rev anterior marcados en color (ENAC)">↕ Cambios</button>':'')
             +'<span>&#9660;</span>'
             +'</div>'
             +'</div>'

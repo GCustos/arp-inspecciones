@@ -481,9 +481,72 @@ La instalación objeto de la presente inspección se denomina ${d.nombre}, const
     return JSON.stringify((bloques || []).map(b => [b.s, b.k, b.x]));
   }
 
+  // ── Comparación entre dos plantillas (comparar-informe.html y modo comparativa del PDF) ──
+  // Devuelve una lista de operaciones en el orden de la plantilla nueva:
+  //   eq (igual), ins (añadido), del (eliminado), mod (modificado: a = antes, b = después),
+  //   movA (movido a esta posición), movDe (movido desde esta posición; par = índice del movA).
+  function lcs(a, b, eq) {
+    const n = a.length, m = b.length, t = [];
+    for (let i = 0; i <= n; i++) t.push(new Int32Array(m + 1));
+    for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+      t[i][j] = eq(a[i], b[j]) ? t[i + 1][j + 1] + 1 : Math.max(t[i + 1][j], t[i][j + 1]);
+    const ops = []; let i = 0, j = 0;
+    while (i < n && j < m) {
+      if (eq(a[i], b[j])) { ops.push({ t: 'eq', a: a[i], b: b[j] }); i++; j++; }
+      else if (t[i + 1][j] >= t[i][j + 1]) { ops.push({ t: 'del', a: a[i] }); i++; }
+      else { ops.push({ t: 'ins', b: b[j] }); j++; }
+    }
+    while (i < n) ops.push({ t: 'del', a: a[i++] });
+    while (j < m) ops.push({ t: 'ins', b: b[j++] });
+    return ops;
+  }
+  const clave = b => b.k + '|' + b.x;
+  const palabras = s => String(s).split(/(\s+)/).filter(x => x !== '');
+  function similitud(x, y) {
+    const A = palabras(x).filter(w => w.trim()), B = palabras(y).filter(w => w.trim());
+    if (!A.length || !B.length) return 0;
+    const setB = {}; B.forEach(w => { const k = w.toLowerCase(); setB[k] = (setB[k] || 0) + 1; });
+    let comunes = 0; A.forEach(w => { const k = w.toLowerCase(); if (setB[k]) { comunes++; setB[k]--; } });
+    return 2 * comunes / (A.length + B.length);
+  }
+  function diffBloques(viejo, nuevo) {
+    const ops = lcs(viejo, nuevo, (x, y) => clave(x) === clave(y));
+    // Movidos: un bloque eliminado en un sitio y añadido idéntico en otro.
+    const insPorClave = {};
+    ops.forEach((o, i) => { if (o.t === 'ins') (insPorClave[clave(o.b)] = insPorClave[clave(o.b)] || []).push(i); });
+    ops.forEach((o, i) => {
+      if (o.t !== 'del') return;
+      const lista = insPorClave[clave(o.a)];
+      if (lista && lista.length) { const j = lista.shift(); o.t = 'movDe'; ops[j].t = 'movA'; o.par = j; ops[j].par = i; }
+    });
+    // Modificados: en cada tramo de cambios, emparejar eliminado/añadido del mismo tipo y
+    // parecidos (≥ 50 % de palabras en común), para compararlos palabra a palabra.
+    let i = 0;
+    while (i < ops.length) {
+      if (ops[i].t !== 'del' && ops[i].t !== 'ins') { i++; continue; }
+      const ini = i; while (i < ops.length && (ops[i].t === 'del' || ops[i].t === 'ins')) i++;
+      const dels = [], inss = [];
+      for (let k = ini; k < i; k++) (ops[k].t === 'del' ? dels : inss).push(k);
+      dels.forEach(d => {
+        let mejor = -1, mejorS = 0.5;
+        inss.forEach(n => {
+          if (ops[n].t !== 'ins' || ops[n].b.k !== ops[d].a.k) return;
+          const s = similitud(ops[d].a.x, ops[n].b.x); if (s >= mejorS) { mejorS = s; mejor = n; }
+        });
+        if (mejor >= 0) { ops[mejor].t = 'mod'; ops[mejor].a = ops[d].a; ops[d].t = 'skip'; }
+      });
+    }
+    return ops.filter(o => o.t !== 'skip');
+  }
+  // Diferencia palabra a palabra: [{t:'eq'|'ins'|'del', x}]
+  function diffPalabras(viejo, nuevo) {
+    return lcs(palabras(viejo), palabras(nuevo), (x, y) => x === y)
+      .map(o => ({ t: o.t, x: o.t === 'del' ? o.a : o.b }));
+  }
+
   const api = {
     TEXTOS, LEYENDA_NC, ANEXOS_TITULO, ANEXOS_DOCS, ANEXOS_ENSAYOS_TITULO, ENSAYOS_POR_DEFECTO, COLUMNAS_PAA,
-    mantenimiento, resultados, localizacion, estructura, huella,
+    mantenimiento, resultados, localizacion, estructura, huella, diffBloques, diffPalabras,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PLANTILLA_INFORME = api;

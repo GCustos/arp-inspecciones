@@ -96,7 +96,7 @@
 
   const params = new URLSearchParams(window.location.search);
   const inspeccionId = params.get("id");
-  if (!inspeccionId) { location.href="inspecciones.html"; }
+  if (!inspeccionId && params.get('comparar') !== '1') { location.href="inspecciones.html"; }
 
   // Logo ARP en base64
   const LOGO_B64 = "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";
@@ -105,6 +105,9 @@
   let D_actual = null; // datos siempre de la revisión vigente (current)
   let viendoRevisionIdx = null; // null = viendo la actual; número = índice en historialRevisiones
   let CONFIG = null; // config empresa + formato
+  // Modo comparativa (ENAC): resultado.html?comparar=1&alc=paa&de=10&a=11 — ver cmpBuscar()
+  const MODO_CMP = params.get('comparar') === '1';
+  let CMP = null; // { ops, i (cursor), de, a }
 
   // ── CONFIG POR DEFECTO (si Firestore falla offline) ──
   const CONFIG_DEFAULT = { empresa: {}, alcance: {}, director: {} };
@@ -136,7 +139,7 @@
   });
 
   setTimeout(async () => {
-    if (D) return;
+    if (D || MODO_CMP) return;
     const local = localStorage.getItem('insp_' + inspeccionId);
     if (local) {
       try {
@@ -152,7 +155,85 @@
     document.getElementById('mainContent').innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:40px;margin-bottom:12px">&#9888;</div><div style="font-size:14px;margin-bottom:16px">No se pudo cargar el resultado.<br>Verifica tu conexión e inténtalo de nuevo.</div><button onclick="location.reload()" style="padding:10px 20px;background:var(--gold);color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer">Reintentar</button><br><br><a href=\"inspecciones.html\" style="color:var(--muted);font-size:13px">&#8592; Volver</a></div>';
   }, 4000);
 
+  // Datos de ejemplo para el informe comparativo: todo lo que depende de cada inspección
+  // va entre corchetes; el formato (checklist, columnas, norma) es el de la revisión nueva.
+  function inspeccionMuestra(alc, h, formato) {
+    const d = new Date();
+    const iso = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    const tipos = formato.tiposJuego && formato.tiposJuego.length ? formato.tiposJuego : null;
+    return {
+      id: 'comparativa', tipoAlcance: alc.toUpperCase(), estado: 'borrador', revision: 0,
+      nombreInstalacion: '[Nombre de la instalación]', localidad: '[Localidad]', municipio: '[Municipio]',
+      direccion: '[Dirección]', cp: '', provincia: '[Provincia]', codigoInstalacion: 'XXX',
+      fechaInspeccion: iso, sesiones: [{ fecha: iso, horaInicio: '', horaFin: '' }],
+      inspectorNombre: '[Inspector]', propietario: '[Propietario]', cif: '[CIF]', gestor: '[Gestor]',
+      solicitante: '[Solicitante]', tipoInspeccion: '[TIPO DE INSPECCIÓN]',
+      circuitos: [{ id: 'c1', nombre: '[Circuito / elemento]', orden: 0, tipoElemento: tipos ? tipos[0].id : undefined,
+        juegos: [{ id: 'j1', nombre: '[Juego / elemento]', tipo: 'R', orden: 0 }] }],
+      ncs: [], checklist: {}, checklistObs: {}, ensayos: '',
+      formatoDocumento: Object.assign({}, formato, { informeRevision: h.revision, informeFecha: h.fechaVigencia || '' })
+    };
+  }
+
+  async function cargarComparativa() {
+    const alc = (params.get('alc') || 'paa').toLowerCase();
+    const deRev = String(params.get('de') || ''), aRev = String(params.get('a') || '');
+    const main = document.getElementById('mainContent');
+    const enlacePantalla = 'comparar-informe.html?alc=' + encodeURIComponent(alc) + '&de=' + encodeURIComponent(deRev) + '&a=' + encodeURIComponent(aRev);
+    const aviso = function(msg) {
+      main.innerHTML = '<div style="max-width:620px;margin:30px auto;padding:20px;background:white;border:1px solid var(--border);border-radius:12px;font-size:14px;line-height:1.6">' +
+        msg + '<br><br><a href="' + enlacePantalla + '" style="color:var(--gold);font-weight:600">Ver la comparativa en pantalla</a></div>';
+    };
+    try {
+      const cfgRef = db.collection('config').doc(alc);
+      const [ce, dir, cfgS, hDe, hA] = await Promise.all([
+        db.collection('config').doc('empresa').get(), db.collection('config').doc('director').get(), cfgRef.get(),
+        cfgRef.collection('historial').doc(deRev).get(), cfgRef.collection('historial').doc(aRev).get()
+      ]);
+      CONFIG = { empresa: ce.exists ? ce.data() : {}, director: dir.exists ? dir.data() : {}, alcance: cfgS.exists ? cfgS.data() : {} };
+      const de = hDe.exists ? hDe.data() : null, a = hA.exists ? hA.data() : null;
+      if (!de || !a) { aviso('No se encuentran las revisiones ' + escHtml(deRev) + ' y ' + escHtml(aRev) + ' en el historial.'); return; }
+      if (!de.plantilla || !a.plantilla) {
+        aviso('La Rev ' + escHtml(String(de.plantilla ? a.revision : de.revision)) + ' es anterior a que la app guardara una copia del texto del informe, así que no se puede generar el informe comparativo. En pantalla se pueden comparar sus preguntas y criterios.');
+        return;
+      }
+      const formato = { checklist: a.checklist || [], columnas: a.columnas || [], tiposJuego: a.tiposJuego || null,
+        normaAplicable: CONFIG.alcance.normaAplicable || null, normasDetalle: CONFIG.alcance.normasDetalle || null };
+      // El PDF se dibuja con el código actual: solo es fiel si la revisión nueva es la plantilla actual.
+      if (PLANTILLA_INFORME.huella(PLANTILLA_INFORME.estructura(alc, formato)) !== PLANTILLA_INFORME.huella(a.plantilla)) {
+        aviso('El informe comparativo se genera con la plantilla actual de la app, que no corresponde a la Rev ' + escHtml(String(a.revision)) +
+          '. Para comparar revisiones antiguas entre sí, usa la comparativa en pantalla.');
+        return;
+      }
+      CMP = { ops: PLANTILLA_INFORME.diffBloques(de.plantilla, a.plantilla), i: 0, de: de, a: a, alc: alc };
+      D = inspeccionMuestra(alc, a, formato);
+      D_actual = D;
+      normalizarSesiones(D);
+      if (formato.checklist.length) GEN_ITEMS_PDF = formato.checklist;
+      if (formato.columnas.length)
+        COLS_PDF = formato.columnas.map(function(c){
+          var def = COLS_PDF_DEFAULT.find(function(d){ return d.key===c.id; });
+          return {key:c.id, label:c.label, abbrev:c.abbrev, ref:(def?def.ref:''), desc:(def?def.desc:'')};
+        });
+      const n = { ins: 0, del: 0, mod: 0, mov: 0 };
+      CMP.ops.forEach(function(o){ if (o.t === 'ins') n.ins++; else if (o.t === 'del') n.del++; else if (o.t === 'mod') n.mod++; else if (o.t === 'movA') n.mov++; });
+      CMP.resumen = n.mod + ' modificado(s) · ' + n.ins + ' añadido(s) · ' + n.del + ' eliminado(s) · ' + n.mov + ' movido(s)';
+      main.innerHTML = '<div style="max-width:620px;margin:24px auto;padding:22px;background:white;border:1px solid var(--border);border-radius:12px">' +
+        '<div style="font-size:17px;font-weight:700;color:var(--dark);margin-bottom:6px">Informe comparativo — ' + escHtml(alc.toUpperCase()) + '</div>' +
+        '<div style="font-size:13px;line-height:1.7;color:var(--text)">De la <b>Rev ' + escHtml(String(de.revision)) + '</b> (' + escHtml(de.fechaVigencia || '') + ') a la <b>Rev ' + escHtml(String(a.revision)) + '</b> (' + escHtml(a.fechaVigencia || '') + ')<br>' +
+        (a.motivo ? '<b>Motivo:</b> ' + escHtml(a.motivo) + '<br>' : '') + escHtml(CMP.resumen) + '</div>' +
+        '<div style="font-size:12px;margin:12px 0;line-height:1.8"><span style="color:#0047C2;font-weight:600">Azul</span>: añadido o movido a esa posición &nbsp;·&nbsp; ' +
+        '<span style="color:#D00000;text-decoration:line-through;font-weight:600">Rojo tachado</span>: eliminado o movido desde esa posición<br>' +
+        '<span style="color:var(--muted)">El informe es la plantilla completa: los datos de cada inspección aparecen entre corchetes.</span></div>' +
+        '<button onclick="generarInforme()" style="width:100%;padding:13px;background:var(--gold);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">&#11015; Descargar informe comparativo (PDF)</button>' +
+        '<div style="text-align:center;margin-top:12px"><a href="' + enlacePantalla + '" style="color:var(--muted);font-size:12px">Ver la comparativa en pantalla</a></div></div>';
+    } catch (e) {
+      aviso('Error cargando la comparativa: ' + escHtml(e.message));
+    }
+  }
+
   async function cargarDatos() {
+    if (MODO_CMP) return cargarComparativa();
     try {
       // Cargar empresa + director (no dependen del alcance de la inspección)
       try {
@@ -250,6 +331,7 @@
   }
 
   function volverAtras() {
+    if (MODO_CMP) { if (history.length > 1) history.back(); else location.href = 'admin-historial.html'; return; }
     if (D) location.href = 'inspeccion.html?id=' + inspeccionId;
     else location.href = 'inspecciones.html';
   }
@@ -658,7 +740,146 @@
   }
 
   // ── TEXTO LARGO con salto de página automático ──
+  // ═══ MODO COMPARATIVA (ENAC) ═══════════════════════════════════════════════════════
+  // resultado.html?comparar=1&alc=paa&de=10&a=11 genera el informe de la plantilla (con
+  // los datos de cada inspección entre corchetes) marcando los cambios frente a la revisión
+  // anterior: azul = añadido o movido aquí; rojo tachado = eliminado o movido desde aquí;
+  // los párrafos modificados se marcan palabra a palabra. Los cambios salen de comparar las
+  // copias de la plantilla guardadas en config/{alc}/historial (plantilla-informe.js).
+  const AZUL_CMP = [0, 71, 194], ROJO_CMP = [208, 0, 0];
+
+  // Siguiente operación de la comparación que corresponde al texto que se va a dibujar.
+  // Devuelve además los eliminados que quedan antes (se dibujan tachados en ese punto).
+  function cmpBuscar(texto) {
+    const pre = [];
+    if (!CMP) return { pre: pre, op: null };
+    for (let j = CMP.i; j < CMP.ops.length; j++) {
+      const op = CMP.ops[j];
+      if (op.b && op.t !== 'movDe' && op.b.x === texto) {
+        for (let k = CMP.i; k < j; k++) if (CMP.ops[k].t === 'del' || CMP.ops[k].t === 'movDe') pre.push(CMP.ops[k]);
+        CMP.i = j + 1;
+        return { pre: pre, op: op };
+      }
+    }
+    return { pre: pre, op: null };
+  }
+  // Color para textos que no siguen el orden del cursor (filas de checklist/criterios).
+  function cmpColor(texto) {
+    if (!CMP) return null;
+    const op = CMP.ops.find(function(o){ return o.b && o.b.x === texto; });
+    return op && (op.t === 'ins' || op.t === 'mod' || op.t === 'movA') ? AZUL_CMP : null;
+  }
+  function cmpCtx(doc, ref, fmtRev, fmtFecha, nPag, totPag, extra) {
+    return Object.assign({ doc: doc, x: ML, maxW: CW, fontSize: 9, color: DARK, font: 'normal', lineH: 5, maxY: PH-18,
+      ref: ref, fmtRev: fmtRev, fmtFecha: fmtFecha, nPag: nPag, totPag: totPag }, extra || {});
+  }
+  function cmpSaltoSiHaceFalta(c, y, alto) {
+    if (y + (alto || 0) > c.maxY) {
+      c.doc.addPage(); c.nPag[0]++; addCabecera(c.doc, c.nPag[0], c.totPag[0], c.ref, c.fmtRev, c.fmtFecha);
+      return MT + 8;
+    }
+    return y;
+  }
+  // Dibuja una línea de texto (con salto de renglón) formada por trozos {x, st:'eq'|'ins'|'del'|'tag'}.
+  function cmpPintarTrozos(c, y, trozos) {
+    const doc = c.doc;
+    const fijarFuente = function(){ doc.setFontSize(c.fontSize); doc.setFont('helvetica', c.font || 'normal'); };
+    fijarFuente();
+    const unidades = [];
+    trozos.forEach(function(t){ String(t.x).split(/(\s+)/).filter(function(w){ return w !== ''; }).forEach(function(w){ unidades.push({ x: w, st: t.st }); }); });
+    const lineas = []; let linea = [], ancho = 0;
+    unidades.forEach(function(u){
+      const w = doc.getTextWidth(u.x), esp = !u.x.trim();
+      if (!esp && ancho + w > c.maxW && linea.length) { lineas.push(linea); linea = []; ancho = 0; }
+      if (esp && !linea.length) return;
+      linea.push(u); ancho += w;
+    });
+    if (linea.length || !lineas.length) lineas.push(linea);
+    lineas.forEach(function(l){
+      if (y > c.maxY) { y = cmpSaltoSiHaceFalta(c, y); fijarFuente(); }
+      let cx = c.x;
+      l.forEach(function(u){
+        const w = doc.getTextWidth(u.x);
+        const col = u.st === 'ins' ? AZUL_CMP : (u.st === 'del' || u.st === 'tag') ? ROJO_CMP : (c.color || DARK);
+        doc.setTextColor(...col);
+        doc.text(u.x, cx, y);
+        if (u.st === 'del' && u.x.trim()) {
+          doc.setDrawColor(...ROJO_CMP); doc.setLineWidth(0.25);
+          const ym = y - c.fontSize * 0.3528 * 0.3;
+          doc.line(cx, ym, cx + w, ym);
+        }
+        cx += w;
+      });
+      y += c.lineH;
+    });
+    doc.setTextColor(...(c.color || DARK));
+    return y;
+  }
+  // Franja de la leyenda de NC eliminada o movida desde aquí: color atenuado, borde rojo
+  // discontinuo y texto tachado.
+  function cmpPintarFranjaQuitada(c, y, texto, movida) {
+    const doc = c.doc;
+    const prio = (String(texto).match(/NO CONFORMIDAD (GRAVE|MEDIA|LEVE|DOCUMENTAL)/) || [])[1];
+    const base = ({ GRAVE: RED, MEDIA: ORANGE, LEVE: GREEN_C, DOCUMENTAL: BLUE_C })[prio] || [150, 150, 150];
+    const claro = base.map(function(v){ return Math.round(v + (255 - v) * 0.78); });
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+    const lines = doc.splitTextToSize(texto, CW - 4);
+    const bh = Math.max(8, lines.length * 4.5 + 4);
+    y = cmpSaltoSiHaceFalta(c, y, bh);
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+    doc.setFillColor(...claro); doc.rect(ML, y, CW, bh, 'F');
+    doc.setDrawColor(...ROJO_CMP); doc.setLineWidth(0.6); doc.setLineDashPattern([1.2, 1], 0);
+    doc.rect(ML, y, CW, bh); doc.setLineDashPattern([], 0);
+    doc.setTextColor(...ROJO_CMP);
+    lines.forEach(function(l, i){
+      const ly = y + 4.5 + i * 4.5;
+      doc.text(l, ML + 2, ly);
+      doc.setDrawColor(...ROJO_CMP); doc.setLineWidth(0.3);
+      doc.line(ML + 2, ly - 1, ML + 2 + doc.getTextWidth(l), ly - 1);
+    });
+    doc.setFontSize(6.5); doc.setTextColor(...ROJO_CMP);
+    doc.text(movida ? 'MOVIDO A OTRA POSICIÓN' : 'ELIMINADO', ML + CW - 2, y + bh - 2, { align: 'right' });
+    return y + bh + 1;
+  }
+  function cmpPintarEliminado(c, y, op) {
+    if (op.a.k === 'ley') return cmpPintarFranjaQuitada(c, y, op.a.x, op.t === 'movDe');
+    const trozos = [{ x: op.a.x, st: 'del' }];
+    if (op.t === 'movDe') trozos.push({ x: ' (movido a otra posición)', st: 'tag' });
+    return cmpPintarTrozos(c, y, trozos);
+  }
+  function cmpTrozosDe(op, texto) {
+    if (!op || op.t === 'eq') return [{ x: texto, st: 'eq' }];
+    if (op.t === 'ins' || op.t === 'movA') return [{ x: texto, st: 'ins' }];
+    if (op.t === 'mod') return PLANTILLA_INFORME.diffPalabras(op.a.x, op.b.x).map(function(o){ return { x: o.x, st: o.t }; });
+    return [{ x: texto, st: 'eq' }];
+  }
+  // Sustituye a addTextBlock en modo comparativa: cada línea se cruza con la comparación.
+  function cmpTextBlock(doc, text, x, y, maxW, fontSize, color, font, lineH, maxY, ref, fmtRev, fmtFecha, nPag, totPag) {
+    const c = { doc: doc, x: x, maxW: maxW, fontSize: fontSize, color: color || DARK, font: font, lineH: lineH, maxY: maxY,
+      ref: ref, fmtRev: fmtRev, fmtFecha: fmtFecha, nPag: nPag, totPag: totPag };
+    String(text).split('\n').forEach(function(linea){
+      const t = linea.trim();
+      if (!t) { y = cmpPintarTrozos(c, y, []); return; }
+      const r = cmpBuscar(t);
+      r.pre.forEach(function(op){ y = cmpPintarEliminado(c, y, op); });
+      y = cmpPintarTrozos(c, y, cmpTrozosDe(r.op, t));
+    });
+    return y;
+  }
+  // Al terminar una sección: dibuja lo eliminado/movido que quedaba al final de ella.
+  function cmpCerrarSeccion(seccion, c, y) {
+    if (!CMP) return y;
+    while (CMP.i < CMP.ops.length) {
+      const op = CMP.ops[CMP.i];
+      if ((op.b || op.a).s !== seccion) break;
+      if (op.t === 'del' || op.t === 'movDe') y = cmpPintarEliminado(c, y, op);
+      CMP.i++;
+    }
+    return y;
+  }
+
   function addTextBlock(doc, text, x, y, maxW, fontSize, color, font, lineH, maxY, ref, fmtRev, fmtFecha, nPag, totPag) {
+    if (CMP) return cmpTextBlock(doc, text, x, y, maxW, fontSize, color, font, lineH, maxY, ref, fmtRev, fmtFecha, nPag, totPag);
     doc.setFontSize(fontSize); doc.setFont('helvetica', font||'normal'); doc.setTextColor(...(color||DARK));
     const lines = doc.splitTextToSize(text, maxW);
     for (const line of lines) {
@@ -847,6 +1068,7 @@
         'Para entregar una copia, usa el PDF archivado.\n\n¿Generarlo de todos modos?');
       if (!seguir) return;
     }
+    if (CMP) CMP.i = 0;
     showGenerating('Generando Informe PDF...', 'Cargando fotos...');
     const fotosFallidas = await preloadFotos(D);
     if (fotosFallidas.length) {
@@ -948,6 +1170,37 @@
       sesLines.forEach(s => { doc.text(s, PW-MR, y, {align:'right'}); y += 6; });
       y += 2;
       doc.line(ML, y, PW-MR, y);
+
+      if (CMP) {
+        // Recuadro del informe comparativo: revisiones, leyenda de colores y motivo.
+        const cy = y + 10;
+        doc.setFontSize(8.5); doc.setFont('helvetica','normal');
+        const motivoLns = CMP.a.motivo ? doc.splitTextToSize('Motivo del cambio: ' + CMP.a.motivo, CW - 8) : [];
+        const altoCaja = 39 + motivoLns.length * 4.2;
+        doc.setDrawColor(...AZUL_CMP); doc.setLineWidth(0.6); doc.rect(ML, cy, CW, altoCaja);
+        doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...AZUL_CMP);
+        doc.text('INFORME COMPARATIVO DE REVISIONES', ML + 4, cy + 7);
+        doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text('De la Rev ' + CMP.de.revision + ' (' + (CMP.de.fechaVigencia || '') + ') a la Rev ' + CMP.a.revision + ' (' + (CMP.a.fechaVigencia || '') + ')', ML + 4, cy + 13);
+        doc.setFontSize(8.5); doc.setTextColor(...MUTED);
+        doc.text('Cambios: ' + CMP.resumen, ML + 4, cy + 18);
+        doc.setFontSize(9.5);
+        doc.setFont('helvetica','bold'); doc.setTextColor(...AZUL_CMP);
+        const wAzul = doc.getTextWidth('Texto en azul');
+        doc.text('Texto en azul', ML + 4, cy + 24.5);
+        doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text(': añadido o movido a esa posición', ML + 4 + wAzul, cy + 24.5);
+        doc.setFont('helvetica','bold'); doc.setTextColor(...ROJO_CMP);
+        const wRojo = doc.getTextWidth('Texto en rojo tachado');
+        doc.text('Texto en rojo tachado', ML + 4, cy + 30);
+        doc.setDrawColor(...ROJO_CMP); doc.setLineWidth(0.3); doc.line(ML + 4, cy + 29, ML + 4 + wRojo, cy + 29);
+        doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text(': eliminado o movido desde esa posición', ML + 4 + wRojo, cy + 30);
+        doc.setFontSize(8); doc.setTextColor(...MUTED);
+        doc.text('Plantilla completa del informe: los datos de cada inspección aparecen entre corchetes.', ML + 4, cy + 35.5);
+        doc.setFontSize(8.5); doc.setTextColor(...DARK);
+        motivoLns.forEach((l, i) => doc.text(l, ML + 4, cy + 40.5 + i * 4.2));
+      }
 
       // Logo derecha (izquierda reservada para ENAC)
       const logoY = PH - 75;
@@ -1082,6 +1335,7 @@
       if (y > PH-40) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
       doc.text('II. Material utilizado', ML, y); y += 6;
       y = addTextBlock(doc, textoPorAlcance({SAE: TEXTO_METODOLOGIA_2_SAE, FER: TEXTO_METODOLOGIA_2_FER}, TEXTO_METODOLOGIA_2), ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
+      y = cmpCerrarSeccion('Metodología', cmpCtx(doc, ref, fmtRev, fmtFechaStr, nPag, totPag), y);
 
 
       // ═══ MANTENIMIENTO ═══
@@ -1103,6 +1357,7 @@
         y = addTextBlock(doc, texto, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
         y += 6;
       }
+      y = cmpCerrarSeccion('Mantenimiento', cmpCtx(doc, ref, fmtRev, fmtFechaStr, nPag, totPag), y);
 
 
       // ═══ RESULTADOS ═══
@@ -1149,9 +1404,16 @@
       });
       const ncAltoTotal = ncFilas.reduce((s, f) => s + f.bh + 1, 0);
       if (y + ncAltoTotal > PH-22) { doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8; }
-      ncFilas.forEach(({color, lines, bh}) => {
+      ncFilas.forEach(({color, lines, bh}, iFranja) => {
+        const cmpF = CMP ? cmpBuscar(ncColors[iFranja].text) : null;
+        if (cmpF) cmpF.pre.forEach(function(op){ y = cmpPintarEliminado(cmpCtx(doc, ref, fmtRev, fmtFechaStr, nPag, totPag), y, op); });
         doc.setFillColor(...color);
         doc.rect(ML, y, CW, bh, 'F');
+        if (cmpF && cmpF.op && (cmpF.op.t === 'movA' || cmpF.op.t === 'ins')) {
+          doc.setDrawColor(...AZUL_CMP); doc.setLineWidth(0.9); doc.rect(ML, y, CW, bh);
+          doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
+          doc.text(cmpF.op.t === 'movA' ? 'MOVIDO AQUÍ' : 'AÑADIDO', ML + CW - 2, y + bh - 2, { align: 'right' });
+        }
         doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...WHITE);
         lines.forEach((l,i) => doc.text(l, ML+2, y+4.5+i*4.5));
         y += bh + 1;
@@ -1171,6 +1433,7 @@
         }
         y = addTextBlock(doc, textoResMetodo, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
       }
+      y = cmpCerrarSeccion('Resultados de la inspección', cmpCtx(doc, ref, fmtRev, fmtFechaStr, nPag, totPag), y);
 
 
       // ═══ DESCRIPCIÓN DEL RECORRIDO ═══
@@ -1357,8 +1620,9 @@
         // Cabecera fila: fondo SURF
         doc.setFillColor(...SURF);
         doc.rect(ML, y, CW, 7, 'FD');
-        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...(cmpColor(`${item.ref||''} ${item.sec||''}`.trim()) || DARK));
         doc.text(`${item.ref} ${item.sec}`, ML+2, y+4.8);
+        doc.setTextColor(...DARK);
         doc.setFontSize(7);
         doc.text('SAT.', ML+descW+colSW/2, y+4.8, {align:'center'});
         doc.text('N.S.', ML+descW+colSW+colNsW/2, y+4.8, {align:'center'});
@@ -1376,7 +1640,7 @@
         doc.line(ML+descW+colSW+colNsW+colNaW, y, ML+descW+colSW+colNsW+colNaW, y+rowH2);
 
         // Descripción
-        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...(cmpColor(item.desc) || DARK));
         descLines.forEach((l,i) => doc.text(l, ML+2, y+5+i*4.5));
 
         // X negra en columna correcta
@@ -1489,8 +1753,9 @@
         // Cabecera
         doc.setFillColor(...SURF);
         doc.rect(ML, y, CW, 7, 'FD');
-        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...(cmpColor(`${col.ref||''} ${col.label||''}`.trim()) || DARK));
         doc.text(`${col.ref} ${col.label}`, ML+2, y+4.8);
+        doc.setTextColor(...DARK);
         doc.setFontSize(7);
         doc.text('SAT.', ML+descW+colSW/2, y+4.8, {align:'center'});
         doc.text('N.S.', ML+descW+colSW+colNsW/2, y+4.8, {align:'center'});
@@ -1507,7 +1772,7 @@
         doc.line(ML+descW+colSW+colNsW, y, ML+descW+colSW+colNsW, y+rowHcol);
         doc.line(ML+descW+colSW+colNsW+colNaW, y, ML+descW+colSW+colNsW+colNaW, y+rowHcol);
 
-        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...(cmpColor(col.desc) || DARK));
         descLinesCol.forEach((l,i) => doc.text(l, ML+2, y+5+i*4.5));
 
         if (todasCerradas && vGlobal==='N') vGlobal = 'S';
@@ -1768,6 +2033,7 @@
       doc.text('CARACTERÍSTICAS DE INSPECCIÓN', ML+3, y+3.5); y += 14;
 
       y = addTextBlock(doc, textoPorAlcance({SAE: TEXTO_CARACTERISTICAS_SAE}, TEXTO_CARACTERISTICAS), ML, y, CW, 9, DARK, 'normal', 5, PH-40, ref, fmtRev, fmtFechaStr, nPag, totPag);
+      y = cmpCerrarSeccion('Características de inspección', cmpCtx(doc, ref, fmtRev, fmtFechaStr, nPag, totPag, { maxY: PH-40 }), y);
       y += 10;
 
       // Fecha(s) y nombre inspector — ultima hoja muestra solo la ultima visita
@@ -1815,11 +2081,13 @@
         doc.text(String(pg), PW-MR, iy, {align:'right'});
         iy += 7;
       });
-      const fileName = (ref.replace(/\//g,'_').replace(/\s/g,'_') || 'informe') + '.pdf';
+      const fileName = CMP
+        ? 'Informe_comparativo_' + CMP.alc.toUpperCase() + '_Rev' + CMP.de.revision + '_a_Rev' + CMP.a.revision + '.pdf'
+        : (ref.replace(/\//g,'_').replace(/\s/g,'_') || 'informe') + '.pdf';
       doc.save(fileName);
 
       // Guardar snapshot JSON
-      try { localStorage.setItem('insp_'+inspeccionId, JSON.stringify(D)); } catch(e) {}
+      if (!CMP) { try { localStorage.setItem('insp_'+inspeccionId, JSON.stringify(D)); } catch(e) {} }
 
       hideGenerating();
     } catch(e) {
