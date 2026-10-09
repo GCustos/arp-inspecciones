@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Comparar revisiones del informe - ARP</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+    .ctrl label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
+    .ctrl select{padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:white}
+    .ctrl .chk{display:flex;align-items:center;gap:5px;font-size:12px;padding-bottom:8px}
+    .hoja{background:white;border:1px solid var(--border);border-radius:12px;padding:22px 26px;color:#111}
+    .doc-cab{border-bottom:2px solid var(--gold);padding-bottom:10px;margin-bottom:14px}
+    .doc-cab h1{font-size:16px;margin:0 0 4px;color:var(--dark)}
+    .doc-cab .meta{font-size:11.5px;color:#444;line-height:1.6}
+    .leyenda{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;margin:8px 0 2px}
+    .resumen{font-size:11.5px;color:#444;margin-top:4px}
+    .aviso{font-size:12px;background:#FFF5E6;border:1px solid #E8B86D;color:#8A5A00;border-radius:8px;padding:8px 10px;margin:10px 0}
+    .b{margin:0 0 5px;font-size:12.5px;line-height:1.5}
+    .b.h1{font-size:14px;font-weight:700;color:#B8862A;margin-top:18px;padding-top:6px;border-top:1px solid #eee}
+    .b.h2{font-weight:700;margin-top:10px}
+    .b.h3{font-weight:700;font-style:italic;margin-top:8px}
+    .b.fila{font-weight:700;background:#F2F0EC;padding:3px 6px;margin-top:6px}
+    .b.nota{font-style:italic;font-size:11.5px;color:#555}
+    .b.var{font-style:italic;color:#777}
+    .b.ley{color:white;font-weight:700;font-size:11px;padding:4px 8px;margin:2px 0}
+    .ley-GRAVE{background:#C62828}.ley-MEDIA{background:#E67E22}.ley-LEVE{background:#2E9E5B}.ley-DOCUMENTAL{background:#2B7BB9}
+    /* cambios: azul = añadido o movido; rojo tachado = eliminado */
+    .ins{color:#0047C2 !important;background:rgba(0,71,194,.07)}
+    .del{color:#D00000 !important;text-decoration:line-through;background:rgba(208,0,0,.05)}
+    .b.ley.ins{outline:3px solid #0047C2;outline-offset:1px;background-clip:padding-box}
+    .b.ley.del{outline:3px dashed #D00000;outline-offset:1px;text-decoration:line-through;opacity:.75}
+    .b.ley.ins,.b.ley.del{color:white !important}
+    span.ins{background:rgba(0,71,194,.12);padding:0 1px}
+    span.del{background:rgba(208,0,0,.08)}
+    .tag{display:inline-block;font-size:9.5px;font-weight:700;font-style:normal;text-decoration:none;padding:0 5px;border-radius:6px;margin-left:6px;vertical-align:1px}
+    .tag.t-ins{background:#0047C2;color:white}.tag.t-del{background:#D00000;color:white}
+    .salto{font-size:11px;color:#888;font-style:italic;text-align:center;margin:6px 0;border-top:1px dashed #ddd;border-bottom:1px dashed #ddd;padding:3px}
+    @media print{
+      @page{size:A4 portrait;margin:14mm 12mm}
+      body{background:white}
+      .app-header,.ctrl,.no-print{display:none !important}
+      .content{padding:0;max-width:none}
+      .hoja{border:none;padding:0;border-radius:0}
+      .ins,.del,span.ins,span.del,.b.fila,.b.ley,.tag{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .b{break-inside:avoid}
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="history.length>1?history.back():location.href='admin-formatos.html'">&#8592;</button>
+  <div class="hdr-mark" onclick="location.href='index.html'" style="cursor:pointer" title="Inicio">ARP</div>
+  <div class="hdr-title">Comparar revisiones</div>
+</div>
+
+<div class="content">
+  <div class="ctrl">
+    <div><label>Alcance</label><select id="sAlc" onchange="cambiarAlcance()"><option value="paa">PAA</option><option value="sae">SAE</option><option value="fer">FER</option></select></div>
+    <div><label>Revisión anterior</label><select id="sDe" onchange="comparar()"></select></div>
+    <div><label>Revisión nueva</label><select id="sA" onchange="comparar()"></select></div>
+    <label class="chk"><input type="checkbox" id="soloCambios" onchange="pintar()"> Solo cambios</label>
+    <button class="btn-primary" onclick="window.print()">&#128424; Imprimir</button>
+  </div>
+  <div id="content"><div class="spinner"></div></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="utils.js"></script>
+<script src="plantilla-informe.js"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain:"arp-inspecciones.firebaseapp.com",
+      projectId:"arp-inspecciones",
+      storageBucket:"arp-inspecciones.firebasestorage.app",
+      messagingSenderId:"35880168451",
+      appId:"1:35880168451:web:090e3c250b4416ed0b3236"
+    });
+  }
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+  var params = new URLSearchParams(location.search);
+  var alcance = (params.get('alc') || 'paa').toLowerCase();
+  var historial = [];   // docs de config/{alcance}/historial, de más reciente a más antigua
+  var cfg = {};         // config/{alcance}
+  var resultado = null; // { ops, meta } de la última comparación
+
+  initAuth({
+    roles: ['admin', 'director', 'proyecto'],
+    onReady: function() { document.getElementById('sAlc').value = alcance; cargarAlcance(params.get('de'), params.get('a')); }
+  });
+
+  window.cambiarAlcance = function() {
+    alcance = document.getElementById('sAlc').value;
+    cargarAlcance(null, null);
+  };
+
+  function cargarAlcance(de, a) {
+    document.getElementById('content').innerHTML = '<div class="spinner"></div>';
+    Promise.all([
+      db.collection('config').doc(alcance).get(),
+      db.collection('config').doc(alcance).collection('historial').get()
+    ]).then(function(r) {
+      cfg = r[0].exists ? r[0].data() : {};
+      historial = [];
+      r[1].forEach(function(d){ historial.push(d.data()); });
+      historial.sort(function(x, y){ return (y.revision||0) - (x.revision||0); });
+      var opts = historial.map(function(h){
+        return '<option value="' + h.revision + '">Rev ' + h.revision + ' · ' + escHtml(h.fechaVigencia || '') + (h.plantilla ? '' : ' (sin texto)') + '</option>';
+      }).join('');
+      document.getElementById('sDe').innerHTML = opts;
+      document.getElementById('sA').innerHTML = '<option value="actual">Plantilla actual de la app (sin publicar)</option>' + opts;
+      if (!historial.length) {
+        document.getElementById('content').innerHTML = '<div class="empty-state">Este alcance no tiene revisiones en el historial.</div>';
+        return;
+      }
+      var vig = String(cfg.formatoRevision || historial[0].revision);
+      document.getElementById('sA').value = a || vig;
+      var idxA = historial.findIndex(function(h){ return String(h.revision) === document.getElementById('sA').value; });
+      var prev = historial[idxA + 1] || historial[0];
+      document.getElementById('sDe').value = de || String(a === 'actual' ? historial[0].revision : prev.revision);
+      comparar();
+    }).catch(function(e) {
+      document.getElementById('content').innerHTML = '<div class="empty-state">Error: ' + escHtml(e.message) + '</div>';
+    });
+  }
+
+  // Bloques de una revisión. Sin copia de la plantilla (revisiones anteriores a esta función)
+  // solo se puede comparar el checklist y las columnas, que sí se guardaban.
+  function bloquesDe(sel) {
+    if (sel === 'actual') {
+      return { bloques: PLANTILLA_INFORME.estructura(alcance, cfg), completa: true, rev: 'actual',
+        etiqueta: 'Plantilla actual de la app (sin publicar)', fecha: '', motivo: '' };
+    }
+    var h = historial.find(function(x){ return String(x.revision) === String(sel); });
+    if (!h) return null;
+    var info = { rev: h.revision, etiqueta: 'Rev ' + h.revision, fecha: h.fechaVigencia || '', motivo: h.motivo || '',
+      reconstruida: !!h.reconstruida, notaPlantilla: h.notaPlantilla || '' };
+    if (h.plantilla && h.plantilla.length) return Object.assign(info, { bloques: h.plantilla, completa: true });
+    var todo = PLANTILLA_INFORME.estructura(alcance, { checklist: h.checklist || [], columnas: h.columnas || [], tiposJuego: h.tiposJuego || null,
+      normaAplicable: cfg.normaAplicable, normasDetalle: cfg.normasDetalle });
+    var secInsp = (todo.find(function(b){ return b.k === 'h1' && /^INSPECCIÓN/.test(b.x); }) || {}).s;
+    return Object.assign(info, { bloques: todo.filter(function(b){ return b.s === secInsp && (b.k === 'fila' || b.k === 'p' || b.k === 'h3'); }), completa: false });
+  }
+
+  // ── diff ──
+  function lcs(a, b, eq) {
+    var n = a.length, m = b.length, t = [];
+    for (var i = 0; i <= n; i++) { t.push(new Int32Array(m + 1)); }
+    for (i = n - 1; i >= 0; i--) for (var j = m - 1; j >= 0; j--)
+      t[i][j] = eq(a[i], b[j]) ? t[i+1][j+1] + 1 : Math.max(t[i+1][j], t[i][j+1]);
+    var ops = []; i = 0; j = 0;
+    while (i < n && j < m) {
+      if (eq(a[i], b[j])) { ops.push({ t: 'eq', a: a[i], b: b[j] }); i++; j++; }
+      else if (t[i+1][j] >= t[i][j+1]) { ops.push({ t: 'del', a: a[i] }); i++; }
+      else { ops.push({ t: 'ins', b: b[j] }); j++; }
+    }
+    while (i < n) ops.push({ t: 'del', a: a[i++] });
+    while (j < m) ops.push({ t: 'ins', b: b[j++] });
+    return ops;
+  }
+  function clave(b) { return b.k + '|' + b.x; }
+  function palabras(s) { return String(s).split(/(\s+)/).filter(function(x){ return x !== ''; }); }
+  function similitud(x, y) {
+    var A = palabras(x).filter(function(w){ return w.trim(); }), B = palabras(y).filter(function(w){ return w.trim(); });
+    if (!A.length || !B.length) return 0;
+    var setB = {}; B.forEach(function(w){ setB[w.toLowerCase()] = (setB[w.toLowerCase()] || 0) + 1; });
+    var comunes = 0; A.forEach(function(w){ var k = w.toLowerCase(); if (setB[k]) { comunes++; setB[k]--; } });
+    return 2 * comunes / (A.length + B.length);
+  }
+
+  function diffBloques(viejo, nuevo) {
+    var ops = lcs(viejo, nuevo, function(x, y){ return clave(x) === clave(y); });
+    // Movidos: un bloque eliminado en un sitio y añadido idéntico en otro.
+    var insPorClave = {};
+    ops.forEach(function(o, i){ if (o.t === 'ins') (insPorClave[clave(o.b)] = insPorClave[clave(o.b)] || []).push(i); });
+    ops.forEach(function(o, i){
+      if (o.t !== 'del') return;
+      var lista = insPorClave[clave(o.a)];
+      if (lista && lista.length) { var j = lista.shift(); o.t = 'movDe'; ops[j].t = 'movA'; o.par = j; ops[j].par = i; }
+    });
+    // Modificados: dentro de cada tramo de cambios, emparejar eliminado/añadido del mismo
+    // tipo y parecidos (≥ 50 % de palabras en común) y comparar palabra a palabra.
+    var i = 0;
+    while (i < ops.length) {
+      if (ops[i].t !== 'del' && ops[i].t !== 'ins') { i++; continue; }
+      var ini = i; while (i < ops.length && (ops[i].t === 'del' || ops[i].t === 'ins')) i++;
+      var dels = [], inss = [];
+      for (var k = ini; k < i; k++) (ops[k].t === 'del' ? dels : inss).push(k);
+      dels.forEach(function(d){
+        var mejor = -1, mejorS = 0.5;
+        inss.forEach(function(n){
+          if (ops[n].t !== 'ins' || ops[n].b.k !== ops[d].a.k) return;
+          var s = similitud(ops[d].a.x, ops[n].b.x); if (s >= mejorS) { mejorS = s; mejor = n; }
+        });
+        if (mejor >= 0) { ops[mejor].t = 'mod'; ops[mejor].a = ops[d].a; ops[d].t = 'skip'; }
+      });
+    }
+    return ops.filter(function(o){ return o.t !== 'skip'; });
+  }
+
+  function htmlPalabras(viejo, nuevo) {
+    var ops = lcs(palabras(viejo), palabras(nuevo), function(x, y){ return x === y; });
+    return ops.map(function(o){
+      if (o.t === 'eq') return escHtml(o.b);
+      if (o.t === 'ins') return '<span class="ins">' + escHtml(o.b) + '</span>';
+      return o.a.trim() ? '<span class="del">' + escHtml(o.a) + '</span>' : '';
+    }).join('');
+  }
+
+  window.comparar = function() {
+    var A = bloquesDe(document.getElementById('sDe').value);
+    var B = bloquesDe(document.getElementById('sA').value);
+    if (!A || !B) return;
+    var parcial = !A.completa || !B.completa;
+    var viejo = A.bloques, nuevo = B.bloques;
+    if (parcial) {
+      // Solo se puede comparar la parte que tienen las dos: checklist y columnas.
+      var soloInsp = function(lista){
+        var sec = (lista.find(function(b){ return b.k === 'h1' && /^INSPECCIÓN/.test(b.x); }) || {}).s;
+        return sec ? lista.filter(function(b){ return b.s === sec && (b.k === 'fila' || b.k === 'p' || b.k === 'h3'); }) : lista;
+      };
+      viejo = soloInsp(viejo); nuevo = soloInsp(nuevo);
+    }
+    resultado = { ops: diffBloques(viejo, nuevo), A: A, B: B, parcial: parcial };
+    pintar();
+  };
+
+  function claseLey(x) { var m = String(x).match(/NO CONFORMIDAD (GRAVE|MEDIA|LEVE|DOCUMENTAL)/); return m ? ' ley-' + m[1] : ''; }
+
+  window.pintar = function() {
+    if (!resultado) return;
+    var r = resultado, ops = r.ops;
+    var cuenta = { ins: 0, del: 0, mov: 0, mod: 0 };
+    ops.forEach(function(o){ if (o.t === 'ins') cuenta.ins++; else if (o.t === 'del') cuenta.del++; else if (o.t === 'movA') cuenta.mov++; else if (o.t === 'mod') cuenta.mod++; });
+    var soloCambios = document.getElementById('soloCambios').checked;
+    var alc = alcance.toUpperCase();
+    var html = '<div class="hoja"><div class="doc-cab">' +
+      '<h1>Comparativa de revisiones — Informe de inspección ' + alc + '</h1>' +
+      '<div class="meta"><b>Revisión anterior:</b> ' + escHtml(r.A.etiqueta) + (r.A.fecha ? ' (vigente desde ' + escHtml(r.A.fecha) + ')' : '') +
+      '<br><b>Revisión nueva:</b> ' + escHtml(r.B.etiqueta) + (r.B.fecha ? ' (vigente desde ' + escHtml(r.B.fecha) + ')' : '') +
+      (r.B.motivo ? '<br><b>Motivo del cambio:</b> ' + escHtml(r.B.motivo) : '') +
+      '<br><b>Generado:</b> ' + new Date().toLocaleDateString('es-ES') + ' · ARP Prevención</div>' +
+      '<div class="leyenda"><span class="ins">&nbsp;Texto en azul&nbsp;</span> añadido o movido a esta posición' +
+      '<span class="del">&nbsp;Texto en rojo tachado&nbsp;</span> eliminado (o movido desde esta posición)</div>' +
+      '<div class="resumen">' + (cuenta.ins + cuenta.del + cuenta.mov + cuenta.mod
+        ? cuenta.mod + ' modificado(s) · ' + cuenta.ins + ' añadido(s) · ' + cuenta.del + ' eliminado(s) · ' + cuenta.mov + ' movido(s)'
+        : 'Sin diferencias entre las dos revisiones.') + '</div></div>';
+    [r.A, r.B].forEach(function(x){
+      if (x.reconstruida) html += '<div class="aviso">' + escHtml(x.etiqueta) + ': ' + escHtml(x.notaPlantilla || 'copia del texto reconstruida a posteriori.') + '</div>';
+    });
+    if (r.parcial) html += '<div class="aviso">Una de las dos revisiones es anterior a que la app guardara una copia del texto del informe: solo se comparan las preguntas del checklist y los criterios (columnas).</div>';
+
+    var sinCambio = 0;
+    var flush = function(){ if (soloCambios && sinCambio) html += '<div class="salto">… ' + sinCambio + ' bloque(s) sin cambios …</div>'; sinCambio = 0; };
+    ops.forEach(function(o, idx){
+      var b = o.b || o.a, cls = 'b ' + b.k + (b.k === 'ley' ? claseLey(b.x) : '');
+      if (o.t === 'eq') {
+        var cerca = soloCambios && ops.slice(Math.max(0, idx - 1), idx + 2).some(function(p){ return p.t !== 'eq'; });
+        if (soloCambios && !cerca && b.k !== 'h1') { sinCambio++; return; }
+        flush(); html += '<div class="' + cls + '">' + escHtml(b.x) + '</div>'; return;
+      }
+      flush();
+      if (o.t === 'ins') html += '<div class="' + cls + ' ins">' + escHtml(b.x) + '<span class="tag t-ins">AÑADIDO</span></div>';
+      else if (o.t === 'del') html += '<div class="' + cls + ' del">' + escHtml(b.x) + '<span class="tag t-del">ELIMINADO</span></div>';
+      else if (o.t === 'movA') html += '<div class="' + cls + ' ins">' + escHtml(b.x) + '<span class="tag t-ins">MOVIDO AQUÍ</span></div>';
+      else if (o.t === 'movDe') html += '<div class="' + cls + ' del">' + escHtml(b.x) + '<span class="tag t-del">MOVIDO ' + (o.par > idx ? 'MÁS ABAJO' : 'MÁS ARRIBA') + '</span></div>';
+      else if (o.t === 'mod') html += '<div class="' + cls + '">' + htmlPalabras(o.a.x, o.b.x) + '</div>';
+    });
+    flush();
+    html += '</div>';
+    document.getElementById('content').innerHTML = html;
+  };
+</script>
+</body>
+</html>

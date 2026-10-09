@@ -2489,6 +2489,27 @@
   }
 
   // Guarda el documento principal (payload) y las NC modificadas (subcolección) a la vez.
+  // Al completar, el informe se emite con la revisión de formato vigente ese día siempre
+  // que el checklist y las columnas sean los mismos con los que se creó la inspección (es
+  // decir, si la revisión nueva solo cambió textos o maquetación del informe). Si cambiaron,
+  // se mantiene la revisión con la que se inspeccionó.
+  function _canon(v){
+    if(Array.isArray(v)) return '['+v.map(_canon).join(',')+']';
+    if(v&&typeof v==='object') return '{'+Object.keys(v).sort().map(function(k){ return JSON.stringify(k)+':'+_canon(v[k]); }).join(',')+'}';
+    return JSON.stringify(v===undefined?null:v);
+  }
+  async function revisionFormatoAlCompletar(){
+    try{
+      var fd=(docDataFull&&docDataFull.formatoDocumento)||{};
+      var snap=await db.collection("config").doc((S.tipoAlcance||"PAA").toLowerCase()).get();
+      if(!snap.exists) return {};
+      var c=snap.data();
+      if(!c.formatoRevision||c.formatoRevision<=(fd.informeRevision||0)) return {};
+      if(_canon(c.checklist||[])!==_canon(fd.checklist||[])||_canon(c.columnas||[])!==_canon(fd.columnas||[])) return {};
+      return {'formatoDocumento.informeRevision':c.formatoRevision,'formatoDocumento.informeFecha':c.formatoFecha||''};
+    }catch(e){ console.warn('Revisión de formato al completar:',e.message); return {}; }
+  }
+
   async function guardarConNcs(payload){
     var ncOps=buildNcUpdates();
     if(_legacyNcArrayFormat) payload.ncs=firebase.firestore.FieldValue.delete();
@@ -2769,8 +2790,10 @@
       // en hora local. Es distinta de fechaInspeccion (la visita, que va en la portada).
       const _hoy=new Date();
       const fechaEmision=_hoy.getFullYear()+'-'+String(_hoy.getMonth()+1).padStart(2,'0')+'-'+String(_hoy.getDate()).padStart(2,'0');
+      const revFormato=await revisionFormatoAlCompletar();
       await guardarConNcs({
         ...buildPayload("completada"),
+        ...revFormato,
         circuitos:buildCircuitosMap(),
         resultado,
         fechaCompletada:firebase.firestore.FieldValue.serverTimestamp(),
