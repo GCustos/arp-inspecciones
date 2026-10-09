@@ -33,10 +33,13 @@
     .b.ley.ins{outline:3px solid #0047C2;outline-offset:1px;background-clip:padding-box}
     .b.ley.del{outline:3px dashed #D00000;outline-offset:1px;text-decoration:line-through;opacity:.75}
     .b.ley.ins,.b.ley.del{color:white !important}
+    /* el color de cada franja manda sobre el fondo de .ins/.del (si no, el texto blanco no se ve) */
+    .b.ley.ley-GRAVE{background:#C62828}.b.ley.ley-MEDIA{background:#E67E22}.b.ley.ley-LEVE{background:#2E9E5B}.b.ley.ley-DOCUMENTAL{background:#2B7BB9}
     span.ins{background:rgba(0,71,194,.12);padding:0 1px}
     span.del{background:rgba(208,0,0,.08)}
     .tag{display:inline-block;font-size:9.5px;font-weight:700;font-style:normal;text-decoration:none;padding:0 5px;border-radius:6px;margin-left:6px;vertical-align:1px}
     .tag.t-ins{background:#0047C2;color:white}.tag.t-del{background:#D00000;color:white}
+    body.exportando .hoja{border:none;border-radius:0;padding:0}
     .salto{font-size:11px;color:#888;font-style:italic;text-align:center;margin:6px 0;border-top:1px dashed #ddd;border-bottom:1px dashed #ddd;padding:3px}
     @media print{
       @page{size:A4 portrait;margin:14mm 12mm}
@@ -63,7 +66,8 @@
     <div><label>Revisión anterior</label><select id="sDe" onchange="comparar()"></select></div>
     <div><label>Revisión nueva</label><select id="sA" onchange="comparar()"></select></div>
     <label class="chk"><input type="checkbox" id="soloCambios" onchange="pintar()"> Solo cambios</label>
-    <button class="btn-primary" onclick="window.print()">&#128424; Imprimir</button>
+    <button class="btn-primary" onclick="descargarPdf()" id="btnPdf">&#11015; Descargar PDF</button>
+    <button class="btn-primary" style="background:var(--dark)" onclick="window.print()">&#128424; Imprimir</button>
   </div>
   <div id="content"><div class="spinner"></div></div>
 </div>
@@ -73,6 +77,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="utils.js"></script>
 <script src="plantilla-informe.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
   if (!firebase.apps.length) {
     firebase.initializeApp({
@@ -233,6 +238,31 @@
     pintar();
   };
 
+  // Descarga la comparativa tal cual se ve (A4 vertical) como PDF.
+  window.descargarPdf = function() {
+    var hoja = document.querySelector('.hoja');
+    if (!hoja || !resultado) return;
+    if (typeof html2pdf === 'undefined') { alert('No se pudo cargar el generador de PDF. Usa "Imprimir" y guarda como PDF.'); return; }
+    var btn = document.getElementById('btnPdf');
+    btn.disabled = true; btn.textContent = 'Generando…';
+    var nombre = 'Comparativa_informe_' + alcance.toUpperCase() + '_' +
+      String(resultado.A.etiqueta).replace(/\s+/g, '') + '_a_' + String(resultado.B.rev === 'actual' ? 'actual' : resultado.B.etiqueta).replace(/\s+/g, '') + '.pdf';
+    document.body.classList.add('exportando');
+    html2pdf().set({
+      margin: [12, 12, 12, 12],
+      filename: nombre,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'legacy'], avoid: '.b' }
+    }).from(hoja).save().catch(function(e) {
+      alert('Error generando el PDF: ' + e.message);
+    }).then(function() {
+      document.body.classList.remove('exportando');
+      btn.disabled = false; btn.innerHTML = '&#11015; Descargar PDF';
+    });
+  };
+
   function claseLey(x) { var m = String(x).match(/NO CONFORMIDAD (GRAVE|MEDIA|LEVE|DOCUMENTAL)/); return m ? ' ley-' + m[1] : ''; }
 
   window.pintar = function() {
@@ -248,8 +278,8 @@
       '<br><b>Revisión nueva:</b> ' + escHtml(r.B.etiqueta) + (r.B.fecha ? ' (vigente desde ' + escHtml(r.B.fecha) + ')' : '') +
       (r.B.motivo ? '<br><b>Motivo del cambio:</b> ' + escHtml(r.B.motivo) : '') +
       '<br><b>Generado:</b> ' + new Date().toLocaleDateString('es-ES') + ' · ARP Prevención</div>' +
-      '<div class="leyenda"><span class="ins">&nbsp;Texto en azul&nbsp;</span> añadido o movido a esta posición' +
-      '<span class="del">&nbsp;Texto en rojo tachado&nbsp;</span> eliminado (o movido desde esta posición)</div>' +
+      '<div class="leyenda"><span><span class="ins">&nbsp;Texto en azul&nbsp;</span> añadido o movido a esta posición</span>' +
+      '<span><span class="del">&nbsp;Texto en rojo tachado&nbsp;</span> eliminado (o movido desde esta posición)</span></div>' +
       '<div class="resumen">' + (cuenta.ins + cuenta.del + cuenta.mov + cuenta.mod
         ? cuenta.mod + ' modificado(s) · ' + cuenta.ins + ' añadido(s) · ' + cuenta.del + ' eliminado(s) · ' + cuenta.mov + ' movido(s)'
         : 'Sin diferencias entre las dos revisiones.') + '</div></div>';

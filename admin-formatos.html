@@ -939,8 +939,9 @@
             +'</div>'
             +'<div style="display:flex;gap:4px;align-items:center;flex-shrink:0">'
             +(h.checklist?'<button class="btn-hist-pdf" onclick="event.stopPropagation();generarPdfFormato('+idx+')">PDF</button>':'')
-            +(h.checklist&&idx<docs.length-1?'<button class="btn-hist-pdf" onclick="event.stopPropagation();generarPdfCambios('+idx+')" title="PDF de cambios vs Rev anterior">↕ Cambios</button>':'')
-            +(idx<docs.length-1?'<button class="btn-hist-pdf" onclick="event.stopPropagation();location.href=\'comparar-informe.html?alc='+encodeURIComponent(alcanceActual)+'&de='+docs[idx+1].revision+'&a='+h.revision+'\'" title="Informe completo Rev anterior vs esta, con cambios en color (ENAC)">Comparar</button>':'')
+            // "↕ Cambios" abre la comparativa del informe completo (textos, maquetación,
+            // checklist y criterios) frente a la revisión anterior, con descarga en PDF.
+            +(idx<docs.length-1?'<button class="btn-hist-pdf" onclick="event.stopPropagation();location.href=\'comparar-informe.html?alc='+encodeURIComponent(alcanceActual)+'&de='+docs[idx+1].revision+'&a='+h.revision+'\'" title="Informe completo de la Rev anterior frente a esta, con los cambios en color (ENAC)">↕ Cambios</button>':'')
             +'<span>&#9660;</span>'
             +'</div>'
             +'</div>'
