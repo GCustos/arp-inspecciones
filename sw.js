@@ -1,5 +1,5 @@
 // ── ARP Inspecciones Service Worker v2026-08-04c ──
-const CACHE_NAME = 'arp-v6.23';
+const CACHE_NAME = 'arp-v6.24';
 
 const PRECACHE = [
   '/arp-inspecciones/',
@@ -47,8 +47,10 @@ const SORTABLEJS    = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.m
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async cache => {
-      // Cachear páginas propias
-      await cache.addAll(PRECACHE).catch(e => console.log('Precache error:', e));
+      // Cachear páginas propias — cache:'reload' para no guardar la copia que el navegador
+      // tenga en su caché HTTP (GitHub Pages la da por válida 10 min): si no, una versión
+      // nueva del service worker podía precachear un .js de la versión anterior.
+      await cache.addAll(PRECACHE.map(u => new Request(u, { cache: 'reload' }))).catch(e => console.log('Precache error:', e));
       // Cachear Firebase scripts con no-cors
       for (const url of [...FIREBASE_SCRIPTS, JSPDF_SCRIPT, AUTOTABLE, SORTABLEJS]) {
         try {
@@ -102,6 +104,22 @@ self.addEventListener('fetch', event => {
           cached || caches.match('/arp-inspecciones/index.html')
         )
       )
+    );
+    return;
+  }
+
+  // Ficheros propios (js, css, imágenes de la app): network-first como las páginas — un
+  // .js propio servido desde caché junto a un HTML nuevo rompe la página (pasó con
+  // plantilla-informe.js: "diffBloques is not a function"). Sin red, cae a caché.
+  if (url.origin === self.location.origin) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-cache' }).then(response => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request, { ignoreSearch: true }))
     );
     return;
   }
