@@ -1158,7 +1158,17 @@
       });
 
       if (textoResMetodo) {
-        y += 6;
+        // La metodología de resolución de NC va como un bloque: si no cabe entera en lo que
+        // queda de página, empieza en la siguiente (antes se partía y su última línea podía
+        // quedar sola en una página). Si fuese más larga que una página entera, se parte.
+        doc.setFontSize(9); doc.setFont('helvetica','normal');
+        const altoMetodo = doc.splitTextToSize(textoResMetodo, CW).length * 5;
+        const cabeEnPagina = altoMetodo <= (PH-18) - (MT+8);
+        if (cabeEnPagina && y + 6 + altoMetodo > PH-18) {
+          doc.addPage(); nPag[0]++; addCabecera(doc, nPag[0], totPag[0], ref, fmtRev, fmtFechaStr); y = MT+8;
+        } else {
+          y += 6;
+        }
         y = addTextBlock(doc, textoResMetodo, ML, y, CW, 9, DARK, 'normal', 5, PH-18, ref, fmtRev, fmtFechaStr, nPag, totPag);
       }
 
