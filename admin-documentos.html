@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Lista de documentos - ARP</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .doc-sec{background:white;border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden}
+    .doc-sec-hdr{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surf);border-bottom:1px solid var(--border)}
+    .doc-sec-tit{flex:1;font-size:11px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:.05em}
+    .btn-mini{padding:4px 10px;border:1.5px solid var(--border);border-radius:14px;background:white;font-family:inherit;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;white-space:nowrap}
+    .btn-mini:hover{border-color:var(--gold);color:var(--gold)}
+    .doc-row{padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer}
+    .doc-row:last-child{border-bottom:none}
+    .doc-row:hover{background:rgba(200,153,58,.06)}
+    .doc-nom{font-size:13px;font-weight:600;color:var(--dark)}
+    .doc-nom.obs{color:var(--red)}
+    .doc-meta{font-size:11px;color:var(--muted);margin-top:2px}
+    .doc-rev{font-family:monospace;color:var(--gold);font-weight:700}
+    .doc-aviso{font-size:11px;margin-top:5px;padding:5px 8px;border-radius:6px;display:flex;align-items:center;gap:8px}
+    .doc-aviso.pend{background:#FFF5E6;color:#8A5A00;border:1px solid #E8B86D}
+    .doc-aviso.warn{background:#FDEDEC;color:var(--red);border:1px solid #F1B0AA}
+    .doc-aviso button{margin-left:auto}
+    .doc-tag{display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:var(--surf);color:var(--muted);margin-left:6px;vertical-align:middle}
+    .resumen{font-size:12px;color:var(--muted);margin-bottom:12px}
+    .resumen.err{color:var(--red)}
+    /* modal */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center}
+    .modal-overlay.open{display:flex}
+    @media(min-width:520px){.modal-overlay{align-items:center;padding:20px}}
+    .modal{background:white;border-radius:16px 16px 0 0;padding:22px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto}
+    @media(min-width:520px){.modal{border-radius:16px}}
+    .modal-title{font-size:15px;font-weight:700;color:var(--dark);margin-bottom:16px}
+    .mf{margin-bottom:12px}
+    .mf label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+    .mf input[type=text],.mf select{width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px}
+    .mf-row{display:flex;gap:10px}
+    .mf-row .mf{flex:1}
+    .chk{display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:8px;cursor:pointer}
+    .rev-list{border:1px solid var(--border);border-radius:8px;overflow:hidden}
+    .rev-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border)}
+    .rev-item:last-child{border-bottom:none}
+    .rev-item span{font-family:monospace;font-size:12px;font-weight:700;width:48px;color:var(--muted)}
+    .rev-item.actual span{color:var(--gold)}
+    .rev-item input{flex:1;padding:6px 9px;border:1.5px solid var(--border);border-radius:6px;font-family:monospace;font-size:13px}
+    .rev-item input.mal{border-color:var(--red);background:#FDEDEC}
+    .rev-btns{display:flex;gap:8px;margin-top:8px}
+    .modal-actions{display:flex;gap:8px;margin-top:18px}
+    .modal-actions button{flex:1;padding:11px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    .b-ok{background:var(--gold);color:white;border:none}
+    .b-sec{background:white;color:var(--dark);border:1.5px solid var(--border)}
+    .b-del{background:white;color:var(--red);border:1.5px solid var(--red)}
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+    .toast.show{opacity:1}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="location.href='admin.html'">&#8592;</button>
+  <div class="hdr-mark" onclick="location.href='index.html'" style="cursor:pointer" title="Inicio">ARP</div>
+  <div class="hdr-title">Lista de documentos</div>
+</div>
+
+<div class="content">
+  <div class="toolbar">
+    <input type="text" id="fBuscar" placeholder="Buscar documento…" oninput="render()" style="flex:1;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:12px">
+    <button class="btn-primary" onclick="imprimir()">&#128424; Imprimir</button>
+  </div>
+  <div id="content"><div class="spinner"></div></div>
+</div>
+
+<div class="modal-overlay" id="modalDoc">
+  <div class="modal">
+    <div class="modal-title" id="mdTitulo">Documento</div>
+    <div class="mf"><label>Denominación</label><input type="text" id="mdNombre"></div>
+    <div class="mf"><label>Sección</label><select id="mdSeccion"></select></div>
+    <div class="mf-row">
+      <div class="mf"><label>Soporte</label><select id="mdSoporte"><option>Informático</option><option>Papel</option></select></div>
+      <div class="mf"><label>Conservación</label><input type="text" id="mdCons" list="dlCons"></div>
+      <div class="mf"><label>Ubicación</label><input type="text" id="mdUbi" list="dlUbi"></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="mdDiez"> 10 días</label>
+    <label class="chk"><input type="checkbox" id="mdObs"> Obsoleto (sustituido por otro documento)</label>
+    <div class="mf" style="margin-top:6px"><label>Revisiones (dd/mm/aaaa)</label>
+      <div class="rev-list" id="mdRevs"></div>
+      <div class="rev-btns">
+        <button class="btn-mini" onclick="addRev()">+ Nueva revisión (hoy)</button>
+        <button class="btn-mini" onclick="quitarRev()">Quitar la última</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="b-sec" onclick="cerrarModal()">Cancelar</button>
+      <button class="b-ok" onclick="guardarDoc()">Guardar</button>
+    </div>
+    <div class="modal-actions" id="mdDelWrap" style="margin-top:8px"><button class="b-del" onclick="borrarDoc()">Eliminar de la lista</button></div>
+  </div>
+</div>
+<datalist id="dlCons"><option>5 años</option><option>6 años</option><option>Vida útil</option></datalist>
+<datalist id="dlUbi"><option>NUBE</option><option>DISCO DURO</option></datalist>
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="utils.js"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain:"arp-inspecciones.firebaseapp.com",
+      projectId:"arp-inspecciones",
+      storageBucket:"arp-inspecciones.firebasestorage.app",
+      messagingSenderId:"35880168451",
+      appId:"1:35880168451:web:090e3c250b4416ed0b3236"
+    });
+  }
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+  var miEmail = null;
+
+  // Toda la lista vive en un único documento (config/listaDocumentos): el orden de
+  // secciones y filas es el del array, igual que en el Excel. Cada cambio deja una
+  // entrada en config/listaDocumentos/historial con la fila antes y después.
+  var LISTA_REF = db.collection('config').doc('listaDocumentos');
+  var lista = null;     // { secciones:[{titulo, filas:[{id,nombre,revs,...}]}] }
+  var cfgApp = {};      // config/paa, sae, fer, empresa — para comparar con la app
+  var editando = null;  // { si, fi } o { si, fi:-1 } para nuevo
+  var revsEdit = [];
+
+  initAuth({
+    roles: ['admin', 'director'],
+    onReady: function(user) { miEmail = user.email; cargar(); }
+  });
+
+  function cargar() {
+    Promise.all([
+      LISTA_REF.get(),
+      db.collection('config').doc('paa').get(),
+      db.collection('config').doc('sae').get(),
+      db.collection('config').doc('fer').get(),
+      db.collection('config').doc('empresa').get()
+    ]).then(function(r) {
+      if (!r[0].exists) {
+        document.getElementById('content').innerHTML = '<div class="empty-state">Todavía no hay lista de documentos cargada.</div>';
+        return;
+      }
+      lista = r[0].data();
+      ['paa','sae','fer','empresa'].forEach(function(k, i) { cfgApp[k] = r[i+1].exists ? r[i+1].data() : {}; });
+      render();
+    }).catch(function(e) {
+      document.getElementById('content').innerHTML = '<div class="empty-state">Error: ' + escHtml(e.message) + '</div>';
+    });
+  }
+
+  // ── utilidades ──
+  var FECHA_OK = /^\d{2}\/\d{2}\/\d{4}$/;
+  function fechaValida(s) { return !s || s === '-' || s === 'Sin fecha' || FECHA_OK.test(s); }
+  function hoyFmt() {
+    var d = new Date();
+    return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
+  }
+  function ultimaRev(revs) { return (revs || []).length - 1; }
+
+  // Revisión que la app tiene registrada para las filas vinculadas (plantillas de informe,
+  // fichas de registro y certificados). null si la fila no está vinculada.
+  function revApp(v) {
+    if (!v) return null;
+    if (v.tipo === 'informe' || v.tipo === 'registro') {
+      var c = cfgApp[v.alcance] || {};
+      var rev = v.tipo === 'informe' ? c.formatoRevision : c.registroRevision;
+      var fec = v.tipo === 'informe' ? c.formatoFecha : c.registroFecha;
+      return (typeof rev === 'number') ? { rev: rev, fecha: fec || '' } : null;
+    }
+    if (v.tipo === 'certificado') {
+      var m = String((cfgApp.empresa || {})[v.campo] || '').match(/(\d{2}\/\d{2}\/\d{4})\s*Rev\.?\s*(\d+)/i);
+      return m ? { rev: parseInt(m[2], 10), fecha: m[1] } : null;
+    }
+    return null;
+  }
+
+  function avisoFila(f) {
+    var a = revApp(f.vinculo);
+    if (!a) return '';
+    var u = ultimaRev(f.revs);
+    if (a.rev > u) {
+      return '<div class="doc-aviso pend">La app va por <b>Rev ' + a.rev + '</b> (' + escHtml(a.fecha) + ') y la lista por Rev ' + u +
+        '<button class="btn-mini" onclick="event.stopPropagation();sincronizar(\'' + f.id + '\')">Añadir a la lista</button></div>';
+    }
+    if (a.rev < u) return '<div class="doc-aviso warn">La lista va por Rev ' + u + ' pero la app por Rev ' + a.rev + ' — revisar</div>';
+    if (a.fecha && f.revs[u] !== a.fecha) return '<div class="doc-aviso warn">Rev ' + u + ': la lista dice ' + escHtml(f.revs[u]) + ' y la app ' + escHtml(a.fecha) + '</div>';
+    return '';
+  }
+
+  // ── listado ──
+  window.render = function() {
+    var q = (document.getElementById('fBuscar').value || '').trim().toLowerCase();
+    var malas = [], pendientes = 0, html = '';
+    lista.secciones.forEach(function(s, si) {
+      var filas = '';
+      s.filas.forEach(function(f, fi) {
+        if (f.revs.some(function(x){ return !fechaValida(x); })) malas.push(f.nombre);
+        var av = avisoFila(f);
+        if (av) pendientes++;
+        if (q && f.nombre.toLowerCase().indexOf(q) < 0) return;
+        var u = ultimaRev(f.revs);
+        var revTxt = u >= 0 ? '<span class="doc-rev">Rev ' + u + '</span> · ' + escHtml(f.revs[u]) : 'Sin revisiones';
+        var extra = [f.soporte, f.conservacion, f.ubicacion].filter(Boolean).map(escHtml).join(' · ');
+        filas += '<div class="doc-row" onclick="abrirDoc(' + si + ',' + fi + ')">' +
+          '<div class="doc-nom' + (f.obsoleto ? ' obs' : '') + '">' + escHtml(f.nombre) +
+            (f.obsoleto ? '<span class="doc-tag">OBSOLETO</span>' : '') +
+            (f.vinculo && f.vinculo.tipo !== 'lista' ? '<span class="doc-tag">APP</span>' : '') + '</div>' +
+          '<div class="doc-meta">' + revTxt + (extra ? ' &nbsp;|&nbsp; ' + extra : '') + (f.diezDias ? ' · 10 días' : '') + '</div>' +
+          av + '</div>';
+      });
+      if (q && !filas) return;
+      html += '<div class="doc-sec"><div class="doc-sec-hdr"><div class="doc-sec-tit">' + escHtml(s.titulo) + '</div>' +
+        '<button class="btn-mini" onclick="abrirDoc(' + si + ',-1)">+ Documento</button></div>' + filas + '</div>';
+    });
+    var res = '';
+    if (pendientes) res += '<div class="resumen err">&#9888; ' + pendientes + ' documento(s) vinculados a la app no coinciden con ella.</div>';
+    if (malas.length) res += '<div class="resumen err">&#9888; Fechas con formato incorrecto en: ' + malas.map(escHtml).join('; ') + '</div>';
+    document.getElementById('content').innerHTML = res + (html || '<div class="empty-state">Ningún documento coincide.</div>');
+  };
+
+  // ── guardado (lista completa + historial de la fila) ──
+  function guardarLista(accion, antes, despues) {
+    var batch = db.batch();
+    batch.update(LISTA_REF, {
+      secciones: lista.secciones,
+      actualizadoEn: firebase.firestore.FieldValue.serverTimestamp(),
+      actualizadoPor: miEmail
+    });
+    batch.set(LISTA_REF.collection('historial').doc(), {
+      fecha: firebase.firestore.FieldValue.serverTimestamp(),
+      por: miEmail, accion: accion, antes: antes || null, despues: despues || null
+    });
+    return batch.commit();
+  }
+  function copia(o) { return o ? JSON.parse(JSON.stringify(o)) : null; }
+
+  window.sincronizar = function(id) {
+    var f = null;
+    lista.secciones.forEach(function(s){ s.filas.forEach(function(x){ if (x.id === id) f = x; }); });
+    var a = f && revApp(f.vinculo);
+    if (!a) return;
+    var antes = copia(f);
+    while (f.revs.length < a.rev) f.revs.push('');
+    f.revs[a.rev] = a.fecha;
+    guardarLista('Sincronizar con la app: ' + f.nombre + ' → Rev ' + a.rev, antes, copia(f))
+      .then(function(){ showToast('Añadida Rev ' + a.rev); render(); })
+      .catch(function(e){ alert('Error al guardar: ' + e.message); cargar(); });
+  };
+
+  // ── modal ──
+  window.abrirDoc = function(si, fi) {
+    editando = { si: si, fi: fi };
+    var f = fi >= 0 ? lista.secciones[si].filas[fi]
+      : { nombre:'', soporte:'Informático', conservacion:'', ubicacion:'NUBE', diezDias:false, obsoleto:false, revs:[] };
+    document.getElementById('mdTitulo').textContent = fi >= 0 ? 'Editar documento' : 'Nuevo documento';
+    document.getElementById('mdNombre').value = f.nombre || '';
+    document.getElementById('mdSeccion').innerHTML = lista.secciones.map(function(s, i) {
+      return '<option value="' + i + '"' + (i === si ? ' selected' : '') + '>' + escHtml(s.titulo) + '</option>';
+    }).join('');
+    document.getElementById('mdSoporte').value = f.soporte || 'Informático';
+    document.getElementById('mdCons').value = f.conservacion || '';
+    document.getElementById('mdUbi').value = f.ubicacion || '';
+    document.getElementById('mdDiez').checked = !!f.diezDias;
+    document.getElementById('mdObs').checked = !!f.obsoleto;
+    document.getElementById('mdDelWrap').style.display = fi >= 0 ? 'flex' : 'none';
+    revsEdit = (f.revs || []).slice();
+    pintarRevs();
+    document.getElementById('modalDoc').classList.add('open');
+  };
+  window.cerrarModal = function() { document.getElementById('modalDoc').classList.remove('open'); editando = null; };
+
+  function leerRevs() {
+    document.querySelectorAll('#mdRevs input').forEach(function(inp, i) { revsEdit[i] = inp.value.trim(); });
+  }
+  function pintarRevs() {
+    document.getElementById('mdRevs').innerHTML = revsEdit.length ? revsEdit.map(function(x, i) {
+      return '<div class="rev-item' + (i === revsEdit.length - 1 ? ' actual' : '') + '"><span>Rev ' + i + '</span>' +
+        '<input type="text" value="' + escHtml(x) + '" class="' + (fechaValida(x) ? '' : 'mal') + '" oninput="this.className=fechaValidaInput(this.value)"></div>';
+    }).join('') : '<div class="rev-item" style="color:var(--muted);font-size:12px">Sin revisiones</div>';
+  }
+  window.fechaValidaInput = function(v) { return fechaValida(v.trim()) ? '' : 'mal'; };
+  window.addRev = function() { leerRevs(); revsEdit.push(hoyFmt()); pintarRevs(); };
+  window.quitarRev = function() { leerRevs(); revsEdit.pop(); pintarRevs(); };
+
+  window.guardarDoc = function() {
+    if (!editando) return;
+    leerRevs();
+    var nombre = document.getElementById('mdNombre').value.trim();
+    if (!nombre) { alert('La denominación es obligatoria.'); return; }
+    var malas = revsEdit.filter(function(x){ return !fechaValida(x); });
+    if (malas.length && !confirm('Hay fechas con formato incorrecto (' + malas.join(', ') + '). ¿Guardar igualmente?')) return;
+    var si = editando.si, fi = editando.fi;
+    var nuevaSec = parseInt(document.getElementById('mdSeccion').value, 10);
+    var anterior = fi >= 0 ? lista.secciones[si].filas[fi] : null;
+    var f = Object.assign({}, anterior || { id: 'd' + Date.now().toString(36), vinculo: null }, {
+      nombre: nombre,
+      soporte: document.getElementById('mdSoporte').value,
+      conservacion: document.getElementById('mdCons').value.trim(),
+      ubicacion: document.getElementById('mdUbi').value.trim(),
+      diezDias: document.getElementById('mdDiez').checked,
+      obsoleto: document.getElementById('mdObs').checked,
+      revs: revsEdit.slice()
+    });
+    var antes = copia(anterior);
+    if (fi >= 0 && nuevaSec === si) {
+      lista.secciones[si].filas[fi] = f;
+    } else {
+      if (fi >= 0) lista.secciones[si].filas.splice(fi, 1);
+      lista.secciones[nuevaSec].filas.push(f);
+    }
+    guardarLista((anterior ? 'Editar: ' : 'Alta: ') + nombre, antes, copia(f))
+      .then(function(){ cerrarModal(); showToast('Guardado'); render(); })
+      .catch(function(e){ alert('Error al guardar: ' + e.message); cargar(); });
+  };
+
+  window.borrarDoc = function() {
+    if (!editando || editando.fi < 0) return;
+    var f = lista.secciones[editando.si].filas[editando.fi];
+    if (!confirm('¿Eliminar "' + f.nombre + '" de la lista?\n\nSi el documento se ha sustituido por otro, es mejor marcarlo como obsoleto.')) return;
+    var antes = copia(f);
+    lista.secciones[editando.si].filas.splice(editando.fi, 1);
+    guardarLista('Eliminar: ' + f.nombre, antes, null)
+      .then(function(){ cerrarModal(); showToast('Eliminado'); render(); })
+      .catch(function(e){ alert('Error al guardar: ' + e.message); cargar(); });
+  };
+
+  // ── impresión (mismo formato que el Excel: revisiones anteriores en rojo, la vigente en negro) ──
+  window.imprimir = function() {
+    var maxRev = 8;
+    lista.secciones.forEach(function(s){ s.filas.forEach(function(f){ maxRev = Math.max(maxRev, ultimaRev(f.revs)); }); });
+    var filaLista = null;
+    lista.secciones.forEach(function(s){ s.filas.forEach(function(f){ if (f.vinculo && f.vinculo.tipo === 'lista') filaLista = f; }); });
+    var uL = filaLista ? ultimaRev(filaLista.revs) : -1;
+    var cabRev = uL >= 0 ? 'Rev. ' + uL + '<br>Fecha: ' + escHtml(filaLista.revs[uL]) : '';
+    var nCols = 2 + (maxRev + 1) + 3;
+    var thRevs = '';
+    for (var i = 0; i <= maxRev; i++) thRevs += '<th class="r">Rev' + i + '</th>';
+    var cuerpo = '';
+    lista.secciones.forEach(function(s) {
+      cuerpo += '<tr class="sec"><td colspan="' + nCols + '">' + escHtml(s.titulo) + '</td></tr>';
+      s.filas.forEach(function(f) {
+        var u = ultimaRev(f.revs), tds = '';
+        for (var i = 0; i <= maxRev; i++) {
+          var v = f.revs[i] || '';
+          tds += '<td class="r' + (i < u && v ? ' ant' : '') + '">' + escHtml(v) + '</td>';
+        }
+        cuerpo += '<tr><td class="nom' + (f.obsoleto ? ' ant' : '') + '">' + escHtml(f.nombre) + '</td>' +
+          '<td class="c">' + escHtml(f.soporte || '') + '</td>' + tds +
+          '<td class="c">' + (f.diezDias ? 'SI' : '') + '</td>' +
+          '<td class="c">' + escHtml(f.conservacion || '') + '</td>' +
+          '<td class="c">' + escHtml(f.ubicacion || '') + '</td></tr>';
+      });
+    });
+    var logo = new URL('assets/logo-arp.jpg', location.href).href;
+    var w = window.open('', '_blank');
+    if (!w) { alert('El navegador ha bloqueado la ventana. Permite ventanas emergentes para imprimir.'); return; }
+    w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Lista de documentos</title><style>' +
+      '@page{size:A4 landscape;margin:8mm}' +
+      'body{font-family:Arial,Helvetica,sans-serif;margin:0;color:#000}' +
+      'table{border-collapse:collapse;width:100%;font-size:6.5pt}' +
+      'th,td{border:1px solid #444;padding:1.5px 3px;vertical-align:middle}' +
+      'th{background:#fff;font-weight:bold;text-align:center}' +
+      'td.r,td.c{text-align:center;white-space:nowrap}' +
+      '.ant{color:#E00000}' +
+      'tr.sec td{background:#D9D9D9;font-weight:bold;text-align:center}' +
+      'tr{page-break-inside:avoid}' +
+      '.cab td{border:1px solid #444;height:44px}' +
+      '.cab img{height:38px}' +
+      '.cab .tit{text-align:center;font-size:9pt}' +
+      '.cab .rev{text-align:right;font-size:7.5pt;white-space:nowrap}' +
+      '</style></head><body><table>' +
+      '<thead><tr class="cab"><td colspan="2"><img src="' + logo + '"></td>' +
+        '<td class="tit" colspan="' + (maxRev + 1) + '">LISTA DE DOCUMENTOS</td>' +
+        '<td class="rev" colspan="3">' + cabRev + '</td></tr>' +
+      '<tr><th style="width:24%">Denominación del registro</th><th>Infor./Papel</th>' + thRevs +
+        '<th>10 días</th><th>Tiempo de conservación en documentos obsoletos</th><th>Ubicación</th></tr></thead>' +
+      '<tbody>' + cuerpo + '</tbody></table>' +
+      '<script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script></body></html>');
+    w.document.close();
+  };
+</script>
+</body>
+</html>
