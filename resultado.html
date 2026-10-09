@@ -2030,7 +2030,9 @@ La instalación objeto de la presente inspección se denomina ${D.nombreInstalac
       const portadaSes = portadaSesFilt.length ? portadaSesFilt : portadaSesRaw;
       const lastSesInf = portadaSes[portadaSes.length - 1];
       const lastRawInf = portadaSes.length > 1 ? (lastSesInf.fecha||'') : (D.fechaInspeccion||lastSesInf.fecha||'');
-      const lastFmtInf = fmtFecha(lastRawInf);
+      // Junto a la firma va la fecha de EMISIÓN del informe; la de la visita ya está en la
+      // portada. Inspecciones antiguas sin fechaEmision siguen mostrando la última visita.
+      const lastFmtInf = fmtFecha(D.fechaEmision || lastRawInf);
       const diasArr = lastFmtInf ? (() => {
         try { const p=lastFmtInf.split('/'); return [diasSemana[new Date(`${p[2]}-${p[1]}-${p[0]}`).getDay()]+', '+lastFmtInf]; }
         catch(e) { return [lastFmtInf]; }

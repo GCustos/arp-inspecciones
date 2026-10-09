@@ -1352,6 +1352,7 @@
         horaInicio:S.horaInicio||'',
         horaFin:S.horaFin||'',
         fechaCompletada:new Date().toISOString(),
+        fechaEmision:(docSnap.exists&&docSnap.data().fechaEmision)||'',
         resultado:resultadoActual,
         checklist:S.gen, checklistObs:S.genObs, obsGral:document.getElementById('obsGral').value||'',
         circuitos:S.circuitos, ncs:S.ncs, ensayos:document.getElementById('ensayos').value||'',
@@ -2764,12 +2765,17 @@
     try {
       // En completar: escribir mapa completo de circuitos (estado definitivo, sin granularidad parcial)
       _dirtyCircuitIds.clear(); _deletedCircuitIds.clear();
+      // Fecha de emisión del informe (la que va junto a la firma): el día en que se completa,
+      // en hora local. Es distinta de fechaInspeccion (la visita, que va en la portada).
+      const _hoy=new Date();
+      const fechaEmision=_hoy.getFullYear()+'-'+String(_hoy.getMonth()+1).padStart(2,'0')+'-'+String(_hoy.getDate()).padStart(2,'0');
       await guardarConNcs({
         ...buildPayload("completada"),
         circuitos:buildCircuitosMap(),
         resultado,
         fechaCompletada:firebase.firestore.FieldValue.serverTimestamp(),
         fechaCompletadaLocal:new Date().toISOString(),
+        fechaEmision,
         completadoPor:currentUser.email
       });
       if(docDataFull.instalacionId){
@@ -2828,7 +2834,7 @@
           circuitos:S.circuitos, ncs:S.ncs, ensayos:document.getElementById('ensayos').value||'',
           equiposMedicion:S.equiposMedicion,
           revision:S.revision, historialRevisiones:S.historialRevisiones, nRegistro:S.nRegistro,
-          fechaCompletadaLocal:new Date().toISOString()
+          fechaCompletadaLocal:new Date().toISOString(), fechaEmision
         }));
       } catch(le) { console.warn('localStorage save failed:', le.message); }
       location.href="resultado.html?id="+inspeccionId;
