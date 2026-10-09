@@ -596,13 +596,22 @@
   var tiposNCList=["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente","Riesgo de atrapamiento"];
   var tiposNCNormaMap={};
   function _cargarTiposNC(alcance){
-    db.collection("config").doc((alcance||"paa").toLowerCase()).get().then(function(snap){
-      if(snap.exists&&snap.data().tiposNC){
+    var alc=(alcance||"paa").toLowerCase();
+    db.collection("config").doc(alc).get().then(function(snap){
+      if(snap.exists&&snap.data().tiposNC&&snap.data().tiposNC.length){
         var tNC=snap.data().tiposNC.filter(function(t){return t.activo!==false});
         tiposNCList=tNC.map(function(t){return t.label});
         tNC.forEach(function(t){tiposNCNormaMap[t.label]=t.norma||'';});
+      } else if(alc!=='paa'){
+        // No dejar que esto falle en silencio: antes se quedaba con el catálogo de PAA
+        // (hardcodeado como valor por defecto de tiposNCList) sin que nadie se enterara —
+        // así es como SAE/FER estuvieron meses mostrando tipos de NC de Parque de Aventura.
+        console.error('config/'+alc+' no tiene tiposNC — usando el catálogo de PAA por defecto, probablemente incorrecto para este alcance.');
+        alert('Aviso: no hay catálogo de tipos de No Conformidad para '+alc.toUpperCase()+' en la configuración. Se está usando temporalmente el de PAA (puede no ser correcto). Avisa al admin antes de seguir.');
       }
-    }).catch(function(){});
+    }).catch(function(e){
+      console.error('Error cargando tiposNC de config/'+alc+':', e.message);
+    });
   }
 
   const S = { gen:{}, genObs:{}, obsGral:"", circuitos:[], ncs:[], ensayos:"", equiposMedicion:[], revision:0, historialRevisiones:[], nRegistro:"", codigoInstalacion:"", tipoAlcance:"", estado:"borrador", fechaInspeccion:"", horaInicio:"", horaFin:"", sesiones:[] };
