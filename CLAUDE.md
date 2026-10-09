@@ -9,6 +9,14 @@ App web de inspecciones de ARP Prevención (parques de aventura PAA, escalada SA
 - Commits en español con prefijo (`fix(...)`, `feat(...)`), explicando el porqué. En PowerShell 5.1 los here-strings rompen `git commit -F -`: escribir el mensaje en un archivo temporal y usar `git commit -F <archivo>`.
 - Antes de decir que un cambio del PDF "funciona", generarlo de verdad (ver «Probar sin navegador»). No dar por bueno algo solo porque compila.
 
+## Regla de oro: no duplicar código
+
+Si una funcionalidad ya existe en algún sitio (dibujo, cálculo, validación), se **llama**
+(con los parámetros que cambien) en vez de escribir una copia nueva, aunque sea "solo
+para esta pantalla". Es la única forma de que un cambio se propague a todos los sitios
+que deberían comportarse igual, sin depender de que alguien recuerde tocar el otro sitio
+también.
+
 ## Despliegue
 
 - La app se sirve desde **GitHub Pages** (rama `main`): un `git push` ya la publica en 1–2 minutos. `firebase deploy` solo hace falta para `firestore.rules`, `storage.rules` o `functions/`.
@@ -19,6 +27,8 @@ App web de inspecciones de ARP Prevención (parques de aventura PAA, escalada SA
 ## Datos y scripts de administración
 
 - La clave Admin SDK (`*adminsdk*.json`) está en la raíz, **ignorada por git**; nunca se sube ni se comparte. Existe en los dos ordenadores.
+- Comandos de Firebase CLI (`firebase deploy`, `functions:list`...): usar siempre una cuenta propia de este proyecto, pasada explícita con `--account <email> --project arp-inspecciones` — nunca depender del proyecto "activo por defecto" de la CLI, sobre todo si la máquina gestiona más de un proyecto Firebase. El email de la cuenta vive en `CLAUDE.privado.md` (no en git).
+- No desplegar cambios a páginas en uso activo por un inspector en campo (`inspeccion.html`, `nueva-inspeccion.html`, `resultado.html`, `sw.js`) sin confirmar antes que ha terminado su jornada — diagnosticar y preparar el fix sí, el commit/deploy espera.
 - Para consultar o corregir Firestore: scripts Node con `firebase-admin` (API modular: `firebase-admin/app` y `firebase-admin/firestore`) **fuera del repo** (scratchpad o `_scripts/`, que está en `.gitignore`).
 - Escrituras: comprobar antes que los datos están como se espera (si no, parar sin escribir), guardar copia local de lo que se toca, usar `batch` y releer después para verificarlo.
 - La base de datos tiene muchas instalaciones duplicadas importadas sin datos (`__PENDIENTE__`). Al dar de alta un cliente: buscar duplicadas, quedarse con la de inspección más reciente y pasar los nombres de las demás a `aliases`.

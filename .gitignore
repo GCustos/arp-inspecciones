@@ -1,6 +1,10 @@
 # Claves de servicio Firebase — NUNCA subir a git
 *adminsdk*.json
 
+# Notas privadas (cuentas, detalles de seguridad) — repo PÚBLICO, nunca subir.
+# Se transfieren a mano (USB) entre ordenadores.
+CLAUDE.privado.md
+
 # Mapa público de certificaciones — archivo separado, no parte de la app
 mapa.html
 mapa-standalone.html
