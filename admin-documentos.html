@@ -206,7 +206,7 @@
         if (av) pendientes++;
         if (q && f.nombre.toLowerCase().indexOf(q) < 0) return;
         var u = ultimaRev(f.revs);
-        var revTxt = u >= 0 ? '<span class="doc-rev">Rev ' + u + '</span> · ' + escHtml(f.revs[u]) : 'Sin revisiones';
+        var revTxt = u >= 0 ? '<span class="doc-rev"' + (f.obsoleto ? ' style="color:var(--red)"' : '') + '>Rev ' + u + '</span> · ' + escHtml(f.revs[u]) : 'Sin revisiones';
         var extra = [f.soporte, f.conservacion, f.ubicacion].filter(Boolean).map(escHtml).join(' · ');
         filas += '<div class="doc-row" onclick="abrirDoc(' + si + ',' + fi + ')">' +
           '<div class="doc-nom' + (f.obsoleto ? ' obs' : '') + '">' + escHtml(f.nombre) +
@@ -349,7 +349,8 @@
         var u = ultimaRev(f.revs), tds = '';
         for (var i = 0; i <= maxRev; i++) {
           var v = f.revs[i] || '';
-          tds += '<td class="r' + (i < u && v ? ' ant' : '') + '">' + escHtml(v) + '</td>';
+          // Rojo: revisiones anteriores a la vigente, o todas si el documento está obsoleto.
+          tds += '<td class="r' + ((i < u || f.obsoleto) && v ? ' ant' : '') + '">' + escHtml(v) + '</td>';
         }
         cuerpo += '<tr><td class="nom' + (f.obsoleto ? ' ant' : '') + '">' + escHtml(f.nombre) + '</td>' +
           '<td class="c">' + escHtml(f.soporte || '') + '</td>' + tds +
