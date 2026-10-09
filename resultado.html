@@ -205,7 +205,8 @@
           '. Para comparar revisiones antiguas entre sí, usa la comparativa en pantalla.');
         return;
       }
-      CMP = { ops: PLANTILLA_INFORME.diffBloques(de.plantilla, a.plantilla), i: 0, de: de, a: a, alc: alc };
+      CMP = { ops: PLANTILLA_INFORME.diffBloques(de.plantilla, a.plantilla), i: 0, de: de, a: a, alc: alc,
+        soloPlantilla: String(de.revision) === String(a.revision) };
       D = inspeccionMuestra(alc, a, formato);
       D_actual = D;
       normalizarSesiones(D);
@@ -218,6 +219,15 @@
       const n = { ins: 0, del: 0, mod: 0, mov: 0 };
       CMP.ops.forEach(function(o){ if (o.t === 'ins') n.ins++; else if (o.t === 'del') n.del++; else if (o.t === 'mod') n.mod++; else if (o.t === 'movA') n.mov++; });
       CMP.resumen = n.mod + ' modificado(s) · ' + n.ins + ' añadido(s) · ' + n.del + ' eliminado(s) · ' + n.mov + ' movido(s)';
+      if (CMP.soloPlantilla) {
+        main.innerHTML = '<div style="max-width:620px;margin:24px auto;padding:22px;background:white;border:1px solid var(--border);border-radius:12px">' +
+          '<div style="font-size:17px;font-weight:700;color:var(--dark);margin-bottom:6px">Plantilla del informe — ' + escHtml(alc.toUpperCase()) + ' Rev ' + escHtml(String(a.revision)) + '</div>' +
+          '<div style="font-size:13px;line-height:1.7;color:var(--text)">Vigente desde ' + escHtml(a.fechaVigencia || '') + '<br>' +
+          (a.motivo ? '<b>Motivo:</b> ' + escHtml(a.motivo) + '<br>' : '') +
+          '<span style="color:var(--muted)">Informe completo de esta revisión; los datos de cada inspección aparecen entre corchetes.</span></div>' +
+          '<button onclick="generarInforme()" style="width:100%;margin-top:14px;padding:13px;background:var(--gold);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">&#11015; Descargar plantilla del informe (PDF)</button></div>';
+        return;
+      }
       main.innerHTML = '<div style="max-width:620px;margin:24px auto;padding:22px;background:white;border:1px solid var(--border);border-radius:12px">' +
         '<div style="font-size:17px;font-weight:700;color:var(--dark);margin-bottom:6px">Informe comparativo — ' + escHtml(alc.toUpperCase()) + '</div>' +
         '<div style="font-size:13px;line-height:1.7;color:var(--text)">De la <b>Rev ' + escHtml(String(de.revision)) + '</b> (' + escHtml(de.fechaVigencia || '') + ') a la <b>Rev ' + escHtml(String(a.revision)) + '</b> (' + escHtml(a.fechaVigencia || '') + ')<br>' +
@@ -1171,7 +1181,20 @@
       y += 2;
       doc.line(ML, y, PW-MR, y);
 
-      if (CMP) {
+      if (CMP && CMP.soloPlantilla) {
+        // Recuadro de la plantilla de una revisión (botón "PDF" del historial).
+        const cy = y + 10;
+        doc.setFontSize(8.5); doc.setFont('helvetica','normal');
+        const motivoLns = CMP.a.motivo ? doc.splitTextToSize('Motivo de la revisión: ' + CMP.a.motivo, CW - 8) : [];
+        const altoCaja = 24 + motivoLns.length * 4.2;
+        doc.setDrawColor(...GOLD); doc.setLineWidth(0.6); doc.rect(ML, cy, CW, altoCaja);
+        doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...DARK);
+        doc.text('PLANTILLA DEL INFORME — Rev ' + CMP.a.revision + ' (vigente desde ' + (CMP.a.fechaVigencia || '') + ')', ML + 4, cy + 7);
+        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+        doc.text('Plantilla completa del informe: los datos de cada inspección aparecen entre corchetes.', ML + 4, cy + 13.5);
+        doc.setFontSize(8.5); doc.setTextColor(...DARK);
+        motivoLns.forEach((l, i) => doc.text(l, ML + 4, cy + 19.5 + i * 4.2));
+      } else if (CMP) {
         // Recuadro del informe comparativo: revisiones, leyenda de colores y motivo.
         const cy = y + 10;
         doc.setFontSize(8.5); doc.setFont('helvetica','normal');
@@ -2082,7 +2105,9 @@
         iy += 7;
       });
       const fileName = CMP
-        ? 'Informe_comparativo_' + CMP.alc.toUpperCase() + '_Rev' + CMP.de.revision + '_a_Rev' + CMP.a.revision + '.pdf'
+        ? (CMP.soloPlantilla
+            ? 'Plantilla_informe_' + CMP.alc.toUpperCase() + '_Rev' + CMP.a.revision + '.pdf'
+            : 'Informe_comparativo_' + CMP.alc.toUpperCase() + '_Rev' + CMP.de.revision + '_a_Rev' + CMP.a.revision + '.pdf')
         : (ref.replace(/\//g,'_').replace(/\s/g,'_') || 'informe') + '.pdf';
       doc.save(fileName);
 

@@ -280,7 +280,11 @@
                   '<div class="hist-meta" style="margin-top:2px">'+escHtml(h.publicadoPor||'')+'&nbsp;&middot;&nbsp;'+escHtml(resumen)+'</div>' +
                 '</div>' +
                 '<div style="display:flex;gap:4px;align-items:center;flex-shrink:0">' +
-                  (h.checklist?'<button class="btn-hist-pdf" onclick="event.stopPropagation();generarPdfFormato('+idx+')">PDF</button>':'') +
+                  // "PDF" de la revisión vigente: la plantilla completa del informe (como uno real).
+                  // Las anteriores no se pueden dibujar fielmente con el código actual: listado de preguntas.
+                  (idx===0&&h.plantilla
+                    ?'<button class="btn-hist-pdf" onclick="event.stopPropagation();location.href=\'resultado.html?comparar=1&alc='+encodeURIComponent(alcanceId)+'&de='+h.revision+'&a='+h.revision+'\'" title="Plantilla completa del informe de esta revisión">PDF</button>'
+                    :(h.checklist?'<button class="btn-hist-pdf" onclick="event.stopPropagation();generarPdfFormato('+idx+')" title="Preguntas del checklist de esta revisión">PDF</button>':'')) +
                   // "↕ Cambios": el informe completo (como el de una inspección) con los cambios
                   // frente a la revisión anterior marcados — ver modo comparativa en resultado.html.
                   (idx<docs.length-1?'<button class="btn-hist-pdf" onclick="event.stopPropagation();location.href=\'resultado.html?comparar=1&alc='+encodeURIComponent(alcanceId)+'&de='+docs[idx+1].revision+'&a='+h.revision+'\'" title="Informe con los cambios frente a la Rev anterior marcados en color">&#8597; Cambios</button>':'') +
