@@ -2822,37 +2822,11 @@
           inspeccionActivaId:null,
           inspeccionActivaEstado:null
         }).catch(function(){});
-        if(resultado==='FAVORABLE'){
-          var _instalId=docDataFull.instalacionId, _cert=_certHasta;
-          var _nombre=docDataFull.nombreInstalacion||'', _tipo=docDataFull.tipoAlcance||'PAA';
-          db.collection('instalaciones').doc(_instalId).get().then(async function(snap){
-            var inst=snap.exists?snap.data():{};
-            var lat=inst.lat||null, lng=inst.lng||null;
-            // Sin coordenadas guardadas: geocodificar por municipio/provincia (gratis, sin API key)
-            // para que el pin del mapa público no se quede sin posición. Best-effort: si falla,
-            // sigue igual que antes (lat/lng null, el mapa simplemente no pinta ese punto).
-            if(!lat && !lng && (inst.municipio||inst.provincia)){
-              try{
-                var q=[inst.municipio,inst.provincia,'España'].filter(Boolean).join(', ');
-                var geoRes=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q));
-                var geoData=await geoRes.json();
-                if(geoData && geoData[0]){
-                  lat=parseFloat(geoData[0].lat); lng=parseFloat(geoData[0].lon);
-                  db.collection('instalaciones').doc(_instalId).update({lat:lat,lng:lng}).catch(function(){});
-                }
-              }catch(ge){ console.warn('geocode:',ge.message); }
-            }
-            return db.collection('certificados-publicos').doc(_instalId).set({
-              nombre:_nombre,
-              lugar:[inst.municipio,inst.provincia].filter(Boolean).join(', '),
-              lat:lat,
-              lng:lng,
-              fechaValidez:_cert,
-              tipo:_tipo,
-              actualizadoEn:firebase.firestore.FieldValue.serverTimestamp()
-            });
-          }).catch(function(e){console.warn('certificados-publicos:',e.message);});
-        }
+        // certificados-publicos (mapa web) ya NO se escribe aquí — lo mantiene sola la
+        // Cloud Function syncCertificadoPublico (functions/index.js), que recalcula desde
+        // Firestore cuál es la inspección FAVORABLE más reciente, retira el certificado si
+        // deja de haberla, y geocodifica en servidor (no depende de la cobertura del
+        // inspector en ese instante). Escribirlo aquí también era código duplicado.
       }
       // Esperar confirmación del servidor (evita pérdida si se limpian datos del sitio antes de sincronizar)
       try { await db.waitForPendingWrites(); } catch(we) { console.warn('waitForPendingWrites:', we.message); }
