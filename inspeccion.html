@@ -2158,7 +2158,12 @@
 
     const ref=modalNCRef;
     let elem='',autoId='',juegoId=undefined,origen='auto';
-    if(ref.itemId){
+    if(ref.manual){
+      // NC suelta, sin pregunta de checklist asociada — se añade desde "+ Añadir no
+      // conformidad". elem/circuito/juego quedan editables desde la propia pestaña NC
+      // (mismo camino que ya usan las NC sin autoId).
+      elem=''; autoId=''; origen='manual';
+    } else if(ref.itemId){
       const item=GEN_ITEMS.find(i=>i.id===ref.itemId);
       elem=item.sec; autoId=ref.itemId;
       S.gen[ref.itemId]='N'; markDirty();
@@ -2170,10 +2175,11 @@
       autoId=`j_${j.id}_${ref.col}`; // formato estable: no depende de posición
       j[ref.col]='N'; markCircuitDirty(ref.ci); markDirty();
     }
-    if(tipoSel==='__otro__') origen='campo';
+    if(tipoSel==='__otro__'&&!ref.manual) origen='campo';
 
-    // Evitar duplicado de autoId
-    if(!S.ncs.find(n=>n.autoId===autoId)){
+    // Evitar duplicado de autoId — las NC manuales no tienen autoId (siempre ''), así que
+    // nunca deben entrar en esta comprobación o se bloquearían entre sí.
+    if(!autoId||!S.ncs.find(n=>n.autoId===autoId)){
       const ncNew={autoId,tipo,elem,desc:obs,norma,prio:modalNCPrio,origen,fotosDefecto:[...modalNCFotos],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision};
       if(subcatVisible&&subcategoria) ncNew.subcategoria=subcategoria;
       if(juegoId) ncNew.juegoId=juegoId;
@@ -2184,6 +2190,17 @@
     modalNCRef=null;
     markDirty();
     renderGen(); renderCircuitos(); renderNCs();
+  };
+
+  // Foto de defecto obligatoria para toda NC (ver ncsSinFoto en completar()) — no dejar
+  // borrar la última, para que no se pueda vaciar una NC ya documentada (incluida una ya
+  // cerrada, que completar() ya no vuelve a comprobar) sin que nadie se entere.
+  window.delFotoDefecto=function(i,fi){
+    var fotos=S.ncs[i].fotosDefecto||[];
+    if(fotos.length<=1){ showToast('No puedes quitar la última foto del defecto'); return; }
+    fotos.splice(fi,1);
+    renderNCs();
+    markDirty();
   };
 
   // NCs
@@ -2252,8 +2269,8 @@
             <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px">Fotos del defecto</label>
             <div class="foto-grid">
               ${(nc.fotosDefecto||[]).map((f,fi)=>f.perdida
-                ? `<div class="foto-thumb" style="background:rgba(198,40,40,.08);border:1px dashed #c62828;display:flex;align-items:center;justify-content:center;font-size:22px" title="Foto perdida — vuelve a añadirla">❌<button class="foto-del" onclick="S.ncs[${i}].fotosDefecto.splice(${fi},1);renderNCs();markDirty()">&#215;</button></div>`
-                : `<div class="foto-thumb"><img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="defecto ${fi+1}"><button class="foto-del" onclick="S.ncs[${i}].fotosDefecto.splice(${fi},1);renderNCs();markDirty()">&#215;</button></div>`
+                ? `<div class="foto-thumb" style="background:rgba(198,40,40,.08);border:1px dashed #c62828;display:flex;align-items:center;justify-content:center;font-size:22px" title="Foto perdida — vuelve a añadirla">❌<button class="foto-del" onclick="delFotoDefecto(${i},${fi})">&#215;</button></div>`
+                : `<div class="foto-thumb"><img src="${f.url||f.dataUrl||''}" ${f.localKey?'data-localkey="'+f.localKey+'"':''} alt="defecto ${fi+1}"><button class="foto-del" onclick="delFotoDefecto(${i},${fi})">&#215;</button></div>`
               ).join('')}
             </div>
             <div class="foto-add-row">
@@ -2393,7 +2410,7 @@
     inp.value="";
   }
 
-  function addNC(){ S.ncs.push({elem:"",tipo:"",desc:"",norma:NORMA_APLICABLE,prio:"",origen:"manual",fotosDefecto:[],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision}); markDirty(); renderNCs(); goTab(3); }
+  function addNC(){ goTab(3); abrirModalNC({contexto:'Nueva no conformidad (sin vincular a una pregunta del checklist)',manual:true}); }
   function delNC(i){
     var nc=S.ncs[i];
     if(nc&&nc.origen==='auto'&&nc.autoId){
@@ -2692,7 +2709,9 @@
       return;
     }
     // Validar fotos de NC (al menos 1 foto de defecto por NC no cerrada)
-    var ncsSinFoto=S.ncs.filter(function(n,i){ return !n.cerrada&&n.prio&&n.prio!=="OBSERVACION"&&!(n.fotosDefecto&&n.fotosDefecto.length); });
+    // Foto obligatoria para TODAS las gravedades, incluida OBSERVACION — coherente con el
+    // modal de creación (confirmarNC()), que nunca ha permitido crear ninguna NC sin foto.
+    var ncsSinFoto=S.ncs.filter(function(n,i){ return !n.cerrada&&n.prio&&!(n.fotosDefecto&&n.fotosDefecto.length); });
     if(ncsSinFoto.length){
       goTab(3);
       alert("Hay "+ncsSinFoto.length+" no conformidad(es) sin foto de defecto. Añade al menos una foto antes de completar.");
