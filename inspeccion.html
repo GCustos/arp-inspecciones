@@ -2692,6 +2692,22 @@
       alert('Falta la fecha de inspección. Complétala antes de finalizar.');
       return;
     }
+    // Fecha programada a futuro (p. ej. se dejó una fecha de noviembre "para no pisar" y se
+    // fue antes): de ella salen el nº de registro y la validez del certificado, así que al
+    // completar se sustituye por el día de la primera visita real (con hora), o por hoy.
+    var _hoyD=new Date();
+    var _hoyLocal=_hoyD.getFullYear()+'-'+String(_hoyD.getMonth()+1).padStart(2,'0')+'-'+String(_hoyD.getDate()).padStart(2,'0');
+    if(S.fechaInspeccion>_hoyLocal){
+      var _visitas=S.sesiones.filter(function(s){ return (s.horaInicio||s.horaFin)&&s.fecha<=_hoyLocal; }).map(function(s){ return s.fecha; }).sort();
+      var _fechaReal=_visitas[0]||_hoyLocal;
+      if(!confirm('La fecha de inspección ('+fmtFecha(S.fechaInspeccion)+') es posterior a hoy.\n\nSe cambiará a '+fmtFecha(_fechaReal)+(_visitas.length?', el día de la primera visita':', hoy')+'. De ella salen el nº de registro y la validez del certificado.\n\n¿Continuar?')){
+        goTab(0);
+        return;
+      }
+      S.fechaInspeccion=_fechaReal;
+      var _inpF=document.getElementById('inpFechaInspeccion'); if(_inpF) _inpF.value=_fechaReal;
+      markDirty();
+    }
     // Validar fotos de juegos
     var juegosSinFoto=[]; var firstFoto={ci:-1,ji:-1};
     S.circuitos.forEach(function(c,ci){
