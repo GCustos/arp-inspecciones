@@ -70,11 +70,15 @@ service cloud.firestore {
       // oficina no puede crear inspecciones
       allow create: if isAuth() && myRole() != 'oficina';
 
-      // Inspector solo actualiza las suyas; admin/director/proyecto actualizan cualquiera
+      // Inspector solo actualiza las suyas; admin/director/proyecto actualizan cualquiera.
+      // Oficina y contabilidad (oficina.html: oferta, factura, cobro, observaciones) solo
+      // pueden tocar el bloque seguimientoAdmin, nunca los datos de la inspección.
       allow update: if isAuth() && (
         isAdminLike() ||
         resource.data.inspectorEmail  == myEmail() ||
-        resource.data.inspector2Email == myEmail()
+        resource.data.inspector2Email == myEmail() ||
+        (myRole() in ['oficina', 'contabilidad'] &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seguimientoAdmin']))
       );
 
       // Solo admin borra
