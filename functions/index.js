@@ -90,7 +90,11 @@ exports.syncCertificadoPublico = onDocumentWritten("inspecciones/{inspeccionId}"
     lugar: lugar,
     lat: lat,
     lng: lng,
-    fechaValidez: addYear(masReciente.fechaInspeccion),
+    // Igual que "Fecha entrada en vigor" en el certificado (resultado.html, commit
+    // f3369a8): el certificado se firma junto con el informe, la vigencia cuenta desde
+    // fechaEmision, no desde la fecha de la visita. Fallback a fechaInspeccion para
+    // inspecciones anteriores a este campo.
+    fechaValidez: addYear(masReciente.fechaEmision || masReciente.fechaInspeccion),
     tipo: masReciente.tipoAlcance || "PAA",
     actualizadoEn: admin.firestore.FieldValue.serverTimestamp()
   });

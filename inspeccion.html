@@ -2846,7 +2846,11 @@
         completadoPor:currentUser.email
       });
       if(docDataFull.instalacionId){
-        var _fParts=S.fechaInspeccion.split('-');
+        // Igual que "Fecha entrada en vigor" en el certificado (resultado.html, commit
+        // f3369a8): el certificado se firma junto con el informe, así que la vigencia
+        // cuenta desde fechaEmision, no desde la fecha de la visita. Inspecciones sin
+        // fechaEmision (anteriores a este campo): se mantiene como hasta ahora.
+        var _fParts=(fechaEmision||S.fechaInspeccion).split('-');
         var _certD=new Date(parseInt(_fParts[0])+1,parseInt(_fParts[1])-1,parseInt(_fParts[2]));
         var _certHasta=_certD.toISOString().slice(0,10);
         db.collection("instalaciones").doc(docDataFull.instalacionId).update({
