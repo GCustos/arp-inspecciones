@@ -2183,10 +2183,16 @@
         ? fmtFecha(D.sesiones[D.sesiones.length-1].fecha)
         : fmtFecha(D.fechaInspeccion||'');
 
-      // Fecha próxima inspección (+1 año)
+      // Fecha de entrada en vigor = fecha de emisión (firma) del informe: el certificado se
+      // firma junto con él, así que no puede estar en vigor desde antes. La fecha de la
+      // inspección se mantiene en el texto ("certifica haber efectuado en fecha…").
+      // Inspecciones anteriores a fechaEmision: la de la inspección, como hasta ahora.
+      const fechaVigor = D.fechaEmision ? fmtFecha(D.fechaEmision) : fechaInsp;
+
+      // Fecha próxima inspección (+1 año desde la entrada en vigor)
       let fechaProxima = '';
       try {
-        const parts = fechaInsp.split('/');
+        const parts = fechaVigor.split('/');
         const d2 = new Date(`${parseInt(parts[2])+1}-${parts[1]}-${parts[0]}`);
         fechaProxima = `${String(d2.getDate()).padStart(2,'0')}/${String(d2.getMonth()+1).padStart(2,'0')}/${d2.getFullYear()}`;
       } catch(e) {}
@@ -2249,7 +2255,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
       doc.setFontSize(9); doc.setFont('helvetica','italic'); doc.setTextColor(...DARK);
       const fechaLabelW = Math.max(doc.getTextWidth('Fecha entrada en vigor:'), doc.getTextWidth('Fecha próxima inspección:')) + 2;
       doc.text('Fecha entrada en vigor:', ML, PH-30);
-      doc.setFont('helvetica','normal'); doc.text(fechaInsp, ML+fechaLabelW, PH-30);
+      doc.setFont('helvetica','normal'); doc.text(fechaVigor, ML+fechaLabelW, PH-30);
       doc.setFont('helvetica','italic');
       doc.text('Fecha próxima inspección:', ML, PH-24);
       doc.setFont('helvetica','normal'); doc.text(fechaProxima, ML+fechaLabelW, PH-24);
