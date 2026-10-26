@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#C8993A">
+  <title>Inspectores - ARP</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .content{padding:16px;max-width:1300px;margin:0 auto}
+    .sec{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:18px}
+    .sec-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+    .sec-titulo{font-size:13px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:.05em}
+    .sec-nota{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+    .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    table{border-collapse:collapse;width:100%;font-size:12px}
+    thead th{background:var(--surf);color:var(--muted);padding:8px 10px;text-align:left;white-space:nowrap;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    td{padding:8px 10px;border-top:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+    td.grupo{font-weight:700;color:var(--dark)}
+    .est{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px}
+    .est-ok{background:#E8F5E9;color:var(--green)}
+    .est-aviso{background:#FFF3E0;color:var(--orange)}
+    .est-mal{background:#FFEBEE;color:var(--red)}
+    .est-nada{background:var(--surf);color:var(--muted)}
+    .meses{font-size:10px;color:var(--muted)}
+    .vacio{color:var(--border)}
+    tr.anulado td{color:var(--muted);text-decoration:line-through}
+    tr.anulado td.anul-info{text-decoration:none;color:var(--red);font-size:10px}
+    .btn-sm{background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--muted);font-family:inherit;white-space:nowrap}
+    .btn-sm:hover{border-color:var(--gold);color:var(--gold)}
+    .btn-sm.gold{border-color:var(--gold);color:var(--gold);font-weight:700}
+    /* Modal */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center}
+    .overlay.open{display:flex}
+    @media(min-width:520px){.overlay{align-items:center}}
+    .modal{background:white;border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:20px 16px 28px}
+    @media(min-width:520px){.modal{border-radius:16px;padding:24px}}
+    .modal-titulo{font-size:15px;font-weight:700;color:var(--dark);margin-bottom:4px}
+    .modal-sub{font-size:11px;color:var(--muted);margin-bottom:16px}
+    .form-row{margin-bottom:12px}
+    .form-row label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+    .form-row input,.form-row select,.form-row textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text);background:white;outline:none}
+    .form-row textarea{resize:vertical;min-height:60px}
+    .form-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .modal-footer{display:flex;gap:8px;margin-top:16px}
+    .btn-guardar{flex:1;padding:12px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+    .btn-guardar:disabled{opacity:.5;cursor:not-allowed}
+    .btn-cancel{padding:12px 20px;background:white;color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="btn-back" onclick="history.back()">&#8592;</button>
+  <div class="hdr-mark" onclick="location.href='index.html'" style="cursor:pointer" title="Inicio">ARP</div>
+  <div class="hdr-title">Inspectores &middot; Formaci&#243;n</div>
+</div>
+
+<div class="content" id="content">
+  <div class="spinner"></div>
+</div>
+
+<div class="overlay" id="overlay" onclick="cerrarModal(event)">
+  <div class="modal" id="modal" onclick="event.stopPropagation()">
+    <div class="modal-titulo" id="modalTitulo"></div>
+    <div class="modal-sub" id="modalSub"></div>
+    <div id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-guardar" id="btnGuardar" onclick="guardarModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="utils.js?v=2"></script>
+<script>
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey:"AIzaSyDncKj2_RBJWgzzjOn2079x47pf_ycGFlc",
+      authDomain:"arp-inspecciones.firebaseapp.com",
+      projectId:"arp-inspecciones",
+      storageBucket:"arp-inspecciones.firebasestorage.app",
+      messagingSenderId:"35880168451",
+      appId:"1:35880168451:web:090e3c250b4416ed0b3236"
+    });
+  }
+  var auth = firebase.auth();
+  var db   = firebase.firestore();
+
+  // Formación continua según PFO.01 Rev.3, tabla 5.1, por procedimiento:
+  //   D: 1 inspección cada 2 años. Sin ninguna en 24 meses → repetir la formación inicial (5.3).
+  //   C: 1 evaluación al año (FFO.06 evaluación de control o FFO.05 formación conjunta);
+  //      se cuenta como 12 meses desde la anterior.
+  // Las inspecciones salen de las revisiones de cada expediente (revisionesInspeccion, utils.js);
+  // lo anterior a la app y las formaciones se apuntan en la colección `formaciones`.
+  var PROCS = [
+    { id: 'PAA', pai: 'PAI.10', nombre: 'Parques de aventura' },
+    { id: 'SAE', pai: 'PAI.11', nombre: 'Estructuras artificiales de escalada' },
+    { id: 'FER', pai: 'PAI.24', nombre: 'Vías ferratas' }
+  ];
+  var TIPOS = {
+    INSP: 'Inspección anterior a la app',
+    FTE:  'Formación teórica (FFO.03)',
+    A:    'Acompañamiento (FFO.04)',
+    B:    'Formación conjunta (FFO.05)',
+    C:    'Evaluación de control (FFO.06)'
+  };
+  var D_AVISO = 18, D_LIMITE = 24, C_AVISO = 10, C_LIMITE = 12; // meses
+
+  var usuarios = {};     // email → datos
+  var inspData = [];
+  var formaciones = [];  // [{id, ...}]
+  var miEmail = '';
+  var modalModo = null;  // {tipo:'marcar', ...} | {tipo:'manual'}
+
+  initAuth({
+    roles: ['admin', 'director'],
+    onDenied: 'message',
+    onReady: function(user) { miEmail = user.email; cargar(); }
+  });
+
+  function cargar() {
+    Promise.all([
+      db.collection('usuarios').get(),
+      db.collection('inspecciones').where('estado', '==', 'completada').get(),
+      db.collection('inspecciones').where('estado', '==', 'en_curso').get(),
+      db.collection('formaciones').get()
+    ]).then(function(r) {
+      usuarios = {};
+      r[0].forEach(function(d) { usuarios[d.id] = d.data(); });
+      inspData = [];
+      r[1].forEach(function(d) { inspData.push(Object.assign({ id: d.id }, d.data())); });
+      r[2].forEach(function(d) { var x = d.data(); if ((x.historialRevisiones || []).length) inspData.push(Object.assign({ id: d.id }, x)); });
+      formaciones = [];
+      r[3].forEach(function(d) { formaciones.push(Object.assign({ id: d.id }, d.data())); });
+      render();
+    }).catch(function(e) {
+      document.getElementById('content').innerHTML = '<div class="empty-state">Error: ' + escHtml(e.message) + '</div>';
+    });
+  }
+
+  // ── Cálculos ──
+  function nombreDe(email) { return (usuarios[email] && usuarios[email].nombre) || email; }
+  function puedeEvaluar(email, alc) { var u = usuarios[email]; return !!(u && (u.puedeEvaluar || []).indexOf(alc) >= 0); }
+  function hoyISO() { return new Date().toISOString().slice(0, 10); }
+  function mesesDesde(f) {
+    if (!f) return null;
+    return (new Date(hoyISO() + 'T12:00:00') - new Date(f + 'T12:00:00')) / (1000 * 60 * 60 * 24 * 30.4375);
+  }
+
+  // Cada persona cuenta una vez por expediente (con la fecha de su última revisión que cuenta).
+  function participaciones() {
+    var map = {};
+    inspData.forEach(function(i) {
+      revisionesInspeccion(i).forEach(function(r) {
+        if (!r.cuenta) return;
+        [r.inspectorEmail, r.inspector2Email].forEach(function(e) {
+          if (!e) return;
+          var k = e + '|' + i.tipoAlcance + '|' + i.id;
+          if (!map[k] || r.fecha > map[k].fecha) map[k] = { email: e, alc: i.tipoAlcance, fecha: r.fecha, id: i.id, nReg: i.nRegistro };
+        });
+      });
+    });
+    return Object.keys(map).map(function(k) { return map[k]; });
+  }
+
+  function activas() { return formaciones.filter(function(f) { return !f.anulado; }); }
+
+  function estado(meses, aviso, limite, txtOk, txtAviso, txtMal, txtNada) {
+    if (meses === null) return '<span class="est est-nada">' + txtNada + '</span>';
+    if (meses >= limite) return '<span class="est est-mal">' + txtMal + '</span>';
+    if (meses >= aviso) return '<span class="est est-aviso">' + txtAviso + '</span>';
+    return '<span class="est est-ok">' + txtOk + '</span>';
+  }
+
+  function fmtMeses(m) { return m === null ? '' : '<div class="meses">hace ' + Math.floor(m) + (Math.floor(m) === 1 ? ' mes' : ' meses') + '</div>'; }
+
+  // ── Render ──
+  function render() {
+    var parts = participaciones();
+    var forms = activas();
+    var personas = Object.keys(usuarios).filter(function(e) {
+      var u = usuarios[e];
+      return u.activo && u.rol !== 'oficina' && u.rol !== 'contabilidad';
+    }).sort(function(a, b) { return nombreDe(a).localeCompare(nombreDe(b)); });
+
+    var html = '<div class="sec"><div class="sec-hdr"><div class="sec-titulo">Formaci&#243;n continua por procedimiento</div></div>' +
+      '<div class="sec-nota">PFO.01 tabla 5.1: <b>1 inspecci&#243;n cada 2 a&#241;os</b> (sin ninguna en 24 meses &#8594; repetir formaci&#243;n inicial, apdo. 5.3) y <b>1 evaluaci&#243;n al a&#241;o</b> (FFO.06 o FFO.05, 12 meses desde la anterior). ' +
+      'Cuenta ir de inspector principal o de segundo; una Rev.N solo cuenta si fue revisita en campo. Avisos: inspecci&#243;n a los ' + D_AVISO + ' meses, evaluaci&#243;n a los ' + C_AVISO + '.</div>' +
+      '<div class="tbl-wrap"><table><thead><tr>' +
+        '<th>Inspector</th><th>Procedimiento</th><th>Insp. &#250;lt. 24 meses</th><th>&#218;ltima inspecci&#243;n</th><th>Estado inspecci&#243;n</th><th>&#218;ltima evaluaci&#243;n</th><th>Estado evaluaci&#243;n</th>' +
+      '</tr></thead><tbody>';
+
+    var filas = 0;
+    personas.forEach(function(email) {
+      var u = usuarios[email];
+      var procsPersona = PROCS.filter(function(p) {
+        return (u.puedeFirmar || []).indexOf(p.id) >= 0 ||
+          parts.some(function(x) { return x.email === email && x.alc === p.id; }) ||
+          forms.some(function(f) { return f.evaluadoEmail === email && f.procedimiento === p.id; });
+      });
+      procsPersona.forEach(function(p, idx) {
+        filas++;
+        var insps = parts.filter(function(x) { return x.email === email && x.alc === p.id; }).map(function(x) { return x.fecha; });
+        forms.forEach(function(f) { if (f.evaluadoEmail === email && f.procedimiento === p.id && f.tipo === 'INSP') insps.push(f.fecha); });
+        insps = insps.filter(Boolean).sort();
+        var ultInsp = insps.length ? insps[insps.length - 1] : '';
+        var en24 = insps.filter(function(f) { var m = mesesDesde(f); return m !== null && m < 24; }).length;
+        var evals = forms.filter(function(f) {
+          return f.evaluadoEmail === email && f.procedimiento === p.id && (f.tipo === 'B' || f.tipo === 'C') && f.resultado === 'favorable';
+        }).map(function(f) { return f.fecha; }).filter(Boolean).sort();
+        var ultEval = evals.length ? evals[evals.length - 1] : '';
+        var mI = mesesDesde(ultInsp), mE = mesesDesde(ultEval);
+        html += '<tr>' +
+          '<td class="grupo">' + (idx === 0 ? escHtml(nombreDe(email)) + (puedeEvaluar(email, p.id) ? ' <span class="meses">(evaluador)</span>' : '') : '') + '</td>' +
+          '<td><span class="badge-alcance badge-' + p.id.toLowerCase() + '">' + p.id + '</span> <span class="meses">' + p.pai + '</span></td>' +
+          '<td>' + en24 + '</td>' +
+          '<td>' + (ultInsp ? escHtml(fmtFecha(ultInsp)) + fmtMeses(mI) : '<span class="vacio">&#8212;</span>') + '</td>' +
+          '<td>' + estado(mI, D_AVISO, D_LIMITE, 'En plazo', 'Programar inspecci&#243;n', 'Repetir formaci&#243;n inicial', 'Sin registro') + '</td>' +
+          '<td>' + (ultEval ? escHtml(fmtFecha(ultEval)) + fmtMeses(mE) : '<span class="vacio">&#8212;</span>') + '</td>' +
+          '<td>' + estado(mE, C_AVISO, C_LIMITE, 'En plazo', 'Programar evaluaci&#243;n', 'Evaluaci&#243;n vencida', 'Sin registro') + '</td>' +
+        '</tr>';
+      });
+    });
+    if (!filas) html += '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Sin inspectores.</td></tr>';
+    html += '</tbody></table></div>';
+    var sinDato = inspData.filter(function(i) { return revisionesInspeccion(i).some(function(r) { return r.sinDato || (r.revision > 0 && r.cerrada && !r.motivo); }); });
+    if (sinDato.length) {
+      html += '<div class="sec-nota" style="margin-top:10px;color:var(--orange)">&#9888; ' + sinDato.length + ' expediente(s) con revisiones sin dato de inspector o de motivo no cuentan todav&#237;a: ' +
+        sinDato.map(function(i) { return escHtml(i.nRegistro || i.id); }).join(', ') + '.</div>';
+    }
+    html += '</div>';
+
+    // Conjuntas pendientes de marcar
+    var pend = conjuntasPendientes();
+    html += '<div class="sec"><div class="sec-hdr"><div class="sec-titulo">Inspecciones conjuntas con un evaluador</div></div>' +
+      '<div class="sec-nota">Inspecciones hechas entre una persona evaluadora y otra que no lo es. Marca las que valgan como formaci&#243;n conjunta (FFO.05) para la evaluaci&#243;n anual de la persona evaluada.</div>';
+    if (!pend.length) {
+      html += '<div class="sec-nota">No hay inspecciones conjuntas pendientes de marcar.</div>';
+    } else {
+      html += '<div class="tbl-wrap"><table><thead><tr><th>Expediente</th><th>Fecha</th><th>Proc.</th><th>Evaluado</th><th>Evaluador</th><th></th></tr></thead><tbody>';
+      pend.forEach(function(c, idx) {
+        html += '<tr><td style="font-family:monospace;font-size:11px">' + escHtml(c.nReg) + ' <span class="meses">Rev.' + c.revision + '</span></td>' +
+          '<td>' + escHtml(fmtFecha(c.fecha)) + '</td>' +
+          '<td><span class="badge-alcance badge-' + c.alc.toLowerCase() + '">' + c.alc + '</span></td>' +
+          '<td>' + escHtml(nombreDe(c.evaluado)) + '</td><td>' + escHtml(nombreDe(c.evaluador)) + '</td>' +
+          '<td><button class="btn-sm gold" onclick="abrirMarcar(' + idx + ')">Marcar como evaluaci&#243;n</button></td></tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+    html += '</div>';
+
+    // Registro de formaciones
+    var lista = formaciones.slice().sort(function(a, b) { return (b.fecha || '') > (a.fecha || '') ? 1 : -1; });
+    html += '<div class="sec"><div class="sec-hdr"><div class="sec-titulo">Registro de formaciones y evaluaciones</div>' +
+      '<button class="btn-primary" onclick="abrirManual()">+ A&#241;adir registro</button></div>' +
+      '<div class="sec-nota">Aqu&#237; van tambi&#233;n los datos de las hojas de validaci&#243;n (situaci&#243;n anterior a la app). Un registro no se borra: si est&#225; mal se anula con motivo.</div>';
+    if (!lista.length) {
+      html += '<div class="sec-nota">Sin registros todav&#237;a.</div>';
+    } else {
+      html += '<div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Persona</th><th>Proc.</th><th>Tipo</th><th>Resultado</th><th>Evaluador</th><th>Origen</th><th>Nota</th><th></th></tr></thead><tbody>';
+      lista.forEach(function(f) {
+        html += '<tr class="' + (f.anulado ? 'anulado' : '') + '">' +
+          '<td>' + escHtml(fmtFecha(f.fecha || '')) + '</td>' +
+          '<td>' + escHtml(nombreDe(f.evaluadoEmail)) + '</td>' +
+          '<td>' + escHtml(f.procedimiento || '') + '</td>' +
+          '<td>' + escHtml(TIPOS[f.tipo] || f.tipo || '') + '</td>' +
+          '<td>' + (f.tipo === 'INSP' ? '' : f.resultado === 'favorable' ? 'Favorable' : 'No favorable') + '</td>' +
+          '<td>' + (f.evaluadorEmail ? escHtml(nombreDe(f.evaluadorEmail)) : '') + '</td>' +
+          '<td style="font-size:11px">' + (f.nRegistro ? escHtml(f.nRegistro) + ' Rev.' + escHtml(String(f.revision)) : 'Manual') + '</td>' +
+          '<td style="white-space:normal;max-width:220px;font-size:11px">' + escHtml(f.nota || '') + '</td>' +
+          (f.anulado
+            ? '<td class="anul-info">Anulado por ' + escHtml(nombreDe(f.anulado.por)) + ': ' + escHtml(f.anulado.motivo || '') + '</td>'
+            : '<td><button class="btn-sm" onclick="anular(\'' + escHtml(f.id) + '\')">Anular</button></td>') +
+        '</tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+    html += '</div>';
+    document.getElementById('content').innerHTML = html;
+  }
+
+  var _pendientes = [];
+  function conjuntasPendientes() {
+    var marcadas = {};
+    activas().forEach(function(f) { if (f.inspeccionId) marcadas[f.inspeccionId + '|' + f.revision + '|' + f.evaluadoEmail] = true; });
+    var out = [];
+    inspData.forEach(function(i) {
+      revisionesInspeccion(i).forEach(function(r) {
+        if (!r.cerrada || r.sinDato || !r.inspector2Email) return;
+        var a = r.inspectorEmail, b = r.inspector2Email, alc = i.tipoAlcance;
+        var evA = puedeEvaluar(a, alc), evB = puedeEvaluar(b, alc);
+        if (evA === evB) return; // los dos evaluadores, o ninguno
+        var evaluador = evA ? a : b, evaluado = evA ? b : a;
+        if (marcadas[i.id + '|' + r.revision + '|' + evaluado]) return;
+        out.push({ id: i.id, nReg: i.nRegistro || i.id, revision: r.revision, fecha: r.fecha, alc: alc, evaluador: evaluador, evaluado: evaluado });
+      });
+    });
+    _pendientes = out.sort(function(x, y) { return y.fecha > x.fecha ? 1 : -1; });
+    return _pendientes;
+  }
+
+  // ── Modal ──
+  window.abrirMarcar = function(idx) {
+    var c = _pendientes[idx]; if (!c) return;
+    modalModo = { tipo: 'marcar', c: c };
+    document.getElementById('modalTitulo').textContent = 'Formación conjunta (FFO.05)';
+    document.getElementById('modalSub').textContent = c.nReg + ' Rev.' + c.revision + ' · ' + fmtFecha(c.fecha) + ' · ' + c.alc;
+    document.getElementById('modalBody').innerHTML =
+      '<div class="form-2col">' +
+        '<div class="form-row"><label>Evaluado</label><input type="text" value="' + escHtml(nombreDe(c.evaluado)) + '" disabled></div>' +
+        '<div class="form-row"><label>Evaluador</label><input type="text" value="' + escHtml(nombreDe(c.evaluador)) + '" disabled></div>' +
+      '</div>' +
+      '<div class="form-row"><label>Resultado *</label><select id="m_resultado"><option value="favorable">Favorable</option><option value="no_favorable">No favorable</option></select></div>' +
+      '<div class="form-row"><label>Nota</label><textarea id="m_nota" placeholder="Opcional"></textarea></div>';
+    abrirOverlay();
+  };
+
+  window.abrirManual = function() {
+    modalModo = { tipo: 'manual' };
+    var opcPersonas = Object.keys(usuarios).filter(function(e) { var u = usuarios[e]; return u.activo && u.rol !== 'oficina' && u.rol !== 'contabilidad'; })
+      .sort(function(a, b) { return nombreDe(a).localeCompare(nombreDe(b)); })
+      .map(function(e) { return '<option value="' + escHtml(e) + '">' + escHtml(nombreDe(e)) + '</option>'; }).join('');
+    document.getElementById('modalTitulo').textContent = 'Añadir registro';
+    document.getElementById('modalSub').textContent = 'Formación, evaluación o inspección anterior a la app (hojas de validación)';
+    document.getElementById('modalBody').innerHTML =
+      '<div class="form-row"><label>Persona *</label><select id="m_persona"><option value="">—</option>' + opcPersonas + '</select></div>' +
+      '<div class="form-2col">' +
+        '<div class="form-row"><label>Procedimiento *</label><select id="m_proc">' + PROCS.map(function(p) { return '<option value="' + p.id + '">' + p.id + ' · ' + p.pai + '</option>'; }).join('') + '</select></div>' +
+        '<div class="form-row"><label>Fecha *</label><input id="m_fecha" type="date"></div>' +
+      '</div>' +
+      '<div class="form-row"><label>Tipo *</label><select id="m_tipo" onchange="document.getElementById(\'m_resWrap\').style.display=this.value===\'INSP\'?\'none\':\'\'">' +
+        Object.keys(TIPOS).map(function(t) { return '<option value="' + t + '">' + escHtml(TIPOS[t]) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="form-2col" id="m_resWrap" style="display:none">' +
+        '<div class="form-row"><label>Resultado</label><select id="m_resultado"><option value="favorable">Favorable</option><option value="no_favorable">No favorable</option></select></div>' +
+        '<div class="form-row"><label>Evaluador / tutor</label><select id="m_evaluador"><option value="">—</option>' + opcPersonas + '</select></div>' +
+      '</div>' +
+      '<div class="form-row"><label>Nota</label><textarea id="m_nota" placeholder="Ej. según hoja de validación de 2025"></textarea></div>';
+    abrirOverlay();
+  };
+
+  function abrirOverlay() {
+    var b = document.getElementById('btnGuardar'); b.disabled = false; b.textContent = 'Guardar';
+    document.getElementById('overlay').classList.add('open');
+  }
+
+  window.cerrarModal = function(evt) {
+    if (evt && evt.target !== document.getElementById('overlay')) return;
+    document.getElementById('overlay').classList.remove('open');
+    modalModo = null;
+  };
+
+  window.guardarModal = function() {
+    if (!modalModo) return;
+    var reg;
+    var nota = document.getElementById('m_nota').value.trim();
+    if (modalModo.tipo === 'marcar') {
+      var c = modalModo.c;
+      reg = { evaluadoEmail: c.evaluado, procedimiento: c.alc, tipo: 'B', fecha: c.fecha,
+        resultado: document.getElementById('m_resultado').value, evaluadorEmail: c.evaluador,
+        inspeccionId: c.id, nRegistro: c.nReg, revision: c.revision, nota: nota };
+    } else {
+      var persona = document.getElementById('m_persona').value;
+      var fecha = document.getElementById('m_fecha').value;
+      var tipo = document.getElementById('m_tipo').value;
+      if (!persona || !fecha) { alert('Indica la persona y la fecha.'); return; }
+      reg = { evaluadoEmail: persona, procedimiento: document.getElementById('m_proc').value, tipo: tipo, fecha: fecha,
+        resultado: tipo === 'INSP' ? '' : document.getElementById('m_resultado').value,
+        evaluadorEmail: tipo === 'INSP' ? '' : document.getElementById('m_evaluador').value,
+        inspeccionId: '', nRegistro: '', revision: '', nota: nota };
+    }
+    reg.registradoPor = miEmail;
+    reg.registradoEn = new Date().toISOString();
+    var btn = document.getElementById('btnGuardar'); btn.disabled = true; btn.textContent = 'Guardando…';
+    db.collection('formaciones').add(reg).then(function(ref) {
+      formaciones.push(Object.assign({ id: ref.id }, reg));
+      document.getElementById('overlay').classList.remove('open');
+      modalModo = null;
+      showToast('Registrado');
+      render();
+    }).catch(function(e) {
+      btn.disabled = false; btn.textContent = 'Guardar';
+      alert('Error: ' + e.message);
+    });
+  };
+
+  window.anular = function(id) {
+    var motivo = prompt('Motivo de la anulación (queda registrado y visible):');
+    if (motivo === null) return;
+    motivo = motivo.trim();
+    if (!motivo) { alert('El motivo es obligatorio.'); return; }
+    var anulado = { por: miEmail, en: new Date().toISOString(), motivo: motivo };
+    db.collection('formaciones').doc(id).update({ anulado: anulado }).then(function() {
+      var f = formaciones.find(function(x) { return x.id === id; });
+      if (f) f.anulado = anulado;
+      showToast('Anulado');
+      render();
+    }).catch(function(e) { alert('Error: ' + e.message); });
+  };
+</script>
+</body>
+</html>

@@ -58,6 +58,19 @@ service cloud.firestore {
       allow write: if isAuth() && isAdmin();
     }
 
+    // ── formaciones ────────────────────────────────────────────────────────
+    // Registro de formación continua (PFO.01): formaciones, evaluaciones e inspecciones
+    // anteriores a la app. Lo gestionan admin/director/proyecto; cada persona puede leer
+    // los suyos. Nunca se borra ni se reescribe: lo único que se puede cambiar es anularlo.
+    match /formaciones/{id} {
+      allow read:   if isAuth() && (isAdminLike() || resource.data.evaluadoEmail == myEmail());
+      allow create: if isAuth() && isAdminLike() && request.resource.data.registradoPor == myEmail();
+      allow update: if isAuth() && isAdminLike() &&
+        !('anulado' in resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['anulado']);
+      allow delete: if false;
+    }
+
     // ── inspecciones ───────────────────────────────────────────────────────
     match /inspecciones/{docId} {
       allow read: if isAuth() && (

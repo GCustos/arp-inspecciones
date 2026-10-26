@@ -151,11 +151,11 @@
         <div class="mod-desc" id="cardEquiposDesc">Inventario y calibraciones por sede</div>
         <span class="badge badge-on">Activo</span>
       </div>
-      <div class="mod-card disabled">
+      <div class="mod-card" id="cardInspectores" style="display:none" onclick="location.href='inspectores.html'">
         <div class="mod-icon">&#128119;</div>
         <div class="mod-name">Inspectores</div>
-        <div class="mod-desc">Autorizaciones y formaciones</div>
-        <span class="badge badge-off">Próximamente</span>
+        <div class="mod-desc">Formación continua y evaluaciones</div>
+        <span class="badge badge-on">Activo</span>
       </div>
       <div class="mod-card" id="cardInstalaciones" style="display:none" onclick="location.href='admin-instalaciones.html'">
         <div class="mod-icon">&#127959;&#65039;</div>
@@ -347,6 +347,8 @@
     // Instalaciones: solo gestión completa (admin/director) — mismo criterio que tenía
     // dentro de Administración antes de moverse aquí.
     if (esAdminPleno) document.getElementById('cardInstalaciones').style.display = 'flex';
+    // Inspectores (formación continua PFO.01): solo admin/director.
+    if (esAdminPleno) document.getElementById('cardInspectores').style.display = 'flex';
     // Ofertas: mismo criterio que tenía dentro de Administración (admin/director/proyecto/oficina).
     if (esBaseAdmin) document.getElementById('cardOfertas').style.display = 'flex';
     // Oficina: admin/director/proyecto la ven como acceso directo nuevo. Quien tiene
