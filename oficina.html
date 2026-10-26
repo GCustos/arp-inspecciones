@@ -58,6 +58,9 @@
     .btn-cancel{padding:12px 20px;background:white;color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
     .btn-docs{display:block;margin-top:16px;padding:11px;text-align:center;border:1.5px solid var(--gold);border-radius:10px;color:var(--gold);font-size:13px;font-weight:700;text-decoration:none}
     .btn-docs:hover{background:#FFF8F0}
+    .dep-titulo{font-size:13px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:.06em;margin:28px 0 10px;padding-top:16px;border-top:2px solid var(--gold)}
+    .stats-bar.compacta{padding:10px 20px;margin-bottom:12px}
+    .stats-bar.compacta .stat-val{font-size:18px}
     /* Revisiones */
     .rev-toggle{background:white;border:1.5px solid var(--gold);border-radius:6px;color:var(--gold);cursor:pointer;font-size:11px;font-weight:700;width:30px;height:26px;padding:0;margin-right:8px;vertical-align:middle;line-height:1}
     .rev-toggle:hover{background:var(--gold);color:white}
@@ -142,6 +145,19 @@
   var usuariosMap = {}; // email → iniciales
   var editandoId  = null;
   var expandidos  = {}; // id → true si se ven sus revisiones
+  var rolesMap    = {}; // email → rol
+
+  // Proyecto es otro departamento aunque haga inspecciones: sus expedientes van en una tabla
+  // aparte. Un expediente es de Proyecto solo si TODOS los que participan son de Proyecto;
+  // si interviene alguien del departamento de inspección, va con inspección.
+  function esDeProyecto(insp) {
+    var emails = [];
+    revisionesInspeccion(insp).forEach(function(r) {
+      if (r.inspectorEmail) emails.push(r.inspectorEmail);
+      if (r.inspector2Email) emails.push(r.inspector2Email);
+    });
+    return emails.length > 0 && emails.every(function(e) { return rolesMap[e] === 'proyecto'; });
+  }
   var filtroAnio  = null; // null = todos
   var miEmail     = '';
 
@@ -217,6 +233,7 @@
       results[0].forEach(function(d) {
         var data = d.data();
         usuariosMap[d.id] = data.nombreCorto || computeIni(data.nombre || d.id);
+        rolesMap[d.id] = data.rol || '';
       });
       inspData = [];
       results[1].forEach(function(d) {
@@ -281,17 +298,31 @@
       ? inspData.filter(function(i){ return (i.fechaInspeccion || '').slice(0,4) === filtroAnio; })
       : inspData;
 
-    var total      = lista.filter(function(i){ return i.estado === 'completada'; }).length;
-    var pendCobro  = lista.filter(function(i){ return !estadoCobro(i.seguimientoAdmin).cobrada; }).length;
-    var cerradas   = lista.filter(function(i){ return i.seguimientoAdmin && i.seguimientoAdmin.finalizado; }).length;
+    var listaInsp = lista.filter(function(i){ return !esDeProyecto(i); });
+    var listaProy = lista.filter(esDeProyecto);
 
     var html = filtros +
-      '<div class="stats-bar">' +
+      (listaProy.length ? '<div class="dep-titulo" style="margin-top:0;padding-top:0;border-top:none">Departamento de inspecci&#243;n</div>' : '') +
+      statsHtml(listaInsp, false) + tablaHtml(listaInsp, 'No hay inspecciones completadas' + (filtroAnio ? ' en ' + filtroAnio : '') + '.');
+    if (listaProy.length) {
+      html += '<div class="dep-titulo">Proyecto</div>' + statsHtml(listaProy, true) + tablaHtml(listaProy, '');
+    }
+    document.getElementById('content').innerHTML = html;
+  }
+
+  function statsHtml(lista, compacta) {
+    var total     = lista.filter(function(i){ return i.estado === 'completada'; }).length;
+    var pendCobro = lista.filter(function(i){ return !estadoCobro(i.seguimientoAdmin).cobrada; }).length;
+    var cerradas  = lista.filter(function(i){ return i.seguimientoAdmin && i.seguimientoAdmin.finalizado; }).length;
+    return '<div class="stats-bar' + (compacta ? ' compacta' : '') + '">' +
         '<div class="stat"><div class="stat-val">' + total + '</div><div class="stat-lbl">Completadas</div></div>' +
         '<div class="stat"><div class="stat-val" style="color:var(--orange)">' + pendCobro + '</div><div class="stat-lbl">Pdte. cobro</div></div>' +
         '<div class="stat"><div class="stat-val" style="color:var(--green)">' + cerradas + '</div><div class="stat-lbl">Cerradas</div></div>' +
-      '</div>' +
-      '<div class="tbl-wrap"><table>' +
+      '</div>';
+  }
+
+  function tablaHtml(lista, textoVacio) {
+    var html = '<div class="tbl-wrap"><table>' +
       '<thead><tr>' +
         '<th>C&#243;d.</th><th>Expediente</th><th>Fecha</th><th>Insp.</th>' +
         '<th>Instalaci&#243;n</th><th>Tipo</th><th>N&#176; Reg.</th>' +
@@ -302,7 +333,7 @@
       '</tr></thead><tbody>';
 
     if (!lista.length) {
-      html += '<tr><td colspan="17" style="text-align:center;color:var(--muted);padding:30px 20px">No hay inspecciones completadas' + (filtroAnio ? ' en ' + filtroAnio : '') + '.</td></tr>';
+      html += '<tr><td colspan="17" style="text-align:center;color:var(--muted);padding:30px 20px">' + textoVacio + '</td></tr>';
     } else {
       lista.forEach(function(i) {
         var sa  = i.seguimientoAdmin || {};
@@ -342,8 +373,7 @@
       });
     }
 
-    html += '</tbody></table></div>';
-    document.getElementById('content').innerHTML = html;
+    return html + '</tbody></table></div>';
   }
 
   // ── REVISIONES ── (quién hizo cada una; la lógica está en revisionesInspeccion, utils.js)
