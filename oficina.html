@@ -56,6 +56,24 @@
     .btn-guardar{flex:1;padding:12px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
     .btn-guardar:disabled{opacity:.5;cursor:not-allowed}
     .btn-cancel{padding:12px 20px;background:white;color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
+    /* Cobros */
+    .cobro-pend{color:var(--orange);font-weight:700}
+    .cobro-ok{color:var(--green);font-weight:700}
+    .cobro-sd{color:var(--green);font-size:10px}
+    .pg-sec{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+    .pg-titulo{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+    .pg-resumen{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;background:var(--surf);border-radius:8px;padding:8px 10px;margin-bottom:10px}
+    .pg-item{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--border);font-size:12px}
+    .pg-item .pg-main{flex:1;min-width:0}
+    .pg-item .pg-imp{font-weight:700;white-space:nowrap}
+    .pg-item .pg-meta{font-size:10px;color:var(--muted);margin-top:2px}
+    .pg-item.anulado .pg-imp,.pg-item.anulado .pg-linea{text-decoration:line-through;color:var(--muted)}
+    .pg-item .pg-anul{font-size:10px;color:var(--red);margin-top:2px}
+    .pg-nuevo{background:var(--surf);border-radius:8px;padding:10px;margin-top:10px}
+    .pg-nuevo .form-row{margin-bottom:8px}
+    .pg-nuevo select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:white}
+    .btn-pago{width:100%;padding:10px;background:white;color:var(--gold);border:1.5px solid var(--gold);border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+    .btn-pago:disabled{opacity:.5;cursor:not-allowed}
   </style>
 </head>
 <body>
@@ -111,12 +129,69 @@
   var usuariosMap = {}; // email → iniciales
   var editandoId  = null;
   var filtroAnio  = null; // null = todos
+  var miEmail     = '';
 
   initAuth({
     roles: ['admin', 'director', 'proyecto', 'oficina'],
     onDenied: 'message',
-    onReady: function(user, ud) { cargar(); }
+    onReady: function(user, ud) { miEmail = user.email; cargar(); }
   });
+
+  // ── COBROS ──
+  // seguimientoAdmin.pagos[] = {id, fecha, importe, forma, referencia, nota, registradoPor,
+  // registradoEn, anulado?:{por,en,motivo}}. Un pago nunca se edita ni se borra: si está mal
+  // se anula con motivo y sigue visible (trazabilidad de dónde sale cada cifra).
+  // facturaCobrada se deriva de los pagos (pendiente = 0). Expedientes marcados como
+  // cobrados antes de existir los pagos se muestran como "cobrada (sin detalle)".
+  function num(v) {
+    if (v === null || v === undefined || v === '') return null;
+    var n = typeof v === 'number' ? v : parseFloat(v);
+    return isNaN(n) ? null : n;
+  }
+
+  function fmtEur(n) {
+    return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function estadoCobro(sa) {
+    sa = sa || {};
+    var activos = (sa.pagos || []).filter(function(p){ return !p.anulado; });
+    var cobrado = activos.reduce(function(s, p){ return s + (num(p.importe) || 0); }, 0);
+    var base = num(sa.importeFacturado);
+    if (base === null) base = num(sa.ofertaTotal);
+    var e = { tienePagos: activos.length > 0, cobrado: cobrado, base: base, pendiente: null, cobrada: false, sinDetalle: false };
+    if (base !== null) e.pendiente = Math.round((base - cobrado) * 100) / 100;
+    if (e.tienePagos) e.cobrada = e.pendiente !== null && e.pendiente <= 0;
+    else if (sa.facturaCobrada) { e.cobrada = true; e.sinDetalle = true; }
+    return e;
+  }
+
+  // Todas las escrituras de seguimientoAdmin pasan por una transacción que relee el
+  // documento: si dos personas apuntan pagos a la vez, ninguno pisa al otro.
+  function actualizarSA(id, mutar) {
+    var ref = db.collection('inspecciones').doc(id);
+    var saFinal;
+    return db.runTransaction(function(tx) {
+      return tx.get(ref).then(function(snap) {
+        var sa = JSON.parse(JSON.stringify((snap.data() || {}).seguimientoAdmin || {}));
+        if (!sa.pagos) sa.pagos = [];
+        mutar(sa);
+        // Con algún pago apuntado (aunque esté anulado) manda el registro de pagos.
+        var e = estadoCobro(sa);
+        if (sa.pagos.length) sa.facturaCobrada = e.tienePagos && e.cobrada;
+        saFinal = sa;
+        tx.update(ref, { seguimientoAdmin: sa });
+      });
+    }).then(function() {
+      var insp = inspData.find(function(i){ return i.id === id; });
+      if (insp) insp.seguimientoAdmin = saFinal;
+      return saFinal;
+    });
+  }
+
+  function codigoInsp(insp) {
+    return insp.codigoInstalacion || (insp.nRegistro || '').split('/')[0] || '';
+  }
 
   function cargar() {
     Promise.all([
@@ -187,27 +262,32 @@
       : inspData;
 
     var total      = lista.length;
-    var pendCobro  = lista.filter(function(i){ return !(i.seguimientoAdmin && i.seguimientoAdmin.facturaCobrada); }).length;
+    var pendCobro  = 0, pendEur = 0;
+    lista.forEach(function(i) {
+      var e = estadoCobro(i.seguimientoAdmin);
+      if (!e.cobrada) { pendCobro++; if (e.pendiente !== null && e.pendiente > 0) pendEur += e.pendiente; }
+    });
     var cerradas   = lista.filter(function(i){ return i.seguimientoAdmin && i.seguimientoAdmin.finalizado; }).length;
 
     var html = filtros +
       '<div class="stats-bar">' +
         '<div class="stat"><div class="stat-val">' + total + '</div><div class="stat-lbl">Completadas</div></div>' +
         '<div class="stat"><div class="stat-val" style="color:var(--orange)">' + pendCobro + '</div><div class="stat-lbl">Pdte. cobro</div></div>' +
+        '<div class="stat"><div class="stat-val" style="color:var(--orange)">' + fmtEur(pendEur) + ' &#8364;</div><div class="stat-lbl">Importe pendiente</div></div>' +
         '<div class="stat"><div class="stat-val" style="color:var(--green)">' + cerradas + '</div><div class="stat-lbl">Cerradas</div></div>' +
       '</div>' +
       '<div class="tbl-wrap"><table>' +
       '<thead><tr>' +
-        '<th>Expediente</th><th>Fecha</th><th>Insp.</th>' +
+        '<th>C&#243;d.</th><th>Expediente</th><th>Fecha</th><th>Insp.</th>' +
         '<th>Instalaci&#243;n</th><th>Tipo</th><th>N&#176; Reg.</th>' +
         '<th>Resultado</th><th>Cert./Visado</th>' +
         '<th class="sep">Oferta Ref</th><th>Total &#8364;</th>' +
-        '<th>N&#176; Fra.</th><th>Mandada</th><th>Cobrada</th>' +
+        '<th>N&#176; Fra.</th><th>Mandada</th><th>Cobrado / Pdte.</th>' +
         '<th>OK</th><th>Obs</th><th></th>' +
       '</tr></thead><tbody>';
 
     if (!lista.length) {
-      html += '<tr><td colspan="16" style="text-align:center;color:var(--muted);padding:30px 20px">No hay inspecciones completadas' + (filtroAnio ? ' en ' + filtroAnio : '') + '.</td></tr>';
+      html += '<tr><td colspan="17" style="text-align:center;color:var(--muted);padding:30px 20px">No hay inspecciones completadas' + (filtroAnio ? ' en ' + filtroAnio : '') + '.</td></tr>';
     } else {
       lista.forEach(function(i) {
         var sa  = i.seguimientoAdmin || {};
@@ -224,6 +304,7 @@
         var nombreDisplay = (i.nombreInstalacion || '').length > 22 ? (i.nombreInstalacion||'').slice(0,22) + '…' : (i.nombreInstalacion || '');
 
         html += '<tr class="' + (sa.finalizado ? 'finalizado' : '') + '" onclick="abrirEditar(\'' + escHtml(i.id) + '\')">' +
+          '<td style="font-family:monospace;font-size:12px;font-weight:700">' + escHtml(codigoInsp(i)) + '</td>' +
           '<td style="font-family:monospace;font-size:11px;color:var(--muted)">' + escHtml(expediente(i)) + '</td>' +
           '<td style="font-size:11px">' + escHtml(i.fechaInspeccion || '') + '</td>' +
           '<td style="font-weight:700;font-size:12px">' + escHtml(ini) + '</td>' +
@@ -236,7 +317,7 @@
           '<td style="font-size:12px">' + (sa.ofertaTotal != null && sa.ofertaTotal !== '' ? escHtml(String(sa.ofertaTotal)) + ' &#8364;' : '<span class="vacio">—</span>') + '</td>' +
           '<td style="font-family:monospace;font-size:11px">' + (sa.nFactura ? escHtml(sa.nFactura) : '<span class="vacio">—</span>') + '</td>' +
           '<td><span class="chk ' + (sa.facturaMandada ? 'yes' : 'no') + '">' + (sa.facturaMandada ? '&#10003;' : '&#8212;') + '</span></td>' +
-          '<td><span class="chk ' + (sa.facturaCobrada ? 'yes' : 'no') + '">' + (sa.facturaCobrada ? '&#10003;' : '&#8212;') + '</span></td>' +
+          '<td style="font-size:11px">' + celdaCobro(sa) + '</td>' +
           '<td><span class="chk ' + (sa.finalizado ? 'yes' : 'no') + '">' + (sa.finalizado ? '&#10003;' : '&#8212;') + '</span></td>' +
           '<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--muted)" title="' + escHtml(sa.obs || '') + '">' + escHtml(sa.obs || '') + '</td>' +
           '<td><button class="edit-btn" onclick="event.stopPropagation();abrirEditar(\'' + escHtml(i.id) + '\')">&#9998;</button></td>' +
@@ -246,6 +327,16 @@
 
     html += '</tbody></table></div>';
     document.getElementById('content').innerHTML = html;
+  }
+
+  function celdaCobro(sa) {
+    var e = estadoCobro(sa);
+    if (e.sinDetalle) return '<span class="cobro-sd" title="Marcada como cobrada antes de existir el registro de pagos">&#10003; sin detalle</span>';
+    if (e.cobrada) return '<span class="cobro-ok">&#10003; ' + fmtEur(e.cobrado) + '</span>';
+    if (!e.tienePagos && e.pendiente === null) return '<span class="vacio">&#8212;</span>';
+    var cob = e.tienePagos ? fmtEur(e.cobrado) : '<span class="vacio">&#8212;</span>';
+    var pend = e.pendiente !== null ? '<span class="cobro-pend">' + fmtEur(e.pendiente) + '</span>' : '<span class="vacio">&#8212;</span>';
+    return cob + ' / ' + pend;
   }
 
   window.abrirEditar = function(id) {
@@ -262,11 +353,15 @@
         '<div class="form-row"><label>Oferta Ref</label><input id="f_ofertaRef" type="text" value="' + escHtml(sa.ofertaRef || '') + '" placeholder="260109/JM/0/Rev.0"></div>' +
         '<div class="form-row"><label>Total &#8364;</label><input id="f_ofertaTotal" type="number" step="0.01" min="0" value="' + (sa.ofertaTotal != null && sa.ofertaTotal !== '' ? escHtml(String(sa.ofertaTotal)) : '') + '" placeholder="0.00"></div>' +
       '</div>' +
-      '<div class="form-row"><label>N&#176; Factura</label><input id="f_nFactura" type="text" value="' + escHtml(sa.nFactura || '') + '" placeholder="FV-2026-001"></div>' +
+      '<div class="form-2col">' +
+        '<div class="form-row"><label>N&#176; Factura</label><input id="f_nFactura" type="text" value="' + escHtml(sa.nFactura || '') + '" placeholder="FV-2026-001"></div>' +
+        '<div class="form-row"><label>Importe facturado &#8364;</label><input id="f_importeFacturado" type="number" step="0.01" min="0" value="' + (num(sa.importeFacturado) !== null ? escHtml(String(sa.importeFacturado)) : '') + '" placeholder="' + (num(sa.ofertaTotal) !== null ? 'Igual que oferta: ' + escHtml(String(sa.ofertaTotal)) : '0.00') + '"></div>' +
+      '</div>' +
       '<div class="chk-row"><label for="f_facturaMandada">Factura mandada</label><input type="checkbox" id="f_facturaMandada"' + (sa.facturaMandada ? ' checked' : '') + '></div>' +
-      '<div class="chk-row"><label for="f_facturaCobrada">Factura cobrada</label><input type="checkbox" id="f_facturaCobrada"' + (sa.facturaCobrada ? ' checked' : '') + '></div>' +
       '<div class="chk-row"><label for="f_finalizado">Expediente finalizado</label><input type="checkbox" id="f_finalizado"' + (sa.finalizado ? ' checked' : '') + '></div>' +
-      '<div class="form-row" style="margin-top:12px"><label>Observaciones</label><textarea id="f_obs" placeholder="Notas internas...">' + escHtml(sa.obs || '') + '</textarea></div>';
+      '<div class="form-row" style="margin-top:12px"><label>Observaciones</label><textarea id="f_obs" placeholder="Notas internas...">' + escHtml(sa.obs || '') + '</textarea></div>' +
+      '<div id="pagosBox" class="pg-sec"></div>';
+    renderPagos(sa);
     document.getElementById('overlay').classList.add('open');
     document.getElementById('modal').scrollTop = 0;
     document.getElementById('btnGuardar').disabled = false;
@@ -279,24 +374,127 @@
     editandoId = null;
   };
 
+  // Sección de pagos dentro del modal. Se repinta sola tras añadir/anular un pago, sin tocar
+  // los campos del formulario de arriba (que pueden tener cambios aún sin guardar).
+  function renderPagos(sa) {
+    var box = document.getElementById('pagosBox');
+    if (!box) return;
+    var e = estadoCobro(sa);
+    var pagos = (sa.pagos || []).slice().sort(function(a, b){ return (a.fecha || '') < (b.fecha || '') ? -1 : 1; });
+    var html = '<div class="pg-titulo">Pagos</div>' +
+      '<div class="pg-resumen">' +
+        '<span>Facturado: <b>' + (e.base !== null ? fmtEur(e.base) + ' &#8364;' : '&#8212;') + '</b></span>' +
+        '<span>Cobrado: <b class="cobro-ok">' + fmtEur(e.cobrado) + ' &#8364;</b></span>' +
+        '<span>Pendiente: <b class="' + (e.pendiente !== null && e.pendiente > 0 ? 'cobro-pend' : 'cobro-ok') + '">' +
+          (e.pendiente !== null ? fmtEur(Math.max(e.pendiente, 0)) + ' &#8364;' : '&#8212;') + '</b></span>' +
+        (e.pendiente !== null && e.pendiente < 0 ? '<span class="cobro-pend">Cobrado de m&#225;s: ' + fmtEur(-e.pendiente) + ' &#8364;</span>' : '') +
+      '</div>';
+    if (e.sinDetalle) {
+      html += '<div class="chk-row" style="border-top:none;padding-top:0"><label for="f_cobradaSD" style="font-size:12px;color:var(--muted)">Cobrada sin detalle (marcada antes de existir el registro de pagos)</label><input type="checkbox" id="f_cobradaSD" checked></div>';
+    }
+    if (!pagos.length) {
+      html += '<div style="font-size:12px;color:var(--muted);padding:4px 0 8px">Sin pagos registrados.</div>';
+    }
+    pagos.forEach(function(p) {
+      var linea = [p.forma, p.referencia ? 'Ref. ' + p.referencia : '', p.nota].filter(Boolean).map(escHtml).join(' &middot; ');
+      html += '<div class="pg-item' + (p.anulado ? ' anulado' : '') + '">' +
+        '<div class="pg-main">' +
+          '<div><span class="pg-imp">' + fmtEur(num(p.importe) || 0) + ' &#8364;</span> &middot; ' + escHtml(fmtFecha(p.fecha || '')) + '</div>' +
+          (linea ? '<div class="pg-linea">' + linea + '</div>' : '') +
+          '<div class="pg-meta">Apuntado por ' + escHtml(p.registradoPor || '?') + (p.registradoEn ? ' el ' + escHtml(fmtFecha(p.registradoEn.slice(0, 10))) : '') + '</div>' +
+          (p.anulado ? '<div class="pg-anul">Anulado por ' + escHtml(p.anulado.por || '?') + ' el ' + escHtml(fmtFecha((p.anulado.en || '').slice(0, 10))) + ': ' + escHtml(p.anulado.motivo || '') + '</div>' : '') +
+        '</div>' +
+        (p.anulado ? '' : '<button class="edit-btn" onclick="anularPago(\'' + escHtml(p.id) + '\')">Anular</button>') +
+      '</div>';
+    });
+    var hoy = new Date().toISOString().slice(0, 10);
+    html += '<div class="pg-nuevo">' +
+      '<div class="form-2col">' +
+        '<div class="form-row"><label>Fecha</label><input id="p_fecha" type="date" value="' + hoy + '"></div>' +
+        '<div class="form-row"><label>Importe &#8364;</label><input id="p_importe" type="number" step="0.01" min="0" placeholder="' + (e.pendiente !== null && e.pendiente > 0 ? escHtml(String(e.pendiente)) : '0.00') + '"></div>' +
+      '</div>' +
+      '<div class="form-2col">' +
+        '<div class="form-row"><label>Forma de pago</label><select id="p_forma">' +
+          ['Transferencia', 'Tarjeta', 'Domiciliación', 'Efectivo', 'Otro'].map(function(f){ return '<option>' + escHtml(f) + '</option>'; }).join('') +
+        '</select></div>' +
+        '<div class="form-row"><label>Referencia</label><input id="p_ref" type="text" placeholder="N&#176; transferencia, recibo..."></div>' +
+      '</div>' +
+      '<div class="form-row"><label>Nota</label><input id="p_nota" type="text" placeholder="Opcional (ej. 2&#186; plazo)"></div>' +
+      '<button class="btn-pago" id="btnPago" onclick="agregarPago()">+ A&#241;adir pago</button>' +
+    '</div>';
+    box.innerHTML = html;
+  }
+
+  window.agregarPago = function() {
+    if (!editandoId) return;
+    var importe = num(document.getElementById('p_importe').value.trim());
+    var fecha = document.getElementById('p_fecha').value;
+    if (importe === null || importe <= 0) { alert('Indica el importe del pago.'); return; }
+    if (!fecha) { alert('Indica la fecha del pago.'); return; }
+    var pago = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      fecha: fecha,
+      importe: Math.round(importe * 100) / 100,
+      forma: document.getElementById('p_forma').value,
+      referencia: document.getElementById('p_ref').value.trim(),
+      nota: document.getElementById('p_nota').value.trim(),
+      registradoPor: miEmail,
+      registradoEn: new Date().toISOString()
+    };
+    var btn = document.getElementById('btnPago');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+    var id = editandoId;
+    actualizarSA(id, function(sa) { sa.pagos.push(pago); })
+      .then(function(sa) {
+        if (editandoId === id) renderPagos(sa);
+        showToast('Pago registrado');
+        render();
+      })
+      .catch(function(e) {
+        btn.disabled = false; btn.textContent = '+ Añadir pago';
+        alert('Error: ' + e.message);
+      });
+  };
+
+  window.anularPago = function(pagoId) {
+    if (!editandoId) return;
+    var motivo = prompt('Motivo de la anulación (queda registrado y visible):');
+    if (motivo === null) return;
+    motivo = motivo.trim();
+    if (!motivo) { alert('El motivo es obligatorio.'); return; }
+    var id = editandoId;
+    actualizarSA(id, function(sa) {
+      var p = sa.pagos.find(function(x){ return x.id === pagoId; });
+      if (p && !p.anulado) p.anulado = { por: miEmail, en: new Date().toISOString(), motivo: motivo };
+    }).then(function(sa) {
+      if (editandoId === id) renderPagos(sa);
+      showToast('Pago anulado');
+      render();
+    }).catch(function(e) { alert('Error: ' + e.message); });
+  };
+
   window.guardar = function() {
     if (!editandoId) return;
     var btn = document.getElementById('btnGuardar');
     btn.disabled = true; btn.textContent = 'Guardando…';
     var totalRaw = document.getElementById('f_ofertaTotal').value.trim();
-    var sa = {
-      ofertaRef:      document.getElementById('f_ofertaRef').value.trim(),
-      ofertaTotal:    totalRaw !== '' ? parseFloat(totalRaw) : null,
-      nFactura:       document.getElementById('f_nFactura').value.trim(),
-      facturaMandada: document.getElementById('f_facturaMandada').checked,
-      facturaCobrada: document.getElementById('f_facturaCobrada').checked,
-      finalizado:     document.getElementById('f_finalizado').checked,
-      obs:            document.getElementById('f_obs').value.trim()
+    var factRaw  = document.getElementById('f_importeFacturado').value.trim();
+    var chkSD    = document.getElementById('f_cobradaSD');
+    var campos = {
+      ofertaRef:        document.getElementById('f_ofertaRef').value.trim(),
+      ofertaTotal:      totalRaw !== '' ? parseFloat(totalRaw) : null,
+      nFactura:         document.getElementById('f_nFactura').value.trim(),
+      importeFacturado: factRaw !== '' ? parseFloat(factRaw) : null,
+      facturaMandada:   document.getElementById('f_facturaMandada').checked,
+      finalizado:       document.getElementById('f_finalizado').checked,
+      obs:              document.getElementById('f_obs').value.trim()
     };
-    db.collection('inspecciones').doc(editandoId).set({ seguimientoAdmin: sa }, { merge: true })
+    actualizarSA(editandoId, function(sa) {
+      Object.keys(campos).forEach(function(k){ sa[k] = campos[k]; });
+      // Sin pagos, "cobrada" solo puede venir de la marca antigua: se puede quitar, no poner.
+      if (!sa.pagos.some(function(p){ return !p.anulado; })) sa.facturaCobrada = !!(chkSD && chkSD.checked);
+    })
       .then(function() {
-        var insp = inspData.find(function(i){ return i.id === editandoId; });
-        if (insp) insp.seguimientoAdmin = sa;
         document.getElementById('overlay').classList.remove('open');
         editandoId = null;
         showToast('Guardado');
