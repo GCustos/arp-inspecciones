@@ -58,9 +58,11 @@
     .btn-cancel{padding:12px 20px;background:white;color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
     .btn-docs{display:block;margin-top:16px;padding:11px;text-align:center;border:1.5px solid var(--gold);border-radius:10px;color:var(--gold);font-size:13px;font-weight:700;text-decoration:none}
     .btn-docs:hover{background:#FFF8F0}
-    .dep-titulo{font-size:13px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:.06em;margin:28px 0 10px;padding-top:16px;border-top:2px solid var(--gold)}
-    .stats-bar.compacta{padding:10px 20px;margin-bottom:12px}
-    .stats-bar.compacta .stat-val{font-size:18px}
+    .dep-sel{display:flex;gap:0;margin-bottom:14px;border:1.5px solid var(--gold);border-radius:10px;overflow:hidden;width:fit-content;max-width:100%}
+    .dep-btn{padding:10px 18px;background:white;border:none;font-family:inherit;font-size:13px;font-weight:700;color:var(--gold);cursor:pointer}
+    .dep-btn+.dep-btn{border-left:1.5px solid var(--gold)}
+    .dep-btn.active{background:var(--gold);color:white}
+    .dep-n{font-size:11px;opacity:.8;margin-left:4px}
     /* Revisiones */
     .rev-toggle{background:white;border:1.5px solid var(--gold);border-radius:6px;color:var(--gold);cursor:pointer;font-size:11px;font-weight:700;width:30px;height:26px;padding:0;margin-right:8px;vertical-align:middle;line-height:1}
     .rev-toggle:hover{background:var(--gold);color:white}
@@ -159,6 +161,7 @@
     return emails.length > 0 && emails.every(function(e) { return rolesMap[e] === 'proyecto'; });
   }
   var filtroAnio  = null; // null = todos
+  var vistaDep    = 'inspeccion'; // 'inspeccion' | 'proyecto'
   var miEmail     = '';
 
   initAuth({
@@ -301,20 +304,23 @@
     var listaInsp = lista.filter(function(i){ return !esDeProyecto(i); });
     var listaProy = lista.filter(esDeProyecto);
 
-    var html = filtros +
-      (listaProy.length ? '<div class="dep-titulo" style="margin-top:0;padding-top:0;border-top:none">Departamento de inspecci&#243;n</div>' : '') +
-      statsHtml(listaInsp, false) + tablaHtml(listaInsp, 'No hay inspecciones completadas' + (filtroAnio ? ' en ' + filtroAnio : '') + '.');
-    if (listaProy.length) {
-      html += '<div class="dep-titulo">Proyecto</div>' + statsHtml(listaProy, true) + tablaHtml(listaProy, '');
-    }
-    document.getElementById('content').innerHTML = html;
+    var esProy = vistaDep === 'proyecto';
+    var selector = '<div class="dep-sel">' +
+      '<button class="dep-btn' + (!esProy ? ' active' : '') + '" onclick="setDep(\'inspeccion\')">Departamento de inspecci&#243;n <span class="dep-n">' + listaInsp.length + '</span></button>' +
+      '<button class="dep-btn' + (esProy ? ' active' : '') + '" onclick="setDep(\'proyecto\')">Proyecto <span class="dep-n">' + listaProy.length + '</span></button>' +
+    '</div>';
+    var listaVer = esProy ? listaProy : listaInsp;
+    var vacio = 'No hay expedientes' + (esProy ? ' de Proyecto' : '') + (filtroAnio ? ' en ' + filtroAnio : '') + '.';
+    document.getElementById('content').innerHTML = selector + filtros + statsHtml(listaVer) + tablaHtml(listaVer, vacio);
   }
 
-  function statsHtml(lista, compacta) {
+  window.setDep = function(dep) { vistaDep = dep; render(); };
+
+  function statsHtml(lista) {
     var total     = lista.filter(function(i){ return i.estado === 'completada'; }).length;
     var pendCobro = lista.filter(function(i){ return !estadoCobro(i.seguimientoAdmin).cobrada; }).length;
     var cerradas  = lista.filter(function(i){ return i.seguimientoAdmin && i.seguimientoAdmin.finalizado; }).length;
-    return '<div class="stats-bar' + (compacta ? ' compacta' : '') + '">' +
+    return '<div class="stats-bar">' +
         '<div class="stat"><div class="stat-val">' + total + '</div><div class="stat-lbl">Completadas</div></div>' +
         '<div class="stat"><div class="stat-val" style="color:var(--orange)">' + pendCobro + '</div><div class="stat-lbl">Pdte. cobro</div></div>' +
         '<div class="stat"><div class="stat-val" style="color:var(--green)">' + cerradas + '</div><div class="stat-lbl">Cerradas</div></div>' +
