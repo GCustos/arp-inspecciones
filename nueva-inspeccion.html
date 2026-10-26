@@ -317,6 +317,19 @@
       var title = a.tieneChecklist ? '' : ' title="Pendiente de configurar en Formatos"';
       return '<button class="alcance-btn' + sel + dis + '" data-val="' + a.id + '"' + title + ' onclick="selAlcance(this)">' + escHtml(a.label) + '</button>';
     }).join('');
+    // Instalaciones y alcances se cargan en paralelo: si la instalación llegó antes, aplicar ya su alcance
+    alcanceSegunInstalacion();
+  }
+
+  // Marca el alcance de la instalación elegida (p. ej. un rocódromo → SAE). Si el ya
+  // marcado (por defecto o el de la oferta) es uno de los suyos, se respeta.
+  function alcanceSegunInstalacion() {
+    var alcs = (instalacionSeleccionada && instalacionSeleccionada.alcances) || [];
+    if (!alcs.length || alcs.indexOf(selectedAlcance) !== -1) return;
+    for (var i = 0; i < alcs.length; i++) {
+      var btn = document.querySelector('.alcance-btn[data-val="' + alcs[i] + '"]:not(.disabled)');
+      if (btn) { selAlcance(btn); return; }
+    }
   }
 
   // ── CLIENTES ──
@@ -485,6 +498,7 @@
     if (inst.codigo) txt += " · " + inst.codigo;
     document.getElementById("acVincTxt").textContent = txt;
     document.getElementById("acVinculada").classList.add("vis");
+    alcanceSegunInstalacion();
     if(inst.ultimaInspeccionId){
       db.collection("inspecciones").doc(inst.ultimaInspeccionId).get().then(function(doc){
         if(doc.exists){
