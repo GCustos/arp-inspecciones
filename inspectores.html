@@ -17,6 +17,7 @@
     thead th{background:var(--surf);color:var(--muted);padding:8px 10px;text-align:left;white-space:nowrap;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
     td{padding:8px 10px;border-top:1px solid var(--border);vertical-align:middle;white-space:nowrap}
     td.grupo{font-weight:700;color:var(--dark)}
+    tr.grp-hdr td{background:var(--dark);color:white;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:6px 10px}
     .est{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px}
     .est-ok{background:#E8F5E9;color:var(--green)}
     .est-aviso{background:#FFF3E0;color:var(--orange)}
@@ -145,11 +146,17 @@
   }
 
   // ── Cálculos ──
-  // Solo el personal de inspección (inspector, admin, director). "proyecto" (dirección de
-  // proyecto), oficina y contabilidad no figuran: el panel lo puede ver ENAC.
-  function esPersonalInspeccion(email) {
-    var u = usuarios[email];
-    return !!(u && u.activo && ['inspector', 'admin', 'director'].indexOf(u.rol) >= 0);
+  // Departamentos que figuran en el panel, cada uno en su bloque (el panel lo puede ver ENAC:
+  // Proyecto es otro departamento aunque haga inspecciones). Oficina y contabilidad no salen.
+  var GRUPOS = [
+    { id: 'inspeccion', titulo: 'Departamento de inspección', roles: ['inspector', 'admin', 'director'] },
+    { id: 'proyecto',   titulo: 'Proyecto',                         roles: ['proyecto'] }
+  ];
+  function personasDe(grupo) {
+    return Object.keys(usuarios).filter(function(e) {
+      var u = usuarios[e];
+      return u.activo && grupo.roles.indexOf(u.rol) >= 0;
+    }).sort(function(a, b) { return nombreDe(a).localeCompare(nombreDe(b)); });
   }
   function nombreDe(email) { return (usuarios[email] && usuarios[email].nombre) || email; }
   function puedeEvaluar(email, alc) { var u = usuarios[email]; return !!(u && (u.puedeEvaluar || []).indexOf(alc) >= 0); }
@@ -190,7 +197,6 @@
   function render() {
     var parts = participaciones();
     var forms = activas();
-    var personas = Object.keys(usuarios).filter(esPersonalInspeccion).sort(function(a, b) { return nombreDe(a).localeCompare(nombreDe(b)); });
 
     var html = '<div class="sec"><div class="sec-hdr"><div class="sec-titulo">Formaci&#243;n continua por procedimiento</div></div>' +
       '<div class="sec-nota">PFO.01 tabla 5.1: <b>1 inspecci&#243;n cada 2 a&#241;os</b> (sin ninguna en 24 meses &#8594; repetir formaci&#243;n inicial, apdo. 5.3) y <b>1 evaluaci&#243;n al a&#241;o</b> (FFO.06 o FFO.05, 12 meses desde la anterior). ' +
@@ -200,7 +206,13 @@
       '</tr></thead><tbody>';
 
     var filas = 0;
-    personas.forEach(function(email) {
+    GRUPOS.forEach(function(g) {
+      var personas = personasDe(g);
+      if (!personas.length) return;
+      html += '<tr class="grp-hdr"><td colspan="7">' + escHtml(g.titulo) + '</td></tr>';
+      personas.forEach(filasPersona);
+    });
+    function filasPersona(email) {
       var u = usuarios[email];
       var procsPersona = PROCS.filter(function(p) {
         return (u.puedeFirmar || []).indexOf(p.id) >= 0 ||
@@ -229,7 +241,7 @@
           '<td>' + estado(mE, C_AVISO, C_LIMITE, 'En plazo', 'Programar evaluaci&#243;n', 'Evaluaci&#243;n vencida', 'Sin registro') + '</td>' +
         '</tr>';
       });
-    });
+    }
     if (!filas) html += '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Sin inspectores.</td></tr>';
     html += '</tbody></table></div>';
     var sinDato = inspData.filter(function(i) { return revisionesInspeccion(i).some(function(r) { return r.sinDato || (r.revision > 0 && r.cerrada && !r.motivo); }); });
@@ -326,9 +338,11 @@
 
   window.abrirManual = function() {
     modalModo = { tipo: 'manual' };
-    var opcPersonas = Object.keys(usuarios).filter(esPersonalInspeccion)
-      .sort(function(a, b) { return nombreDe(a).localeCompare(nombreDe(b)); })
-      .map(function(e) { return '<option value="' + escHtml(e) + '">' + escHtml(nombreDe(e)) + '</option>'; }).join('');
+    var opcPersonas = GRUPOS.map(function(g) {
+      var ps = personasDe(g);
+      return ps.length ? '<optgroup label="' + escHtml(g.titulo) + '">' +
+        ps.map(function(e) { return '<option value="' + escHtml(e) + '">' + escHtml(nombreDe(e)) + '</option>'; }).join('') + '</optgroup>' : '';
+    }).join('');
     document.getElementById('modalTitulo').textContent = 'Añadir registro';
     document.getElementById('modalSub').textContent = 'Formación, evaluación o inspección anterior a la app (hojas de validación)';
     document.getElementById('modalBody').innerHTML =
