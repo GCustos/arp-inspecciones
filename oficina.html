@@ -56,6 +56,8 @@
     .btn-guardar{flex:1;padding:12px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
     .btn-guardar:disabled{opacity:.5;cursor:not-allowed}
     .btn-cancel{padding:12px 20px;background:white;color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
+    .btn-docs{display:block;margin-top:16px;padding:11px;text-align:center;border:1.5px solid var(--gold);border-radius:10px;color:var(--gold);font-size:13px;font-weight:700;text-decoration:none}
+    .btn-docs:hover{background:#FFF8F0}
     /* Revisiones */
     .rev-toggle{background:none;border:none;color:var(--gold);cursor:pointer;font-size:12px;padding:0 4px 0 0}
     tbody tr.rev-sub{cursor:default;background:var(--surf)}
@@ -279,18 +281,13 @@
       : inspData;
 
     var total      = lista.filter(function(i){ return i.estado === 'completada'; }).length;
-    var pendCobro  = 0, pendEur = 0;
-    lista.forEach(function(i) {
-      var e = estadoCobro(i.seguimientoAdmin);
-      if (!e.cobrada) { pendCobro++; if (e.pendiente !== null && e.pendiente > 0) pendEur += e.pendiente; }
-    });
+    var pendCobro  = lista.filter(function(i){ return !estadoCobro(i.seguimientoAdmin).cobrada; }).length;
     var cerradas   = lista.filter(function(i){ return i.seguimientoAdmin && i.seguimientoAdmin.finalizado; }).length;
 
     var html = filtros +
       '<div class="stats-bar">' +
         '<div class="stat"><div class="stat-val">' + total + '</div><div class="stat-lbl">Completadas</div></div>' +
         '<div class="stat"><div class="stat-val" style="color:var(--orange)">' + pendCobro + '</div><div class="stat-lbl">Pdte. cobro</div></div>' +
-        '<div class="stat"><div class="stat-val" style="color:var(--orange)">' + fmtEur(pendEur) + ' &#8364;</div><div class="stat-lbl">Importe pendiente</div></div>' +
         '<div class="stat"><div class="stat-val" style="color:var(--green)">' + cerradas + '</div><div class="stat-lbl">Cerradas</div></div>' +
       '</div>' +
       '<div class="tbl-wrap"><table>' +
@@ -417,7 +414,8 @@
       '<div class="chk-row"><label for="f_facturaMandada">Factura mandada</label><input type="checkbox" id="f_facturaMandada"' + (sa.facturaMandada ? ' checked' : '') + '></div>' +
       '<div class="chk-row"><label for="f_finalizado">Expediente finalizado</label><input type="checkbox" id="f_finalizado"' + (sa.finalizado ? ' checked' : '') + '></div>' +
       '<div class="form-row" style="margin-top:12px"><label>Observaciones</label><textarea id="f_obs" placeholder="Notas internas...">' + escHtml(sa.obs || '') + '</textarea></div>' +
-      '<div id="pagosBox" class="pg-sec"></div>';
+      '<div id="pagosBox" class="pg-sec"></div>' +
+      '<a class="btn-docs" href="resultado.html?id=' + encodeURIComponent(id) + '">Ver / descargar documentos (Informe, Registro, Certificado) &#8594;</a>';
     renderPagos(sa);
     document.getElementById('overlay').classList.add('open');
     document.getElementById('modal').scrollTop = 0;
