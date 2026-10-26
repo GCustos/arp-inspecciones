@@ -144,3 +144,51 @@ function cargarInspectores(onSuccess, onError) {
     if (onError) onError(e);
   });
 }
+
+/**
+ * sesiones de una inspección como array ordenado [{fecha, horaInicio, horaFin}].
+ * Admite el formato antiguo (array) y el nuevo (mapa {fecha:{horaInicio,horaFin}}).
+ * Misma lógica que la copia local de inspeccion.html (que la sobrescribe con idéntico efecto).
+ */
+function sesionesArrayFrom(sesiones) {
+  if (!sesiones) return [];
+  if (Array.isArray(sesiones)) return sesiones;
+  return Object.keys(sesiones).map(function(f) { return Object.assign({ fecha: f }, sesiones[f]); })
+    .sort(function(a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
+}
+
+/**
+ * Lista de revisiones de una inspección, de la Rev.0 a la actual, con quién hizo cada una.
+ * Las revisiones cerradas salen de historialRevisiones (copia guardada al reabrir); la última
+ * es el propio documento. Copias anteriores a 2026-10 no guardaban el inspector → sinDato.
+ *   fecha:  Rev.0 = fechaInspeccion; Rev.N = primera sesión real (con hora) de esa revisión.
+ *   motivo: '' en Rev.0; 'revisita' | 'correccion' en Rev.N ('' = sin dato).
+ *   cuenta: si vale como inspección para la formación continua (PFO.01): Rev.0 completada,
+ *           o Rev.N completada con motivo 'revisita'. Nunca si falta el inspector.
+ */
+function revisionesInspeccion(insp) {
+  function fechaRev(rev, sesiones) {
+    if (!rev) return insp.fechaInspeccion || '';
+    var ses = sesionesArrayFrom(sesiones);
+    var real = ses.filter(function(s) { return s.horaInicio || s.horaFin; });
+    return (real[0] || ses[0] || {}).fecha || '';
+  }
+  function item(src, cerrada) {
+    var rev = src.revision || 0;
+    var r = {
+      revision: rev,
+      inspectorEmail: src.inspectorEmail || '', inspectorNombre: src.inspectorNombre || '',
+      inspector2Email: src.inspector2Email || '', inspector2Nombre: src.inspector2Nombre || '',
+      motivo: rev ? (src.motivoRevision || '') : '',
+      resultado: src.resultado || '',
+      fecha: fechaRev(rev, src.sesiones),
+      cerrada: cerrada,
+      sinDato: !src.inspectorEmail
+    };
+    r.cuenta = r.cerrada && !r.sinDato && (rev === 0 || r.motivo === 'revisita');
+    return r;
+  }
+  var out = (insp.historialRevisiones || []).map(function(h) { return item(h, true); });
+  out.push(item(insp, insp.estado === 'completada'));
+  return out;
+}

@@ -56,6 +56,16 @@
     .btn-guardar{flex:1;padding:12px;background:var(--gold);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
     .btn-guardar:disabled{opacity:.5;cursor:not-allowed}
     .btn-cancel{padding:12px 20px;background:white;color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
+    /* Revisiones */
+    .rev-toggle{background:none;border:none;color:var(--gold);cursor:pointer;font-size:12px;padding:0 4px 0 0}
+    tbody tr.rev-sub{cursor:default;background:var(--surf)}
+    tbody tr.rev-sub:hover{background:var(--surf)}
+    .rev-tbl{min-width:0;width:auto;font-size:11px}
+    .rev-tbl td{padding:4px 14px 4px 0;border:none}
+    .rev-sindato{color:var(--orange);font-style:italic}
+    .rev-curso{color:var(--blue);font-size:10px;font-weight:700}
+    .rev-cuenta{color:var(--green);font-size:10px;font-weight:700}
+    .rev-nocuenta{color:var(--muted);font-size:10px}
     /* Cobros */
     .cobro-pend{color:var(--orange);font-weight:700}
     .cobro-ok{color:var(--green);font-weight:700}
@@ -110,7 +120,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script src="utils.js"></script>
+<script src="utils.js?v=2"></script>
 <script>
   if (!firebase.apps.length) {
     firebase.initializeApp({
@@ -128,6 +138,7 @@
   var inspData    = [];
   var usuariosMap = {}; // email → iniciales
   var editandoId  = null;
+  var expandidos  = {}; // id → true si se ven sus revisiones
   var filtroAnio  = null; // null = todos
   var miEmail     = '';
 
@@ -196,7 +207,9 @@
   function cargar() {
     Promise.all([
       db.collection('usuarios').get(),
-      db.collection('inspecciones').where('estado', '==', 'completada').get()
+      db.collection('inspecciones').where('estado', '==', 'completada').get(),
+      // Una Rev.N abierta tiene ya una revisión anterior cerrada (emitida, facturable)
+      db.collection('inspecciones').where('estado', '==', 'en_curso').get()
     ]).then(function(results) {
       results[0].forEach(function(d) {
         var data = d.data();
@@ -205,6 +218,10 @@
       inspData = [];
       results[1].forEach(function(d) {
         inspData.push(Object.assign({ id: d.id }, d.data()));
+      });
+      results[2].forEach(function(d) {
+        var data = d.data();
+        if ((data.historialRevisiones || []).length) inspData.push(Object.assign({ id: d.id }, data));
       });
       inspData.sort(function(a, b) {
         var fa = a.fechaInspeccion || '';
@@ -261,7 +278,7 @@
       ? inspData.filter(function(i){ return (i.fechaInspeccion || '').slice(0,4) === filtroAnio; })
       : inspData;
 
-    var total      = lista.length;
+    var total      = lista.filter(function(i){ return i.estado === 'completada'; }).length;
     var pendCobro  = 0, pendEur = 0;
     lista.forEach(function(i) {
       var e = estadoCobro(i.seguimientoAdmin);
@@ -293,11 +310,9 @@
         var sa  = i.seguimientoAdmin || {};
         var res = i.resultado || '';
         var cert = certVisado(i);
-        var ini = usuariosMap[i.inspectorEmail] || computeIni(i.inspectorNombre || '');
-        if (i.inspector2Email) {
-          var ini2 = usuariosMap[i.inspector2Email] || computeIni(i.inspector2Nombre || '');
-          if (ini2 && ini2 !== '?') ini += ' - ' + ini2;
-        }
+        var revs = revisionesInspeccion(i);
+        var ini = revs.map(iniRevision).join(' → ');
+        var abierto = !!expandidos[i.id];
         var nReg = i.nRegistro || '';
         // Display only up to Rev. part for width
         var nRegDisplay = nReg.length > 20 ? nReg.slice(0, 20) + '…' : nReg;
@@ -307,10 +322,13 @@
           '<td style="font-family:monospace;font-size:12px;font-weight:700">' + escHtml(codigoInsp(i)) + '</td>' +
           '<td style="font-family:monospace;font-size:11px;color:var(--muted)">' + escHtml(expediente(i)) + '</td>' +
           '<td style="font-size:11px">' + escHtml(i.fechaInspeccion || '') + '</td>' +
-          '<td style="font-weight:700;font-size:12px">' + escHtml(ini) + '</td>' +
+          '<td style="font-weight:700;font-size:12px">' +
+            (revs.length > 1 ? '<button class="rev-toggle" title="Ver revisiones" onclick="event.stopPropagation();toggleRevs(\'' + escHtml(i.id) + '\')">' + (abierto ? '&#9662;' : '&#9656;') + '</button>' : '') +
+            escHtml(ini) + '</td>' +
           '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="' + escHtml(i.nombreInstalacion || '') + '">' + escHtml(nombreDisplay) + '</td>' +
           '<td><span class="badge-alcance badge-' + (i.tipoAlcance||'').toLowerCase() + '">' + escHtml(i.tipoAlcance || '') + '</span></td>' +
-          '<td style="font-family:monospace;font-size:10px" title="' + escHtml(nReg) + '">' + escHtml(nRegDisplay) + '</td>' +
+          '<td style="font-family:monospace;font-size:10px" title="' + escHtml(nReg) + '">' + escHtml(nRegDisplay) +
+            (i.estado !== 'completada' ? ' <span class="rev-curso">en curso</span>' : '') + '</td>' +
           '<td>' + (res === 'FAVORABLE' ? '<span class="tag-fav">FAV</span>' : res === 'DESFAVORABLE' ? '<span class="tag-des">DES</span>' : '<span style="font-size:10px;color:var(--muted)">' + escHtml(res) + '</span>') + '</td>' +
           '<td style="font-size:11px;color:var(--muted)">' + (cert ? escHtml(cert) : '—') + '</td>' +
           '<td class="sep"><span style="font-family:monospace;font-size:11px">' + (sa.ofertaRef ? escHtml(sa.ofertaRef) : '<span class="vacio">—</span>') + '</span></td>' +
@@ -322,11 +340,50 @@
           '<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--muted)" title="' + escHtml(sa.obs || '') + '">' + escHtml(sa.obs || '') + '</td>' +
           '<td><button class="edit-btn" onclick="event.stopPropagation();abrirEditar(\'' + escHtml(i.id) + '\')">&#9998;</button></td>' +
         '</tr>';
+        if (abierto) html += filaRevisiones(revs);
       });
     }
 
     html += '</tbody></table></div>';
     document.getElementById('content').innerHTML = html;
+  }
+
+  // ── REVISIONES ── (quién hizo cada una; la lógica está en revisionesInspeccion, utils.js)
+  function iniDe(email, nombre) { return usuariosMap[email] || computeIni(nombre || ''); }
+
+  function iniRevision(r) {
+    if (r.sinDato) return '?';
+    var s = iniDe(r.inspectorEmail, r.inspectorNombre);
+    if (r.inspector2Email) {
+      var s2 = iniDe(r.inspector2Email, r.inspector2Nombre);
+      if (s2 && s2 !== '?') s += ' - ' + s2;
+    }
+    return s;
+  }
+
+  window.toggleRevs = function(id) { expandidos[id] = !expandidos[id]; render(); };
+
+  function filaRevisiones(revs) {
+    var MOTIVO = { revisita: 'Revisita en campo', correccion: 'Corrección documental' };
+    var h = '<tr class="rev-sub"><td></td><td colspan="16"><table class="rev-tbl">';
+    revs.forEach(function(r) {
+      var quien = r.sinDato
+        ? '<span class="rev-sindato">Sin dato de inspector (revisión anterior a 10/2026)</span>'
+        : escHtml(r.inspectorNombre || r.inspectorEmail) + (r.inspector2Email ? ' + ' + escHtml(r.inspector2Nombre || r.inspector2Email) : '');
+      var motivo = r.revision === 0 ? 'Inspección' : (MOTIVO[r.motivo] || '<span class="rev-sindato">Motivo sin dato</span>');
+      var estado = !r.cerrada ? '<span class="rev-curso">en curso</span>'
+        : r.cuenta ? '<span class="rev-cuenta">cuenta para formación</span>'
+        : '<span class="rev-nocuenta">no cuenta</span>';
+      h += '<tr>' +
+        '<td style="font-family:monospace;font-weight:700">Rev.' + r.revision + '</td>' +
+        '<td>' + escHtml(fmtFecha(r.fecha) || '—') + '</td>' +
+        '<td>' + quien + '</td>' +
+        '<td>' + motivo + '</td>' +
+        '<td>' + (r.resultado === 'FAVORABLE' ? '<span class="tag-fav">FAV</span>' : r.resultado === 'DESFAVORABLE' ? '<span class="tag-des">DES</span>' : '') + '</td>' +
+        '<td>' + estado + '</td>' +
+      '</tr>';
+    });
+    return h + '</table></td></tr>';
   }
 
   function celdaCobro(sa) {

@@ -238,6 +238,14 @@
       <label>Inspector asignado a la revisita *</label>
       <select id="reabrirInspectorSel"><option value="">Cargando inspectores...</option></select>
     </div>
+    <div class="f">
+      <label>Motivo de la revisión *</label>
+      <select id="reabrirMotivoSel">
+        <option value="">— Selecciona motivo —</option>
+        <option value="revisita">Revisita en campo (cuenta como inspección)</option>
+        <option value="correccion">Corrección documental (no cuenta como inspección)</option>
+      </select>
+    </div>
     <button class="btn-modal-ok" onclick="confirmarReabrir()">&#10003; Abrir revisión</button>
     <button class="btn-modal-cancel" onclick="document.getElementById('modalReabrir').classList.remove('open')">Cancelar</button>
   </div>
@@ -1316,6 +1324,7 @@
   }
 
   function abrirModalReabrir(){
+    document.getElementById('reabrirMotivoSel').value='';
     const sel=document.getElementById('reabrirInspectorSel');
     function render(){
       sel.innerHTML='<option value="">— Selecciona inspector —</option>'+
@@ -1351,12 +1360,24 @@
     const sel=document.getElementById('reabrirInspectorSel');
     const email=sel.value;
     if(!email){ alert('Selecciona un inspector para la revisita.'); return; }
+    const motivo=document.getElementById('reabrirMotivoSel').value;
+    if(!motivo){ alert('Selecciona el motivo de la revisión.'); return; }
     const opt=sel.options[sel.selectedIndex];
     const nombre=opt.dataset.nombre||email;
     try {
       const docSnap=await db.collection('inspecciones').doc(inspeccionId).get();
-      const resultadoActual=(docSnap.exists&&docSnap.data().resultado)||'';
+      const dAnt=docSnap.exists?docSnap.data():{};
+      const resultadoActual=dAnt.resultado||'';
       const snapshot=sanitizar({
+        // Quién hizo la revisión que se cierra y cuándo: sin esto, al reasignar el inspector
+        // de la revisión nueva se perdía para siempre quién hizo la anterior (formación
+        // continua PFO.01: cuenta cada inspección hecha por cada inspector).
+        inspectorEmail:dAnt.inspectorEmail||'',
+        inspectorNombre:dAnt.inspectorNombre||'',
+        inspector2Email:dAnt.inspector2Email||'',
+        inspector2Nombre:dAnt.inspector2Nombre||'',
+        sesiones:sesionesArrayFrom(dAnt.sesiones),
+        motivoRevision:dAnt.motivoRevision||'',
         revision:S.revision,
         horaInicio:S.horaInicio||'',
         horaFin:S.horaFin||'',
@@ -1378,6 +1399,7 @@
         estado:'en_curso',
         inspectorEmail:email,
         inspectorNombre:nombre,
+        motivoRevision:motivo,
         // El formulario de reabrir solo deja elegir UN inspector — si la revisión anterior
         // tenía un segundo inspector puesto, se limpia aquí; si no, se quedaba heredado sin
         // que el formulario diera ninguna opción de tocarlo (bug real, Cercedilla Rev.1
