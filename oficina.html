@@ -59,7 +59,8 @@
     .btn-docs{display:block;margin-top:16px;padding:11px;text-align:center;border:1.5px solid var(--gold);border-radius:10px;color:var(--gold);font-size:13px;font-weight:700;text-decoration:none}
     .btn-docs:hover{background:#FFF8F0}
     /* Revisiones */
-    .rev-toggle{background:none;border:none;color:var(--gold);cursor:pointer;font-size:12px;padding:0 4px 0 0}
+    .rev-toggle{background:white;border:1.5px solid var(--gold);border-radius:6px;color:var(--gold);cursor:pointer;font-size:11px;font-weight:700;width:30px;height:26px;padding:0;margin-right:8px;vertical-align:middle;line-height:1}
+    .rev-toggle:hover{background:var(--gold);color:white}
     tbody tr.rev-sub{cursor:default;background:var(--surf)}
     tbody tr.rev-sub:hover{background:var(--surf)}
     .rev-tbl{min-width:0;width:auto;font-size:11px}
@@ -320,7 +321,7 @@
           '<td style="font-family:monospace;font-size:11px;color:var(--muted)">' + escHtml(expediente(i)) + '</td>' +
           '<td style="font-size:11px">' + escHtml(i.fechaInspeccion || '') + '</td>' +
           '<td style="font-weight:700;font-size:12px">' +
-            (revs.length > 1 ? '<button class="rev-toggle" title="Ver revisiones" onclick="event.stopPropagation();toggleRevs(\'' + escHtml(i.id) + '\')">' + (abierto ? '&#9662;' : '&#9656;') + '</button>' : '') +
+            (revs.length > 1 ? '<button class="rev-toggle" title="Ver revisiones" onclick="event.stopPropagation();toggleRevs(\'' + escHtml(i.id) + '\')">' + (abierto ? '&#9660;' : '&#9654;') + '</button>' : '') +
             escHtml(ini) + '</td>' +
           '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="' + escHtml(i.nombreInstalacion || '') + '">' + escHtml(nombreDisplay) + '</td>' +
           '<td><span class="badge-alcance badge-' + (i.tipoAlcance||'').toLowerCase() + '">' + escHtml(i.tipoAlcance || '') + '</span></td>' +

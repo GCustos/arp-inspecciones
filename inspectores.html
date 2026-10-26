@@ -145,6 +145,12 @@
   }
 
   // ── Cálculos ──
+  // Solo el personal de inspección (inspector, admin, director). "proyecto" (dirección de
+  // proyecto), oficina y contabilidad no figuran: el panel lo puede ver ENAC.
+  function esPersonalInspeccion(email) {
+    var u = usuarios[email];
+    return !!(u && u.activo && ['inspector', 'admin', 'director'].indexOf(u.rol) >= 0);
+  }
   function nombreDe(email) { return (usuarios[email] && usuarios[email].nombre) || email; }
   function puedeEvaluar(email, alc) { var u = usuarios[email]; return !!(u && (u.puedeEvaluar || []).indexOf(alc) >= 0); }
   function hoyISO() { return new Date().toISOString().slice(0, 10); }
@@ -184,10 +190,7 @@
   function render() {
     var parts = participaciones();
     var forms = activas();
-    var personas = Object.keys(usuarios).filter(function(e) {
-      var u = usuarios[e];
-      return u.activo && u.rol !== 'oficina' && u.rol !== 'contabilidad';
-    }).sort(function(a, b) { return nombreDe(a).localeCompare(nombreDe(b)); });
+    var personas = Object.keys(usuarios).filter(esPersonalInspeccion).sort(function(a, b) { return nombreDe(a).localeCompare(nombreDe(b)); });
 
     var html = '<div class="sec"><div class="sec-hdr"><div class="sec-titulo">Formaci&#243;n continua por procedimiento</div></div>' +
       '<div class="sec-nota">PFO.01 tabla 5.1: <b>1 inspecci&#243;n cada 2 a&#241;os</b> (sin ninguna en 24 meses &#8594; repetir formaci&#243;n inicial, apdo. 5.3) y <b>1 evaluaci&#243;n al a&#241;o</b> (FFO.06 o FFO.05, 12 meses desde la anterior). ' +
@@ -323,7 +326,7 @@
 
   window.abrirManual = function() {
     modalModo = { tipo: 'manual' };
-    var opcPersonas = Object.keys(usuarios).filter(function(e) { var u = usuarios[e]; return u.activo && u.rol !== 'oficina' && u.rol !== 'contabilidad'; })
+    var opcPersonas = Object.keys(usuarios).filter(esPersonalInspeccion)
       .sort(function(a, b) { return nombreDe(a).localeCompare(nombreDe(b)); })
       .map(function(e) { return '<option value="' + escHtml(e) + '">' + escHtml(nombreDe(e)) + '</option>'; }).join('');
     document.getElementById('modalTitulo').textContent = 'Añadir registro';
