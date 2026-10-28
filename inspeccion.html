@@ -106,6 +106,10 @@
     .btn-nav.primary{background:var(--gold);border-color:var(--gold);color:white}
     .btn-nav.primary:hover{opacity:.9}
     .juego-foto-row{display:flex;gap:8px;margin-top:10px}
+    /* Juego sin foto: naranja para que no se olvide (la foto va justo después del nombre) */
+    .btn-foto-cam.falta{border-color:var(--orange);color:var(--orange);background:#FFF3E0}
+    .foto-juego-btn.falta{color:var(--orange)}
+    .foto-juego-hdr.falta{color:var(--orange);font-weight:700}
     .btn-foto-cam,.btn-foto-gal{flex:1;padding:9px;border:1.5px solid var(--border);border-radius:8px;background:white;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
     .btn-foto-cam:hover,.btn-foto-gal:hover{border-color:var(--gold);color:var(--gold)}
     .btn-add-juego{display:flex;align-items:center;gap:6px;padding:9px 14px;border:1.5px dashed var(--border);background:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;width:100%;transition:all .2s}
@@ -1642,6 +1646,12 @@
   }
 
   function navJuego(ci,ji,dir){
+    // Avisar antes de dejar atrás un juego sin foto: si no, el olvido se descubre al completar,
+    // cuando a lo mejor ya no se está en la instalación.
+    const jAct=S.circuitos[ci].juegos[ji];
+    if(dir>0&&jAct&&!(jAct.fotos&&jAct.fotos.length)){
+      if(!confirm('"'+(jAct.nombre||('Juego '+(ji+1)))+'" no tiene foto.\n\n¿Seguir igualmente?')) return;
+    }
     const total=S.circuitos[ci].juegos.length;
     const siguiente=ji+dir;
     if(siguiente>=0&&siguiente<total){
@@ -1710,13 +1720,13 @@
         const body = `
           <div style="padding:12px 14px;background:#FAFAF9" id="jm_${ci}_0">
             <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${tInfo?tInfo.label:circ.tipoElemento}${tInfo&&tInfo.normaRef?' · '+tInfo.normaRef:''}</div>
+            <div class="juego-foto-row" style="margin:0 0 10px">
+              <button class="btn-foto-cam${nFotos?'':' falta'}" onclick="abrirModalFotos(${ci},0)">&#128247; ${nFotos?nFotos+' foto'+(nFotos>1?'s':''):'Falta foto'}</button>
+            </div>
             ${criterios}
             <div class="juego-field" style="margin-top:10px">
               <label>Observación</label>
               <input type="text" value="${(j.obs||'').replace(/"/g,'&quot;')}" placeholder="obs..." onchange="setJuego(${ci},0,'obs',this.value)">
-            </div>
-            <div class="juego-foto-row">
-              <button class="btn-foto-cam" onclick="abrirModalFotos(${ci},0)">&#128247; ${nFotos?nFotos+' foto'+(nFotos>1?'s':''):'Fotos'}</button>
             </div>
           </div>`;
         return `<div class="circ-card" data-ci="${ci}">
@@ -1741,16 +1751,19 @@
           <thead><tr>
             <th style="width:20px"></th>
             <th class="tl" style="width:26%">Juego</th>
+            <th style="width:20px">&#128247;</th>
             <th style="width:7%">Tipo</th><th style="width:6%">Rama</th>
             ${_cols.map(col=>`<th style="width:8%">${col.label.replace("\n","<br>")}</th>`).join("")}
             <th style="min-width:65px">Obs.</th>
-            <th style="width:20px">&#128247;</th>
             <th style="width:22px"></th>
           </tr></thead>
           <tbody id="tbody-${ci}">${circ.juegos.map((j,ji)=>`
             <tr data-ji="${ji}">
               <td><span class="drag-handle" title="Arrastrar para reordenar">&#8285;</span></td>
               <td><input class="jt-inp" type="text" value="${(j.nombre||'').replace(/"/g,'&quot;')}" placeholder="Nombre juego" onchange="setJuego(${ci},${ji},'nombre',this.value)"></td>
+              <td><button class="foto-juego-btn${(j.fotos&&j.fotos.length)?'':' falta'}" onclick="abrirModalFotos(${ci},${ji})" title="${(j.fotos&&j.fotos.length)?'Fotos de este juego':'Falta foto'}" ${(j.fotos||[]).some(function(f){return f.perdida;})?' style="color:#c62828"':''}>
+                &#128247;${(j.fotos||[]).some(function(f){return f.perdida;})?'<span class="foto-count" style="background:#c62828">!</span>':(j.fotos&&j.fotos.length)?`<span class="foto-count">${j.fotos.length}</span>`:'<span class="foto-count" style="background:var(--orange)">!</span>'}
+              </button></td>
               <td><select class="tipo-sel" onchange="setJuego(${ci},${ji},'tipo',this.value)">
                 <option value="R" ${j.tipo==="R"?"selected":""}>R</option>
                 <option value="NR" ${j.tipo==="NR"?"selected":""}>NR</option>
@@ -1763,9 +1776,6 @@
                 <button class="snb-s ${j[col.key]==="NA"?"s-NA":""}" onclick="setJuego(${ci},${ji},'${col.key}','NA')">NA</button>
               </div></td>`).join("")}
               <td><input class="jt-inp" style="font-size:10px;color:var(--muted)" type="text" value="${(j.obs||'').replace(/"/g,'&quot;')}" placeholder="obs..." onchange="setJuego(${ci},${ji},'obs',this.value)"></td>
-              <td><button class="foto-juego-btn" onclick="abrirModalFotos(${ci},${ji})" title="Fotos de este juego" ${(j.fotos||[]).some(function(f){return f.perdida;})?' style="color:#c62828"':''}>
-                &#128247;${(j.fotos||[]).some(function(f){return f.perdida;})?'<span class="foto-count" style="background:#c62828">!</span>':(j.fotos&&j.fotos.length)?`<span class="foto-count">${j.fotos.length}</span>`:''}
-              </button></td>
               <td><button class="del-btn" onclick="delJuego(${ci},${ji})">&#215;</button></td>
             </tr>`).join("")}
           </tbody>
@@ -1786,6 +1796,9 @@
             <div class="juego-field">
               <label>Nombre</label>
               <input type="text" value="${(j.nombre||'').replace(/"/g,'&quot;')}" placeholder="Nombre del juego" onchange="setJuego(${ci},${ji},'nombre',this.value)">
+            </div>
+            <div class="juego-foto-row" style="margin:0 0 10px">
+              <button class="btn-foto-cam${nFotos?'':' falta'}" onclick="abrirModalFotos(${ci},${ji})">&#128247; ${nFotos?nFotos+' foto'+(nFotos>1?'s':''):'Falta foto'}</button>
             </div>
             <div style="display:flex;gap:8px">
               <div class="juego-field" style="flex:1">
@@ -1814,8 +1827,7 @@
               <label>Observación</label>
               <input type="text" value="${(j.obs||'').replace(/"/g,'&quot;')}" placeholder="obs..." onchange="setJuego(${ci},${ji},'obs',this.value)">
             </div>
-            <div class="juego-foto-row">
-              <button class="btn-foto-cam" onclick="abrirModalFotos(${ci},${ji})">&#128247; ${j.fotos&&j.fotos.length?j.fotos.length+' foto'+(j.fotos.length>1?'s':''):'Fotos'}</button>
+            <div class="juego-foto-row" style="justify-content:flex-end">
               <button class="del-btn" style="flex-shrink:0;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px" onclick="delJuego(${ci},${ji})">&#215; Eliminar</button>
             </div>
             <div class="juego-nav">
@@ -1830,7 +1842,7 @@
               <div class="juego-dot ${dotCls}"></div>
               <div class="juego-hdr-name">${j.nombre||`Juego ${ji+1}`}</div>
               <span class="juego-hdr-meta">${j.tipo}${j.rama?' · '+j.rama:''}</span>
-              ${nPerdidas?`<span class="foto-juego-hdr" style="color:#c62828">&#128247;&#10060;</span>`:nFotos?`<span class="foto-juego-hdr">&#128247;${nFotos}</span>`:''}
+              ${nPerdidas?`<span class="foto-juego-hdr" style="color:#c62828">&#128247;&#10060;</span>`:nFotos?`<span class="foto-juego-hdr">&#128247;${nFotos}</span>`:`<span class="foto-juego-hdr falta" title="Sin foto">&#128247;!</span>`}
               <span class="juego-toggle ${isOpen?'open':''}">&#9654;</span>
             </div>
             ${cuerpo}
