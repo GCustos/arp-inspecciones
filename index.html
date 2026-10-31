@@ -344,9 +344,9 @@
     var esAdminPleno = ud.rol === 'admin' || ud.rol === 'director';
     var esBaseAdmin = esAdminPleno || ud.rol === 'proyecto' || ud.rol === 'oficina';
     if (esBaseAdmin) document.getElementById('adminCard').style.display = 'flex';
-    // Instalaciones: solo gestión completa (admin/director) — mismo criterio que tenía
-    // dentro de Administración antes de moverse aquí.
-    if (esAdminPleno) document.getElementById('cardInstalaciones').style.display = 'flex';
+    // Instalaciones: admin/director y también oficina (la página y las reglas ya le dejaban
+    // entrar y editar; solo faltaba el acceso desde el inicio).
+    if (esAdminPleno || ud.rol === 'oficina') document.getElementById('cardInstalaciones').style.display = 'flex';
     // Inspectores (formación continua PFO.01): solo admin/director.
     if (esAdminPleno) document.getElementById('cardInspectores').style.display = 'flex';
     // Ofertas: mismo criterio que tenía dentro de Administración (admin/director/proyecto/oficina).

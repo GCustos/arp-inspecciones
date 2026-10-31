@@ -92,6 +92,16 @@
     .pg-nuevo select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:white}
     .btn-pago{width:100%;padding:10px;background:white;color:var(--gold);border:1.5px solid var(--gold);border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
     .btn-pago:disabled{opacity:.5;cursor:not-allowed}
+    /* Filtros */
+    .flt{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px;background:white;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+    .flt .f-q{grid-column:1/-1}
+    .flt label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+    .flt input,.flt select{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text);background:white;outline:none}
+    .flt input:focus,.flt select:focus{border-color:var(--gold)}
+    .flt .f-on{border-color:var(--gold);background:#FFF8F0}
+    .flt-pie{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted)}
+    .btn-limpiar{background:none;border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;font-family:inherit;font-size:12px;color:var(--muted);cursor:pointer}
+    .btn-limpiar:hover{border-color:var(--gold);color:var(--gold)}
   </style>
 </head>
 <body>
@@ -153,14 +163,24 @@
   // aparte. Un expediente es de Proyecto solo si TODOS los que participan son de Proyecto;
   // si interviene alguien del departamento de inspección, va con inspección.
   function esDeProyecto(insp) {
+    var emails = participantes(insp);
+    return emails.length > 0 && emails.every(function(e) { return rolesMap[e] === 'proyecto'; });
+  }
+
+  // Todos los que intervinieron en el expediente (cualquier revisión, 1º o 2º inspector).
+  function participantes(insp) {
     var emails = [];
     revisionesInspeccion(insp).forEach(function(r) {
       if (r.inspectorEmail) emails.push(r.inspectorEmail);
       if (r.inspector2Email) emails.push(r.inspector2Email);
     });
-    return emails.length > 0 && emails.every(function(e) { return rolesMap[e] === 'proyecto'; });
+    return emails;
   }
-  var filtroAnio  = null; // null = todos
+
+  // Filtros activos. desde/hasta comparan con la fecha de la Rev.0 (fechaInspeccion).
+  var F_VACIO = { q: '', desde: '', hasta: '', cobro: '', alcance: '', insp: '', estado: '', tipo: '' };
+  var F = Object.assign({}, F_VACIO);
+  var alcancesConfig = []; // [[valor, texto]] desde config/empresa.alcances
   var vistaDep    = 'inspeccion'; // 'inspeccion' | 'proyecto'
   var miEmail     = '';
 
@@ -231,8 +251,14 @@
       db.collection('usuarios').get(),
       db.collection('inspecciones').where('estado', '==', 'completada').get(),
       // Una Rev.N abierta tiene ya una revisión anterior cerrada (emitida, facturable)
-      db.collection('inspecciones').where('estado', '==', 'en_curso').get()
+      db.collection('inspecciones').where('estado', '==', 'en_curso').get(),
+      db.collection('config').doc('empresa').get().catch(function(){ return null; })
     ]).then(function(results) {
+      var cfg = results[3] && results[3].exists ? results[3].data() : {};
+      alcancesConfig = (cfg.alcances || []).map(function(a) {
+        var v = a.label || String(a.id || '').toUpperCase();
+        return [v, v + (a.desc ? ' — ' + a.desc : '')];
+      });
       results[0].forEach(function(d) {
         var data = d.data();
         usuariosMap[d.id] = data.nombreCorto || computeIni(data.nombre || d.id);
@@ -278,43 +304,139 @@
     return f.length >= 10 ? f.slice(2,4) + f.slice(5,7) + f.slice(8,10) : f;
   }
 
-  window.setAnio = function(anio) { filtroAnio = anio; render(); };
+  // ── FILTROS ──
+  // Sin acentos, mayúsculas, espacios ni letras dobladas (igual que en Clientes).
+  function normBusq(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '').replace(/(.)\1+/g, '$1'); }
 
-  function render() {
-    // Year filter buttons
-    var anios = [];
+  function pasaFiltros(i) {
+    var f = i.fechaInspeccion || '';
+    if (F.desde && f < F.desde) return false;
+    if (F.hasta && f > F.hasta) return false;
+    if (F.alcance && i.tipoAlcance !== F.alcance) return false;
+    if (F.tipo && (i.tipoInspeccion || '') !== F.tipo) return false;
+    if (F.estado === 'completada' && i.estado !== 'completada') return false;
+    if (F.estado === 'en_curso' && i.estado === 'completada') return false;
+    if (F.insp && participantes(i).indexOf(F.insp) === -1) return false;
+    if (F.cobro) {
+      var e = estadoCobro(i.seguimientoAdmin);
+      if (F.cobro === 'cobrado' && !e.cobrada) return false;
+      if (F.cobro === 'pendiente' && e.cobrada) return false;
+      if (F.cobro === 'parcial' && !(e.tienePagos && !e.cobrada)) return false;
+      if (F.cobro === 'sinpago' && (e.tienePagos || e.cobrada)) return false;
+    }
+    if (F.q) {
+      var sa = i.seguimientoAdmin || {};
+      var texto = [i.nombreInstalacion, codigoInsp(i), i.nRegistro, i.localidad, i.propietario, i.solicitante, i.gestor,
+        sa.ofertaRef, sa.nFactura, sa.obs].concat((sa.pagos || []).map(function(p){ return p.referencia; }));
+      var q = normBusq(F.q);
+      if (!texto.some(function(v){ return normBusq(v).indexOf(q) !== -1; })) return false;
+    }
+    return true;
+  }
+
+  function nFiltrosActivos() {
+    // Desde/hasta cuentan como un solo filtro de fechas.
+    return Object.keys(F_VACIO).filter(function(k){ return F[k] && k !== 'hasta'; }).length + (F.hasta && !F.desde ? 1 : 0);
+  }
+
+  function opciones(lista, valor) {
+    return lista.map(function(o) {
+      return '<option value="' + escHtml(o[0]) + '"' + (o[0] === valor ? ' selected' : '') + '>' + escHtml(o[1]) + '</option>';
+    }).join('');
+  }
+
+  function campo(cls, etiqueta, control) {
+    return '<div class="' + cls + '"><label>' + etiqueta + '</label>' + control + '</div>';
+  }
+
+  function sel(clave, lista) {
+    return '<select class="' + (F[clave] ? 'f-on' : '') + '" onchange="setF(\'' + clave + '\', this.value)">' + opciones(lista, F[clave]) + '</select>';
+  }
+
+  function filtrosHtml() {
+    // Alcances: los configurados en config/empresa (Empresa y Director) más cualquiera que
+    // aparezca en los expedientes; tipos: los que existen en los expedientes. Nada fijo aquí.
+    var anios = [], alcances = alcancesConfig.slice(), tipos = [], insp = {};
     inspData.forEach(function(i) {
       var y = (i.fechaInspeccion || '').slice(0, 4);
       if (y && anios.indexOf(y) === -1) anios.push(y);
+      if (i.tipoAlcance && !alcances.some(function(a){ return a[0] === i.tipoAlcance; })) alcances.push([i.tipoAlcance, i.tipoAlcance]);
+      if (i.tipoInspeccion && tipos.indexOf(i.tipoInspeccion) === -1) tipos.push(i.tipoInspeccion);
+      revisionesInspeccion(i).forEach(function(r) {
+        if (r.inspectorEmail) insp[r.inspectorEmail] = r.inspectorNombre || insp[r.inspectorEmail] || r.inspectorEmail;
+        if (r.inspector2Email) insp[r.inspector2Email] = r.inspector2Nombre || insp[r.inspector2Email] || r.inspector2Email;
+      });
     });
-    anios.sort().reverse();
+    anios.sort().reverse(); tipos.sort();
+    var anioSel = (F.desde && F.desde.slice(5) === '01-01' && F.hasta === F.desde.slice(0, 4) + '-12-31') ? F.desde.slice(0, 4) : '';
+    var inspOpc = Object.keys(insp).map(function(e){ return [e, insp[e]]; })
+      .sort(function(a, b){ return a[1].localeCompare(b[1], 'es'); });
 
-    var filtros = '<div class="toolbar" style="margin-bottom:16px">' +
-      '<button class="filtro-btn' + (filtroAnio === null ? ' active' : '') + '" onclick="setAnio(null)">Todos</button>';
-    anios.forEach(function(y) {
-      filtros += '<button class="filtro-btn' + (filtroAnio === y ? ' active' : '') + '" onclick="setAnio(\'' + y + '\')">' + y + '</button>';
-    });
-    filtros += '</div>';
+    return '<div class="flt">' +
+      campo('f-q', 'Buscar', '<input id="fQ" type="search" class="' + (F.q ? 'f-on' : '') + '" value="' + escHtml(F.q) + '" placeholder="Instalaci&#243;n, c&#243;digo, n&#186; registro, oferta, factura, referencia de pago, observaciones&#8230;" oninput="setF(\'q\', this.value)" autocomplete="off">') +
+      campo('', 'A&#241;o', '<select class="' + (anioSel ? 'f-on' : '') + '" onchange="setAnio(this.value)">' + opciones([['', 'Todos']].concat(anios.map(function(y){ return [y, y]; })), anioSel) + '</select>') +
+      campo('', 'Desde', '<input type="date" class="' + (F.desde ? 'f-on' : '') + '" value="' + escHtml(F.desde) + '" onchange="setF(\'desde\', this.value, true)">') +
+      campo('', 'Hasta', '<input type="date" class="' + (F.hasta ? 'f-on' : '') + '" value="' + escHtml(F.hasta) + '" onchange="setF(\'hasta\', this.value, true)">') +
+      campo('', 'Cobro', sel('cobro', [['', 'Todos'], ['pendiente', 'Pendiente (todo lo no cobrado)'], ['sinpago', 'Sin ningún pago'], ['parcial', 'Pago parcial'], ['cobrado', 'Cobrado']])) +
+      campo('', 'Alcance', sel('alcance', [['', 'Todos']].concat(alcances))) +
+      campo('', 'Inspector', sel('insp', [['', 'Todos']].concat(inspOpc))) +
+      campo('', 'Estado', sel('estado', [['', 'Todos'], ['completada', 'Completada'], ['en_curso', 'Revisión en curso']])) +
+      campo('', 'Tipo', sel('tipo', [['', 'Todos']].concat(tipos.map(function(t){ return [t, t.charAt(0) + t.slice(1).toLowerCase()]; })))) +
+      '<div class="flt-pie"><span id="fResumen"></span>' +
+        (nFiltrosActivos() ? '<button class="btn-limpiar" onclick="limpiarFiltros()">Quitar filtros</button>' : '') +
+      '</div>' +
+    '</div>';
+  }
 
-    // Apply filter
-    var lista = filtroAnio
-      ? inspData.filter(function(i){ return (i.fechaInspeccion || '').slice(0,4) === filtroAnio; })
-      : inspData;
+  // El texto se filtra al teclear sin redibujar los filtros (no se pierde el foco);
+  // los desplegables y fechas sí redibujan para marcar cuáles están activos.
+  window.setF = function(clave, valor) {
+    F[clave] = valor;
+    if (clave === 'q') {
+      document.getElementById('fQ').className = valor ? 'f-on' : '';
+      var pie = document.querySelector('.flt-pie');
+      if (pie && !!pie.querySelector('.btn-limpiar') !== !!nFiltrosActivos()) render(true);
+      else renderResultados();
+    } else render();
+  };
 
+  window.setAnio = function(y) {
+    F.desde = y ? y + '-01-01' : '';
+    F.hasta = y ? y + '-12-31' : '';
+    render();
+  };
+
+  window.limpiarFiltros = function() { F = Object.assign({}, F_VACIO); render(); };
+
+  function render(mantenerFocoTexto) {
+    document.getElementById('content').innerHTML = '<div id="depSel"></div>' + filtrosHtml() + '<div id="resultados"></div>';
+    if (mantenerFocoTexto) {
+      var q = document.getElementById('fQ');
+      q.focus(); q.setSelectionRange(q.value.length, q.value.length);
+    }
+    renderResultados();
+  }
+
+  function renderResultados() {
+    var lista = inspData.filter(pasaFiltros);
     var listaInsp = lista.filter(function(i){ return !esDeProyecto(i); });
     var listaProy = lista.filter(esDeProyecto);
 
     var esProy = vistaDep === 'proyecto';
-    var selector = '<div class="dep-sel">' +
+    document.getElementById('depSel').innerHTML = '<div class="dep-sel">' +
       '<button class="dep-btn' + (!esProy ? ' active' : '') + '" onclick="setDep(\'inspeccion\')">Departamento de inspecci&#243;n <span class="dep-n">' + listaInsp.length + '</span></button>' +
       '<button class="dep-btn' + (esProy ? ' active' : '') + '" onclick="setDep(\'proyecto\')">Proyecto <span class="dep-n">' + listaProy.length + '</span></button>' +
     '</div>';
     var listaVer = esProy ? listaProy : listaInsp;
-    var vacio = 'No hay expedientes' + (esProy ? ' de Proyecto' : '') + (filtroAnio ? ' en ' + filtroAnio : '') + '.';
-    document.getElementById('content').innerHTML = selector + filtros + statsHtml(listaVer) + tablaHtml(listaVer, vacio);
+    var n = nFiltrosActivos();
+    document.getElementById('fResumen').textContent = n
+      ? listaVer.length + ' expediente' + (listaVer.length !== 1 ? 's' : '') + ' con ' + n + ' filtro' + (n !== 1 ? 's' : '')
+      : '';
+    var vacio = 'No hay expedientes' + (esProy ? ' de Proyecto' : '') + (n ? ' con estos filtros' : '') + '.';
+    document.getElementById('resultados').innerHTML = statsHtml(listaVer) + tablaHtml(listaVer, vacio);
   }
 
-  window.setDep = function(dep) { vistaDep = dep; render(); };
+  window.setDep = function(dep) { vistaDep = dep; renderResultados(); };
 
   function statsHtml(lista) {
     var total     = lista.filter(function(i){ return i.estado === 'completada'; }).length;
@@ -395,7 +517,7 @@
     return s;
   }
 
-  window.toggleRevs = function(id) { expandidos[id] = !expandidos[id]; render(); };
+  window.toggleRevs = function(id) { expandidos[id] = !expandidos[id]; renderResultados(); };
 
   function filaRevisiones(revs) {
     var MOTIVO = { revisita: 'Revisita en campo', correccion: 'Corrección documental' };
