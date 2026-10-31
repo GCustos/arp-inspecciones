@@ -137,9 +137,15 @@
     // Equipos, Instalaciones, Ofertas y Oficina se movieron a accesos directos en la
     // pantalla de inicio (index.html) — ya no se listan aquí para no duplicar navegación.
     var html = '<div class="sec-label">Panel de administración</div>' +
-      card('clientes', '&#128101;', 'Clientes',      'Gestión de empresas propietarias y solicitantes',               'admin-clientes.html') +
-      card('empresa',  '&#127970;', 'Empresa y Director', 'Datos de empresa, director técnico y alcances disponibles', 'admin-empresa.html') +
-      card('config',   '&#9881;',   'Configuración', 'ENAC por alcance, número de acreditación y parámetros globales', null);
+      card('clientes', '&#128101;', 'Clientes',      'Gestión de empresas propietarias y solicitantes',               'admin-clientes.html');
+    // Empresa y Director (admin-empresa.html) y Configuración (config/*) solo los abre y
+    // guarda admin/director — antes se listaban a todos y oficina/proyecto eran expulsados
+    // al inicio o el guardado fallaba.
+    if (esAdmin) {
+      html +=
+        card('empresa',  '&#127970;', 'Empresa y Director', 'Datos de empresa, director técnico y alcances disponibles', 'admin-empresa.html') +
+        card('config',   '&#9881;',   'Configuración', 'ENAC por alcance, número de acreditación y parámetros globales', null);
+    }
     if (veCambios) {
       html += card('cambios', '&#128203;', 'Cambios propuestos', 'Revisión y aprobación de cambios en datos de instalaciones', 'admin-cambios.html');
     }

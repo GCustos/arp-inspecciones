@@ -296,7 +296,7 @@
     document.getElementById('content').innerHTML=
       '<div class="toolbar">'+
         '<div class="search-wrap"><span class="search-icon">&#128269;</span>'+
-        '<input type="text" id="searchInput" placeholder="Buscar…" oninput="renderRows()" autocomplete="off"></div>'+
+        '<input type="text" id="searchInput" placeholder="Buscar cliente, CIF o instalación…" oninput="renderRows()" autocomplete="off"></div>'+
         '<button class="btn-primary" onclick="abrirModalCliente(null)">+ Nuevo</button>'+
       '</div>'+
       '<div class="filtros">'+
@@ -307,12 +307,31 @@
     renderRows();
   }
 
+  // Sin acentos, mayúsculas, espacios ni letras dobladas: "massanasa", "topjump" o
+  // "sagunt" encuentran Massanassa, Top Jump y Sagunt/Sagunto.
+  function normBusq(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'').replace(/(.)\1+/g,'$1'); }
+
+  // Instalaciones donde el cliente figura como propietario (por id), gestor o solicitante
+  // (estos dos se guardan por nombre en la instalación).
+  function instalacionesDe(c){
+    var n=normBusq(c.nombre).trim();
+    return todasInstalaciones.filter(function(i){
+      return i.propietarioId===c.id || (n && (normBusq(i.gestorActual).trim()===n || normBusq(i.solicitanteActual).trim()===n));
+    });
+  }
+
   function renderRows() {
-    var q=((document.getElementById('searchInput')||{}).value||'').toLowerCase().trim();
+    var q=normBusq((document.getElementById('searchInput')||{}).value).trim();
+    var instCoinc={}; // clienteId → nombres de instalación que coinciden con la búsqueda
     var lista=todosClientes.filter(function(c){
       if (filtroActivo==='activos' && c.activo===false) return false;
       if (!q) return true;
-      return (c.nombre||'').toLowerCase().includes(q)||(c.cif||'').toLowerCase().includes(q);
+      if (normBusq(c.nombre).includes(q)||normBusq(c.cif).includes(q)) return true;
+      var hits=instalacionesDe(c).filter(function(i){
+        return [i.nombre,i.codigo,i.localidad,i.municipio].concat(i.aliases||[]).some(function(v){ return normBusq(v).includes(q); });
+      });
+      if (hits.length) instCoinc[c.id]=hits.map(function(i){ return i.nombre+(i.codigo?' ('+i.codigo+')':''); });
+      return hits.length>0;
     });
     document.getElementById('contadorDiv').innerHTML='<div class="contador">'+lista.length+' cliente'+(lista.length!==1?'s':'')+'</div>';
     if (!lista.length) {
@@ -324,6 +343,7 @@
         '<div class="row-info">'+
           '<div class="row-title">'+escHtml(c.nombre)+'</div>'+
           '<div class="row-sub">'+(c.cif?escHtml(c.cif)+' &middot; ':'')+nv+' contacto'+(nv!==1?'s':'')+'</div>'+
+          (instCoinc[c.id]?'<div class="row-sub">Instalación: '+escHtml(instCoinc[c.id].join(', '))+'</div>':'')+
         '</div>'+
         '<span class="badge '+(c.activo===false?'badge-off':'badge-ok')+'">'+(c.activo===false?'Inactivo':'Activo')+'</span>'+
         '<button class="btn-sm" onclick="event.stopPropagation();abrirModalCliente(\''+c.id+'\')">Editar</button>'+
