@@ -462,7 +462,7 @@
         ${D_actual.historialRevisiones.map((r,idx)=>`
           <div class="info-row">
             <span>Rev.${r.revision} — ${r.resultado||'?'} ${r.fechaCompletada?('· '+new Date(r.fechaCompletada).toLocaleDateString('es-ES')):''}</span>
-            <a href="#" onclick="verRevisionHistorica(${idx});return false;" style="color:var(--gold);font-weight:600;font-size:12px">Ver / Descargar &#8594;</a>
+            ${viendoRevisionIdx===idx?'<span style="color:var(--muted);font-size:12px">Viendo ahora</span>':`<a href="#" onclick="verRevisionHistorica(${idx});return false;" style="color:var(--gold);font-weight:600;font-size:12px">Ver / Descargar &#8594;</a>`}
           </div>`).join('')}
         <div class="info-row">
           <span>Rev.${D_actual.revision} — ${D_actual.resultado||'?'} (actual)</span>
@@ -478,6 +478,14 @@
     // cambio" = negro) y al ver Rev.N>0 se compara contra la última guardada en vez de la
     // inmediatamente anterior.
     D=Object.assign({},D_actual,snap,{id:D_actual.id,historialRevisiones:D_actual.historialRevisiones.slice(0,idx)});
+    // La copia de una revisión no guarda sus visitas: sin esto se verían (y saldrían en el
+    // registro) las de la revisión actual. Se toman las visitas con hora hasta el día en que
+    // se cerró esa revisión; si no hay ninguna, la fecha de inspección con las horas de la copia.
+    if(!snap.sesiones){
+      var _cierre=typeof snap.fechaCompletada==='string'?snap.fechaCompletada.slice(0,10):'';
+      var _ses=(D_actual.sesiones||[]).filter(function(s){ return (s.horaInicio||s.horaFin)&&(!_cierre||s.fecha<=_cierre); });
+      D.sesiones=_ses.length?_ses:[{fecha:D_actual.fechaInspeccion||'',horaInicio:snap.horaInicio||'',horaFin:snap.horaFin||''}];
+    }
     viendoRevisionIdx=idx;
     renderResultado();
     window.scrollTo({top:0,behavior:'smooth'});
