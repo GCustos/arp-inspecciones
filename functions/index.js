@@ -1,8 +1,9 @@
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
-const admin = require("firebase-admin");
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 
-admin.initializeApp();
-const db = admin.firestore();
+initializeApp();
+const db = getFirestore();
 
 function addYear(fechaISO) {
   const p = (fechaISO || "").split("-");
@@ -108,7 +109,7 @@ async function sincronizarCertificados(instalacionId) {
       // inspecciones anteriores a este campo.
       fechaValidez: addYear(insp.fechaEmision || insp.fechaInspeccion),
       tipo: alc,
-      actualizadoEn: admin.firestore.FieldValue.serverTimestamp()
+      actualizadoEn: FieldValue.serverTimestamp()
     });
   }
 }
