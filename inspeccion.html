@@ -2238,20 +2238,26 @@
   };
 
   // NCs
+  // Toda NC tiene que decir a qué afecta: un juego/elemento de un circuito, «General» o una
+  // pregunta del checklist general (autoId). Antes se podía cerrar una inspección con una NC
+  // manual sin elegir nada (p. ej. Tajo Morero, 11/2026) y el informe no decía dónde estaba.
+  function ncSinElemento(n){ return !(n.autoId||n.juegoId||(n.elem&&n.elem.trim())); }
+  function ncIncompleta(n){ return !n.tipo||!n.prio||ncSinElemento(n); }
+
   function renderNCs(){
     var scrollY=window.scrollY;
     const c=document.getElementById("ncList");
     const warn=document.getElementById("ncWarn");
-    const incompletas=S.ncs.filter(n=>!n.tipo||!n.prio);
+    const incompletas=S.ncs.filter(ncIncompleta);
     if(incompletas.length){
-      warn.textContent=`⚠️ ${incompletas.length} NC${incompletas.length>1?'s':''} sin tipo o gravedad. Completa los campos marcados en rojo antes de finalizar.`;
+      warn.textContent=`⚠️ ${incompletas.length} NC${incompletas.length>1?'s':''} sin elemento afectado, tipo o gravedad. Completa los campos marcados en rojo antes de finalizar.`;
       warn.classList.add('vis');
     } else {
       warn.classList.remove('vis');
     }
     if(!S.ncs.length){ c.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:12px;padding:14px">Sin no conformidades.</div>`; return; }
     c.innerHTML=S.ncs.map((nc,i)=>{
-      const incompleta=!nc.tipo||!nc.prio;
+      const incompleta=ncIncompleta(nc);
       // Columnas del selector "Pregunta checklist": las del circuito elegido si tiene
       // tipoElemento propio (SAE), si no las de siempre (PAA/FER/sin elegir aún).
       const _ncColsInfo=(nc._ci!==undefined&&nc._ci!=='g'&&S.circuitos[nc._ci])?colsForCirc(S.circuitos[nc._ci]):{cols:COLS,labels:COL_LABELS};
@@ -2266,7 +2272,7 @@
             </div>
             <button class="nc-del" onclick="delNC(${i})">&#215;</button>
           </div>
-          <div class="f"><label>Elemento afectado</label>
+          <div class="f"><label>Elemento afectado${ncSinElemento(nc)?' <span style="color:var(--red)">— elige circuito y juego, o «General»</span>':''}</label>
             ${nc.autoId ? `<input type="text" value="${(nc.elem||'').replace(/"/g,'&quot;')}" disabled style="opacity:.7">` :
             `<div class="f" style="margin-bottom:4px"><select onchange="ncSelColumna(${i},this.value)">
               <option value="">— Pregunta checklist —</option>
@@ -2767,10 +2773,10 @@
       alert("Hay "+ncsSinFoto.length+" no conformidad(es) sin foto de defecto. Añade al menos una foto antes de completar.");
       return;
     }
-    const incompletas=S.ncs.filter(n=>!n.tipo||!n.prio);
+    const incompletas=S.ncs.filter(ncIncompleta);
     if(incompletas.length){
       goTab(3);
-      alert(`Hay ${incompletas.length} no conformidad${incompletas.length>1?'es':''} sin tipo o gravedad asignada. Completa los campos antes de finalizar.`);
+      alert(`Hay ${incompletas.length} no conformidad${incompletas.length>1?'es':''} sin elemento afectado, tipo o gravedad. Completa los campos marcados en rojo antes de finalizar.`);
       return;
     }
     // Validar checklist general completo
