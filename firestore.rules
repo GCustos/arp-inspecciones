@@ -94,8 +94,9 @@ service cloud.firestore {
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seguimientoAdmin']))
       );
 
-      // Solo admin borra
-      allow delete: if isAuth() && isAdmin();
+      // Solo admin y director borran (Archivar inspección en resultado.html: descarga el
+      // .zip y después borra de Firebase)
+      allow delete: if isAuth() && myRole() in ['admin', 'director'];
     }
 
     // NC (no conformidades) — subcolección de inspecciones/{id}, un documento por NC en vez
