@@ -157,6 +157,74 @@ function sesionesArrayFrom(sesiones) {
     .sort(function(a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
 }
 
+/** Fecha de hoy en hora local, AAAA-MM-DD (toISOString da la de UTC: de 00:00 a 01:00/02:00
+ *  en España devolvía el día anterior). */
+function hoyLocalISO(d) {
+  d = d || new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+/**
+ * Herencia de circuitos para la inspección del año siguiente: misma instalación y MISMO
+ * alcance. Antes se copiaban los de la última inspección completada de la instalación fuera
+ * del alcance que fuera (una PAA de TopJump Sagunto habría recibido las vías de su SAE) y
+ * sin el tipo de elemento (Vía/Muro/Tramo).
+ *
+ * plantillaCircuitos(circuitos): solo la estructura (circuitos con nombre y tipo de elemento;
+ *   juegos con nombre, tipo y rama), sin respuestas, fotos ni ids. Se guarda al completar en
+ *   instalaciones/{id}.plantillaCircuitos.{ALCANCE}: las instalaciones las lee cualquier
+ *   usuario, la inspección anterior no (un inspector solo lee las suyas).
+ * circuitosDesdePlantilla(plantilla, nuevoId): circuitos nuevos (mapa {id: circuito}, juegos
+ *   como mapa {id: juego}, el formato que escribe inspeccion.html) con todo en blanco.
+ * buscarPlantillaCircuitos(db, instalacionId, alcance): Promise → plantilla o null. Primero la
+ *   de la instalación; si no la tiene aún (inspecciones completadas antes de este cambio), la
+ *   saca de la última inspección completada de esa instalación y alcance, si se puede leer.
+ */
+function _ordenados(v) {
+  var arr = Array.isArray(v) ? v : Object.keys(v || {}).map(function(k) { var x = v[k]; if (x && !x.id) x.id = k; return x; });
+  return arr.slice().sort(function(a, b) { return (a.orden || 0) - (b.orden || 0); });
+}
+function plantillaCircuitos(circuitos) {
+  return _ordenados(circuitos).map(function(c) {
+    var p = { nombre: c.nombre || '', juegos: _ordenados(c.juegos).map(function(j) {
+      return { nombre: j.nombre || '', tipo: j.tipo || 'R', rama: j.rama || '' };
+    }) };
+    if (c.tipoElemento) p.tipoElemento = c.tipoElemento;
+    return p;
+  });
+}
+function circuitosDesdePlantilla(plantilla, nuevoId) {
+  var map = {};
+  (plantilla || []).forEach(function(c, ci) {
+    var cId = nuevoId(), juegos = {};
+    (c.juegos || []).forEach(function(j, ji) {
+      var jId = nuevoId();
+      juegos[jId] = { id: jId, orden: ji, nombre: j.nombre || '', tipo: j.tipo || 'R', rama: j.rama || '', obs: '', fotos: [] };
+    });
+    map[cId] = { id: cId, nombre: c.nombre || '', orden: ci, juegos: juegos };
+    if (c.tipoElemento) map[cId].tipoElemento = c.tipoElemento;
+  });
+  return map;
+}
+function buscarPlantillaCircuitos(db, instalacionId, alcance) {
+  if (!instalacionId || !alcance) return Promise.resolve(null);
+  return db.collection('instalaciones').doc(instalacionId).get().then(function(snap) {
+    var pl = snap.exists && snap.data().plantillaCircuitos && snap.data().plantillaCircuitos[alcance];
+    if (pl && pl.length) return pl;
+    return db.collection('inspecciones').where('instalacionId', '==', instalacionId).get().then(function(q) {
+      var mejor = null;
+      q.forEach(function(d) {
+        var x = d.data();
+        if (x.estado !== 'completada' || (x.tipoAlcance || 'PAA') !== alcance) return;
+        var k = (x.fechaInspeccion || '') + '|' + (x.fechaCompletadaLocal || '');
+        if (!mejor || k > mejor.k) mejor = { k: k, x: x };
+      });
+      var p = mejor ? plantillaCircuitos(mejor.x.circuitos) : [];
+      return p.length ? p : null;
+    });
+  }).catch(function(e) { console.warn('Herencia de circuitos:', e.message); return null; });
+}
+
 /**
  * Lista de revisiones de una inspección, de la Rev.0 a la actual, con quién hizo cada una.
  * Las revisiones cerradas salen de historialRevisiones (copia guardada al reabrir); la última

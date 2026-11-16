@@ -230,7 +230,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script src="utils.js"></script>
+<script src="utils.js?v=2"></script>
 <script>
   if (!firebase.apps.length) {
     firebase.initializeApp({
@@ -464,6 +464,23 @@
 
   var circuitosHeredados = null;
 
+  // Circuitos de la última inspección de ESTA instalación y ESTE alcance (utils.js,
+  // buscarPlantillaCircuitos). Se recalcula al elegir instalación y al cambiar de alcance;
+  // al guardar se vuelve a pedir para el alcance definitivo.
+  var _herenciaPedida = 0;
+  function actualizarHerencia() {
+    circuitosHeredados = null;
+    var inst = instalacionSeleccionada, alc = selectedAlcance, pedida = ++_herenciaPedida;
+    var base = "Vinculada: " + ((inst && inst.nombre) || "") + ((inst && inst.codigo) ? " · " + inst.codigo : "");
+    if (!inst || !alc) return;
+    buscarPlantillaCircuitos(db, inst.id, alc).then(function(pl) {
+      if (pedida !== _herenciaPedida) return; // ya se eligió otra instalación o alcance
+      var n = (pl || []).reduce(function(s, c) { return s + (c.juegos || []).length; }, 0);
+      document.getElementById("acVincTxt").textContent = base + (n ? " · " + n + " elem. heredados (" + alc + ")" : " · sin circuitos " + alc + " anteriores");
+    });
+  }
+  function nuevoIdCircuito() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
+
   window.seleccionarInstalacion = function(id) {
     var inst = instalacionesList.find(function(i) { return i.id === id; });
     if (!inst) return;
@@ -499,38 +516,7 @@
     document.getElementById("acVincTxt").textContent = txt;
     document.getElementById("acVinculada").classList.add("vis");
     alcanceSegunInstalacion();
-    if(inst.ultimaInspeccionId){
-      db.collection("inspecciones").doc(inst.ultimaInspeccionId).get().then(function(doc){
-        if(doc.exists){
-          var prev=doc.data();
-          var prevCircArr=Array.isArray(prev.circuitos)
-            ?prev.circuitos
-            :(prev.circuitos?Object.values(prev.circuitos).sort(function(a,b){return(a.orden||0)-(b.orden||0);}):[]);
-          if(prevCircArr.length){
-            // Construir como MAPA {id: circData} desde el primer momento (evita formato array
-            // legacy), y dentro de cada circuito los juegos también como mapa {juegoId: juegoData}
-            // (mismo formato que ahora escribe inspeccion.html — ver buildCircuitosMap). El
-            // circuito de origen puede venir en cualquiera de los dos formatos (antiguo o nuevo),
-            // según cuándo se editó por última vez esa inspección anterior.
-            var _mapHer={};
-            prevCircArr.forEach(function(c,ci){
-              var cId='circ_'+ci;
-              var prevJuegos=Array.isArray(c.juegos)?c.juegos
-                :(c.juegos?Object.keys(c.juegos).map(function(k){var j=c.juegos[k];if(!j.id)j.id=k;return j;}).sort(function(a,b){return(a.orden||0)-(b.orden||0);}):[]);
-              var juegosMap={};
-              prevJuegos.forEach(function(j,ji){
-                var jId='juego_'+ci+'_'+ji;
-                juegosMap[jId]={id:jId,orden:ji,nombre:j.nombre,tipo:j.tipo||'R',rama:j.rama||'',ie:'',af:'',ej:'',ra:'',zs:'',obs:'',fotos:[]};
-              });
-              _mapHer[cId]={id:cId,nombre:c.nombre,orden:ci,juegos:juegosMap};
-            });
-            circuitosHeredados=_mapHer;
-            txt+=" · "+Object.values(circuitosHeredados).reduce(function(s,c){return s+Object.keys(c.juegos).length},0)+" elem. heredados";
-            document.getElementById("acVincTxt").textContent=txt;
-          }
-        }
-      }).catch(function(){});
-    }
+    actualizarHerencia();
   };
 
   window.limpiarInstalacion = function() {
@@ -619,6 +605,7 @@
     document.querySelectorAll(".alcance-btn").forEach(function(b) { b.classList.remove("selected"); });
     btn.classList.add("selected");
     selectedAlcance = btn.dataset.val;
+    actualizarHerencia();
   };
 
   window.selTipo = function(btn) {
@@ -869,6 +856,9 @@
         gestor: document.getElementById("gestor").value.trim(),
         solicitante: document.getElementById("solicitante").value.trim(),
         fechaInspeccion: fecha,
+        // La fecha de inspección pasará sola al primer día que se rellene (inspeccion.html,
+        // fechaPorDiasTrabajados) salvo que alguien la cambie a mano (fechaManual).
+        fechaAuto: true,
         horaInicio: horaInicio,
         horaFin: horaFin,
         notas: document.getElementById("notas").value.trim(),
@@ -878,14 +868,18 @@
         inspector2Nombre: selectedInspector2Nombre || "",
         creadoPor: currentUser.email,
         estado: "borrador",
-        sesiones: (function(){ var h={}; h[fecha]={horaInicio:horaInicio, horaFin:horaFin}; return h; })(),
+        // Sin sesión: la fecha asignada es la prevista, no un día trabajado. Las sesiones
+        // (fechas del informe y del registro) las crea inspeccion.html el primer día que
+        // se rellena algo; antes la fecha asignada salía como un día de inspección más.
+        sesiones: {},
         equiposMedicion: equiposMedicion,
         fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
         formatoDocumento: formatoDocumento
       };
-      if (circuitosHeredados) inspeccion.circuitos = circuitosHeredados;
-
       return actualizarInstalacionPromise.then(function() {
+        return buscarPlantillaCircuitos(db, instalacionId, selectedAlcance);
+      }).then(function(pl) {
+        if (pl) inspeccion.circuitos = circuitosDesdePlantilla(pl, nuevoIdCircuito);
         return db.collection("inspecciones").add(inspeccion);
       }).then(function(ref) {
         if (instalacionId) {

@@ -261,7 +261,7 @@
     <div class="card" id="cardDatosVisita">
       <div class="card-title">Datos de la visita</div>
       <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px">
-        <div class="f"><label>Fecha inspecci&#243;n</label><input type="date" id="inpFechaInspeccion" onchange="S.fechaInspeccion=this.value;markDirty()"></div>
+        <div class="f"><label>Fecha inspecci&#243;n</label><input type="date" id="inpFechaInspeccion" onchange="S.fechaInspeccion=this.value;S.fechaManual=true;markDirty()"></div>
         <div class="f"><label>Hora inicio</label><input type="time" id="inpHoraInicio" onchange="S.horaInicio=this.value;markDirty()"></div>
         <div class="f"><label>Hora fin</label><input type="time" id="inpHoraFin" onchange="S.horaFin=this.value;markDirty()"></div>
       </div>
@@ -495,7 +495,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-<script src="utils.js"></script>
+<script src="utils.js?v=2"></script>
 <script>
   if (!firebase.apps.length) {
     firebase.initializeApp({
@@ -1228,6 +1228,7 @@
       _cargarTiposNC(S.tipoAlcance);
       S.estado=data.estado||"borrador";
       S.fechaInspeccion=data.fechaInspeccion||"";
+      S.fechaAuto=data.fechaAuto===true; S.fechaManual=data.fechaManual===true;
       S.horaInicio=data.horaInicio||"";
       S.horaFin=data.horaFin||"";
       // sesiones: soporta array (antiguo) o mapa {fecha:{...}} (nuevo) — ver buildSesionesUpdate.
@@ -1239,7 +1240,7 @@
       }
       // Detectar nueva jornada: si hoy es distinto a fechaInspeccion y la inspección está en curso
       if (S.estado !== 'completada') {
-        var _hoyISO = new Date().toISOString().split('T')[0];
+        var _hoyISO = hoyLocalISO();
         var _tieneHoy = S.sesiones.some(function(s){ return s.fecha === _hoyISO; });
         if (!_tieneHoy && S.fechaInspeccion && _hoyISO > S.fechaInspeccion) {
           var _sesFin = S.sesiones.reduce(function(prev,s){
@@ -1272,7 +1273,7 @@
       document.getElementById("hdrTitulo").textContent=data.nombreInstalacion||"Sin nombre";
       document.getElementById("hdrSub").textContent=(data.tipoAlcance||"PAA")+" · "+(data.tipoInspeccion||"")+" · "+(data.inspectorNombre||"");
       actualizarEstado(data.estado||"borrador");
-      if(!S.circuitos.length&&data.nombreInstalacion) buscarCircuitosAnteriores(data.nombreInstalacion);
+      if(!S.circuitos.length&&data.instalacionId) buscarCircuitosAnteriores(data.instalacionId, S.tipoAlcance);
       renderGen(); renderCircuitos(); renderNCs(); renderEquipos();
       actualizarBadgeFotosPendientes();
       setTimeout(cargarFotosPendientesUI, 100);
@@ -1292,38 +1293,27 @@
     b.classList.add('visible');
   }
 
-  async function buscarCircuitosAnteriores(nombre) {
-    try {
-      const q = await db.collection("inspecciones")
-        .where("nombreInstalacion","==",nombre).where("estado","==","completada")
-        .orderBy("fechaCompletada","desc").limit(1).get();
-      if(!q.empty){
-        const prev=q.docs[0].data();
-        const prevArr=Array.isArray(prev.circuitos)
-          ? prev.circuitos
-          : (prev.circuitos?Object.values(prev.circuitos).sort(function(a,b){return(a.orden||0)-(b.orden||0);}): []);
-        if(prevArr.length){
-          circuitosAnteriores=prevArr;
-          document.getElementById('importBanner').classList.add('vis');
-        }
-      }
-    } catch(e){ console.warn('No se pudieron buscar circuitos anteriores:',e.message); }
+  // Misma herencia que al asignar (utils.js, buscarPlantillaCircuitos): misma instalación y
+  // mismo alcance. Antes buscaba por NOMBRE de instalación y de cualquier alcance, y con
+  // juegos en formato mapa fallaba (circ.juegos.map no existe).
+  async function buscarCircuitosAnteriores(instalacionId, alcance) {
+    var pl=await buscarPlantillaCircuitos(db, instalacionId, alcance);
+    if(pl&&pl.length){
+      circuitosAnteriores=pl;
+      document.getElementById('importBanner').classList.add('vis');
+    }
   }
 
   function importarCircuitos(){
     if(!circuitosAnteriores) return;
     // Las columnas a blanquear dependen del tipo de elemento (PAA/FER: ie/af/ej/ra/zs
     // de siempre vía colsForCirc con tipoElemento vacío; SAE: 9 columnas de Vía o Muro).
-    S.circuitos=circuitosAnteriores.map(function(circ){
-      var nuevoCirc={id:uid(), nombre:circ.nombre||""};
-      if(circ.tipoElemento) nuevoCirc.tipoElemento=circ.tipoElemento;
-      var _cols=colsForCirc(nuevoCirc).cols;
-      nuevoCirc.juegos=(circ.juegos||[]).map(function(j){
-        var nj={id:uid(),nombre:j.nombre||"",tipo:j.tipo||"R",rama:j.rama||"",obs:"",fotos:[]};
-        _cols.forEach(function(col){ nj[col.key]=""; });
-        return nj;
-      });
-      return nuevoCirc;
+    var _orden=function(a,b){return (a.orden||0)-(b.orden||0);};
+    S.circuitos=Object.values(circuitosDesdePlantilla(circuitosAnteriores, uid)).sort(_orden).map(function(c){
+      var _cols=colsForCirc(c).cols;
+      c.juegos=Object.values(c.juegos).sort(_orden);
+      c.juegos.forEach(function(j){ _cols.forEach(function(col){ j[col.key]=""; }); });
+      return c;
     });
     S.circuitos.forEach(function(c){ _dirtyCircuitIds.add(c.id); });
     document.getElementById('importBanner').classList.remove('vis');
@@ -1439,7 +1429,7 @@
         inspector2Nombre:'',
         horaInicio:'',
         horaFin:'',
-        sesiones:(function(){ var h={}; h[new Date().toISOString().split('T')[0]]={horaInicio:'',horaFin:''}; return h; })(),
+        sesiones:(function(){ var h={}; h[hoyLocalISO()]={horaInicio:'',horaFin:''}; return h; })(),
         ultimaModificacion:firebase.firestore.FieldValue.serverTimestamp()
       });
       location.reload();
@@ -2715,6 +2705,19 @@
   // GUARDAR / COMPLETAR
   function markDirty(){ isDirty=true; actualizarBadgeFotosPendientes(); }
 
+  // Fecha de inspección (y con ella el nº de registro) = primer día que se rellenó algo
+  // (sesión con hora). Solo en inspecciones asignadas desde este cambio (fechaAuto), en la
+  // Rev.0 (una revisión conserva la fecha original) y si nadie la ha puesto a mano
+  // (fechaManual: p. ej. GF Victoria, hecha en papel el 08/10 y pasada a la app después).
+  // Antes se quedaba la fecha asignada aunque se inspeccionara otro día.
+  function fechaPorDiasTrabajados(){
+    if(!S.fechaAuto||S.fechaManual||S.revision) return;
+    var dias=(S.sesiones||[]).filter(function(s){ return s.fecha&&(s.horaInicio||s.horaFin); }).map(function(s){ return s.fecha; }).sort();
+    if(!dias.length||dias[0]===S.fechaInspeccion) return;
+    S.fechaInspeccion=dias[0];
+    var inp=document.getElementById("inpFechaInspeccion"); if(inp) inp.value=dias[0];
+  }
+
   function buildPayload(estado){
     // OJO: las NC ya NO van aquí — viven en la subcolección inspecciones/{id}/ncs
     // (ver buildNcUpdates/guardarConNcs). checklist, checklistObs, obsGral, ensayos,
@@ -2724,9 +2727,11 @@
     // El nº de registro sale de la fecha de inspección (igual que en los PDF, getNRegistro de
     // resultado.html). Antes solo se corregía en memoria al completar y nunca llegaba a
     // Firestore: la app y Oficina enseñaban un número y los PDF otro (9 inspecciones, 11/2026).
+    fechaPorDiasTrabajados();
     S.nRegistro = corregirFechaNRegistro(S.nRegistro, S.fechaInspeccion);
     const payload = sanitizar({
       nRegistro:S.nRegistro,
+      fechaManual:S.fechaManual===true,
       fechaInspeccion:S.fechaInspeccion,
       horaInicio:S.horaInicio,
       horaFin:S.horaFin,
@@ -2890,7 +2895,7 @@
     // También en la sesión de hoy (multi-jornada) — se crea aquí, en el primer guardado
     // real del día, no al abrir la pantalla (eso generaba sesiones "fantasma" vacías
     // cuando alguien solo entraba a mirar una inspección en curso otro día).
-    var _hoyISO2 = new Date().toISOString().split('T')[0];
+    var _hoyISO2 = hoyLocalISO();
     var _sesHoy = S.sesiones.find(function(s){ return s.fecha === _hoyISO2; });
     if (!_sesHoy) {
       _sesHoy = {fecha:_hoyISO2, horaInicio:ahoraStr, horaFin:''};
@@ -3052,7 +3057,7 @@
       if (inpHF) inpHF.value = S.horaFin;
     }
     // Registrar horaFin en la sesión de hoy (multi-jornada)
-    var _hoyISOFin = new Date().toISOString().split('T')[0];
+    var _hoyISOFin = hoyLocalISO();
     var _sesHoyFin = S.sesiones.find(function(s){ return s.fecha === _hoyISOFin; });
     if (_sesHoyFin && !_sesHoyFin.horaFin) { _sesHoyFin.horaFin = _ahoraFin; _dirtySesionFechas.add(_hoyISOFin); }
     // Subir fotos pendientes antes de guardar para que aparezcan en PDFs generados desde otros dispositivos
@@ -3117,14 +3122,18 @@
         var _fParts=(fechaEmision||S.fechaInspeccion).split('-');
         var _certD=new Date(parseInt(_fParts[0])+1,parseInt(_fParts[1])-1,parseInt(_fParts[2]));
         var _certHasta=_certD.toISOString().slice(0,10);
-        db.collection("instalaciones").doc(docDataFull.instalacionId).update({
+        // Plantilla de circuitos para la inspección del año que viene, por alcance (utils.js,
+        // plantillaCircuitos/buscarPlantillaCircuitos): solo estructura, sin respuestas.
+        var _updInst={};
+        if((S.circuitos||[]).length) _updInst['plantillaCircuitos.'+(S.tipoAlcance||'PAA')]=plantillaCircuitos(S.circuitos);
+        db.collection("instalaciones").doc(docDataFull.instalacionId).update(Object.assign(_updInst,{
           ultimaInspeccion:S.fechaInspeccion,
           ultimaInspeccionId:inspeccionId,
           ultimaInspeccionResultado:resultado==='FAVORABLE'?'conforme':'no_conforme',
           certificadoHasta:_certHasta,
           inspeccionActivaId:null,
           inspeccionActivaEstado:null
-        }).catch(function(){});
+        })).catch(function(){});
         // certificados-publicos (mapa web) ya NO se escribe aquí — lo mantiene sola la
         // Cloud Function syncCertificadoPublico (functions/index.js), que recalcula desde
         // Firestore cuál es la inspección FAVORABLE más reciente, retira el certificado si
