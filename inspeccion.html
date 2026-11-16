@@ -1320,7 +1320,11 @@
     const b=document.getElementById('lockBanner');
     let html=`Inspección <b>completada</b> (Rev.${S.revision}) — bloqueada para edición.`;
     html+=`<a href="resultado.html?id=${inspeccionId}" style="display:block;margin-top:8px;color:var(--gold);font-weight:600;font-size:13px">Descargar documentos (Informe / Registro / Certificado) &#8594;</a>`;
-    if(esAdmin){
+    // Archivada: sus fotos ya no están en Storage (están en el ZIP del expediente), así que
+    // no se puede reabrir una Rev nueva sobre ella.
+    if(docDataFull.archivada){
+      html+=`<div style="margin-top:8px;font-size:12px">Archivada: las fotos están en ${docDataFull.archivada.zip||'el .zip del expediente'}. No se puede reabrir.</div>`;
+    } else if(esAdmin){
       html+=`<button class="btn-reabrir" onclick="abrirModalReabrir()">Abrir Rev.${S.revision+1}</button>`;
     }
     b.innerHTML=html;

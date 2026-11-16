@@ -103,6 +103,14 @@
 
   function cargarZip(file) {
     document.getElementById('errBox').classList.remove('vis');
+    // Sin la librería no se puede leer nada: pasa si se abre visor.html directamente desde
+    // dentro del .zip sin extraerlo (Windows solo saca ese fichero). Antes se quedaba en
+    // «Leyendo…» sin decir nada.
+    if (typeof JSZip === 'undefined') {
+      mostrarError('No se puede leer el archivo: falta el componente jszip.min.js junto a este visor. ' +
+        'Extrae primero el .zip (clic derecho → «Extraer todo…») y abre visor.html desde la carpeta extraída.');
+      return;
+    }
     document.getElementById('subTtl').textContent = 'Leyendo ' + file.name + '...';
     JSZip.loadAsync(file).then(function(zip) {
       var datosFile = zip.file('datos.json');
@@ -170,60 +178,120 @@
     document.getElementById('lightbox').classList.add('open');
   };
 
+  function fmtF(iso) {
+    var m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? m[3] + '/' + m[2] + '/' + m[1] : String(iso || '');
+  }
+  function kv(etiqueta, valor) {
+    if (valor == null || valor === '' || valor === '__PENDIENTE__') valor = '—';
+    return '<div><span>' + escHtml(etiqueta) + '</span>' + escHtml(valor) + '</div>';
+  }
+
   function render(paquete) {
     var D = paquete.inspeccion;
     var ncs = paquete.ncs || [];
-    var fmt = D.formatoDocumento || {};
-    var checklistDef = fmt.checklist || [];
-    var esTiposJuego = !!(fmt.tiposJuego && fmt.tiposJuego.length);
+    // Preguntas y columnas: las que la inspección guardó al crearse o, en archivos antiguos,
+    // las que se guardaron en el ZIP al archivar (paquete.definiciones).
+    var fd = D.formatoDocumento || {}, defs = paquete.definiciones || {};
+    function def(k) { return (fd[k] && fd[k].length) ? fd[k] : (defs[k] || []); }
+    var checklistDef = def('checklist'), columnasDef = def('columnas'), tiposJuego = def('tiposJuego');
+    var colsPorTipo = {};
+    tiposJuego.forEach(function(t){ colsPorTipo[t.id] = t.columnas || []; });
+    function colsDe(circ) {
+      if (circ.tipoElemento && colsPorTipo[circ.tipoElemento]) return colsPorTipo[circ.tipoElemento];
+      if (columnasDef.length) return columnasDef;
+      return tiposJuego.length === 1 ? (tiposJuego[0].columnas || []) : [];
+    }
 
     var html = '';
 
-    // Datos generales
-    html += '<div class="card"><div class="sec-ttl">Datos generales</div>' +
-      '<div class="kv">' +
-        '<div><span>Instalación</span>' + escHtml(D.nombreInstalacion) + '</div>' +
-        '<div><span>Alcance</span>' + escHtml(D.tipoAlcance) + '</div>' +
-        '<div><span>Dirección</span>' + escHtml([D.direccion, D.municipio, D.provincia].filter(Boolean).join(', ')) + '</div>' +
-        '<div><span>Nº registro</span>' + escHtml(D.nRegistro) + '</div>' +
-        '<div><span>Fecha inspección</span>' + escHtml(D.fechaInspeccion) + '</div>' +
-        '<div><span>Inspector(es)</span>' + escHtml([D.inspectorNombre, D.inspector2Nombre].filter(Boolean).join(' / ')) + '</div>' +
-        '<div><span>Propietario</span>' + escHtml(D.propietario) + '</div>' +
-        '<div><span>Gestor</span>' + escHtml(D.gestor) + '</div>' +
+    // ── Datos generales
+    html += '<div class="card"><div class="sec-ttl">Datos generales</div><div class="kv">' +
+      kv('Instalación', D.nombreInstalacion) +
+      kv('Código', D.codigoInstalacion) +
+      kv('Alcance', D.tipoAlcance) +
+      kv('Tipo de inspección', D.tipoInspeccion) +
+      kv('Nº registro', D.nRegistro) +
+      kv('Revisión', 'Rev ' + (D.revision || 0)) +
+      kv('Fecha de inspección', fmtF(D.fechaInspeccion)) +
+      kv('Fecha de emisión', fmtF(D.fechaEmision)) +
+      kv('Dirección', [D.direccion, D.cp, D.localidad || D.municipio, D.provincia].filter(function(x){ return x && x !== '__PENDIENTE__'; }).join(', ')) +
+      kv('Propietario', [D.propietario, D.cif].filter(Boolean).join(' · ')) +
+      kv('Solicitante', D.solicitante) +
+      kv('Gestor', D.gestor) +
+      kv('Inspector(es)', [D.inspectorNombre, D.inspector2Nombre].filter(Boolean).join(' / ')) +
+      kv('Completada', fmtF(D.fechaCompletadaLocal) + (D.completadoPor ? ' · ' + D.completadoPor : '')) +
       '</div>' +
-      (D.resultado ? '<div style="margin-top:12px"><span class="res-badge ' + (D.resultado==='FAVORABLE'?'res-fav':'res-des') + '">' + escHtml(D.resultado) + '</span></div>' : '') +
+      (D.resultado ? '<div style="margin-top:12px"><span class="res-badge ' + (D.resultado === 'FAVORABLE' ? 'res-fav' : 'res-des') + '">' + escHtml(D.resultado) + '</span></div>' : '') +
     '</div>';
 
-    // Checklist general
-    if (checklistDef.length) {
-      html += '<div class="card"><div class="sec-ttl">Checklist general</div>';
-      checklistDef.forEach(function(item) {
-        var v = (D.checklist||{})[item.id] || '';
-        var obs = (D.checklistObs||{})[item.id] || '';
-        html += '<div class="item"><div class="item-row1"><span>' + escHtml(item.ref) + ' ' + escHtml(item.sec) + '</span>' + badgeValor(v) + '</div>' +
-          (item.desc ? '<div class="item-desc">' + escHtml(item.desc) + '</div>' : '') +
-          (obs ? '<div class="item-obs">' + escHtml(obs) + '</div>' : '') +
-          '</div>';
+    // ── Visitas
+    var ses = (D.sesiones || []).slice();
+    if (!ses.length && D.fechaInspeccion) ses = [{ fecha: D.fechaInspeccion, horaInicio: D.horaInicio, horaFin: D.horaFin }];
+    if (ses.length) {
+      html += '<div class="card"><div class="sec-ttl">Visitas</div>';
+      ses.forEach(function(s, i) {
+        var hi = s.horaInicio || (ses.length === 1 ? D.horaInicio : '') || '—';
+        var hf = s.horaFin || (ses.length === 1 ? D.horaFin : '') || '—';
+        html += '<div class="item-row1" style="font-weight:400;margin-bottom:4px"><span>' + escHtml(fmtF(s.fecha)) + '</span><span>' + escHtml(hi) + ' – ' + escHtml(hf) + '</span></div>';
       });
-      if (D.obsGral) html += '<div class="item-obs" style="margin-top:8px">' + escHtml(D.obsGral) + '</div>';
       html += '</div>';
     }
 
-    // Circuitos y juegos
+    // ── Equipos de medición
+    var eqs = D.equiposMedicion || [];
+    if (eqs.length) {
+      html += '<div class="card"><div class="sec-ttl">Equipos de medición (' + eqs.length + ')</div>';
+      eqs.forEach(function(e) {
+        html += '<div class="item-row1" style="font-weight:400;margin-bottom:4px"><span><b>' + escHtml(e.codigo || '') + '</b> ' + escHtml(e.tipo || '') + (e.marca ? ' · ' + escHtml(e.marca) : '') + '</span><span style="color:var(--muted)">' + escHtml(e.nSerie || '') + '</span></div>';
+      });
+      html += '</div>';
+    }
+
+    // ── Checklist general
+    var chk = D.checklist || {}, chkObs = D.checklistObs || {};
+    if (checklistDef.length || Object.keys(chk).length) {
+      html += '<div class="card"><div class="sec-ttl">Checklist general</div>';
+      var vistos = {};
+      checklistDef.forEach(function(item) {
+        vistos[item.id] = true;
+        html += '<div class="item"><div class="item-row1"><span>' + escHtml(item.ref || '') + ' ' + escHtml(item.sec || item.id) + '</span>' + badgeValor(chk[item.id]) + '</div>' +
+          (item.desc ? '<div class="item-desc">' + escHtml(item.desc) + '</div>' : '') +
+          (chkObs[item.id] ? '<div class="item-obs">' + escHtml(chkObs[item.id]) + '</div>' : '') +
+          '</div>';
+      });
+      // Respuestas sin definición (no debería pasar): se enseñan igual, nunca se ocultan
+      Object.keys(chk).filter(function(k){ return !vistos[k]; }).forEach(function(k) {
+        html += '<div class="item"><div class="item-row1"><span>' + escHtml(k) + '</span>' + badgeValor(chk[k]) + '</div>' +
+          (chkObs[k] ? '<div class="item-obs">' + escHtml(chkObs[k]) + '</div>' : '') + '</div>';
+      });
+      html += '</div>';
+    }
+
+    // ── Circuitos y elementos, con la valoración de cada criterio
     var circuitos = D.circuitos || [];
     if (circuitos.length) {
-      html += '<div class="card"><div class="sec-ttl">Circuitos y elementos</div>';
-      var colsPorTipo = {};
-      if (esTiposJuego) (fmt.tiposJuego||[]).forEach(function(t){ colsPorTipo[t.id] = t.columnas||[]; });
+      var nElem = circuitos.reduce(function(n, c){ return n + (c.juegos || []).length; }, 0);
+      html += '<div class="card"><div class="sec-ttl">Circuitos y elementos (' + nElem + ')</div>';
       circuitos.forEach(function(circ) {
+        var cols = colsDe(circ);
         html += '<div class="circ-ttl">' + escHtml(circ.nombre) + (circ.tipoElemento ? ' · ' + escHtml(circ.tipoElemento) : '') + '</div>';
-        var cols = esTiposJuego ? (colsPorTipo[circ.tipoElemento]||[]) : (fmt.columnas||[]);
-        (circ.juegos||[]).forEach(function(j) {
-          html += '<div class="item"><div class="item-row1"><span>' + escHtml(j.nombre) + '</span></div>';
+        (circ.juegos || []).forEach(function(j) {
+          html += '<div class="item"><div class="item-row1"><span>' + escHtml(j.nombre) + '</span><span style="color:var(--muted);font-weight:400">' +
+            escHtml([j.tipo, j.rama].filter(Boolean).join(' · ')) + '</span></div>';
+          var usadas = {};
           cols.forEach(function(col) {
-            var v = j[col.id];
-            if (v) html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px"><span>' + escHtml(col.label||col.id) + '</span>' + badgeValor(v) + '</div>';
+            usadas[col.id] = true;
+            html += '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);margin-top:3px"><span>' +
+              escHtml(col.label || col.abbrev || col.id) + '</span>' + (j[col.id] ? badgeValor(j[col.id]) : '<span>—</span>') + '</div>';
           });
+          if (!cols.length) {
+            // Sin definición de columnas: se muestran los valores S/N/NA tal cual, con su clave
+            Object.keys(j).filter(function(k){ return ['S', 'N', 'NA'].indexOf(j[k]) !== -1; }).forEach(function(k) {
+              html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px"><span>' + escHtml(k) + '</span>' + badgeValor(j[k]) + '</div>';
+            });
+          }
+          if (j.obs) html += '<div class="item-obs">' + escHtml(j.obs) + '</div>';
           html += fotosHtml(j.fotos, '');
           html += '</div>';
         });
@@ -231,16 +299,18 @@
       html += '</div>';
     }
 
-    // No conformidades
-    html += '<div class="card"><div class="sec-ttl">No conformidades (' + ncs.length + ')</div>';
+    // ── No conformidades y observaciones
+    html += '<div class="card"><div class="sec-ttl">No conformidades y observaciones (' + ncs.length + ')</div>';
     if (!ncs.length) {
       html += '<div class="empty">Sin no conformidades registradas.</div>';
     } else {
-      ncs.forEach(function(nc) {
+      ncs.forEach(function(nc, i) {
         html += '<div class="nc-card ' + prioClase(nc.prio) + '">' +
-          '<div class="nc-head"><span>' + escHtml(nc.elem || nc.tipo || '') + '</span><span class="nc-tag">' + escHtml(nc.prio||'') + '</span></div>' +
+          '<div class="nc-head"><span>' + (i + 1) + '. ' + escHtml(nc.tipo || 'Sin tipo') + '</span><span class="nc-tag">' + escHtml(nc.prio || '') + '</span></div>' +
+          '<div class="nc-estado">Elemento: ' + escHtml(nc.elem || '—') + (nc.origenRevision ? ' · añadida en Rev ' + escHtml(nc.origenRevision) : '') + '</div>' +
           (nc.desc ? '<div class="nc-desc">' + escHtml(nc.desc) + '</div>' : '') +
-          '<div class="nc-estado">' + (nc.cerrada ? '✓ Cerrada' : '● Abierta') + (nc.norma ? ' · ' + escHtml(nc.norma) : '') + '</div>' +
+          '<div class="nc-estado">' + (nc.norma ? 'Norma: ' + escHtml(nc.norma) + ' · ' : '') + (nc.cerrada ? '✓ Cerrada' : '● Abierta') + '</div>' +
+          (nc.resolucion || nc.fechaCorreccion ? '<div class="item-obs">Resolución' + (nc.fechaCorreccion ? ' (' + escHtml(fmtF(nc.fechaCorreccion)) + ')' : '') + ': ' + escHtml(nc.resolucion || '') + '</div>' : '') +
           fotosHtml(nc.fotosDefecto, 'Fotos del defecto') +
           fotosHtml(nc.fotosCorreccion, 'Fotos de la corrección') +
           '</div>';
@@ -248,11 +318,34 @@
     }
     html += '</div>';
 
-    // Fotos generales
+    // ── Observaciones generales, ensayos y notas
+    if (D.obsGral || D.ensayos || D.notas) {
+      html += '<div class="card"><div class="sec-ttl">Observaciones</div>' +
+        (D.obsGral ? '<div class="fotos-lbl">Observaciones generales</div><div class="item-obs">' + escHtml(D.obsGral) + '</div>' : '') +
+        (D.ensayos ? '<div class="fotos-lbl">Ensayos</div><div class="item-obs">' + escHtml(D.ensayos) + '</div>' : '') +
+        (D.notas ? '<div class="fotos-lbl">Notas</div><div class="item-obs">' + escHtml(D.notas) + '</div>' : '') +
+      '</div>';
+    }
+
+    // ── Fotos generales
     var fg = fotosHtml(D.fotos, '');
     if (fg) html += '<div class="card"><div class="sec-ttl">Fotos generales</div>' + fg + '</div>';
 
-    html += '<div class="empty">Generado el ' + escHtml((paquete.generadoEn||'').slice(0,10)) + ' · archivo local, no requiere conexión ni la app de ARP Inspecciones.</div>';
+    // ── Historial de revisiones
+    var hist = D.historialRevisiones || [];
+    if (hist.length) {
+      html += '<div class="card"><div class="sec-ttl">Historial de revisiones</div>';
+      hist.forEach(function(h) {
+        html += '<div class="item-row1" style="font-weight:400;margin-bottom:4px"><span><b>Rev ' + escHtml(h.revision) + '</b> · ' + escHtml(h.resultado || '') +
+          (h.motivo ? ' · ' + escHtml(h.motivo) : '') + '</span><span style="color:var(--muted)">' +
+          escHtml(fmtF(h.fechaEmision || h.fechaCompletada || '')) + (h.inspectorNombre ? ' · ' + escHtml(h.inspectorNombre) : '') + '</span></div>';
+      });
+      html += '</div>';
+    }
+
+    html += '<div class="empty">Archivo generado el ' + escHtml(fmtF(paquete.generadoEn)) + (paquete.generadoPor ? ' por ' + escHtml(paquete.generadoPor) : '') +
+      (defs.origen ? ' · preguntas y criterios: ' + escHtml(defs.origen) : '') +
+      ' · archivo local, no requiere conexión ni la app de ARP Inspecciones.</div>';
 
     document.getElementById('contenido').innerHTML = html;
   }
