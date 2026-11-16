@@ -364,6 +364,14 @@
       <span class="modal-title">Nueva no conformidad</span>
     </div>
     <div class="modal-context" id="modalNCContexto"></div>
+    <!-- Solo NC nueva desde "+ Añadir no conformidad": a qué afecta (antes se creaba vacía) -->
+    <div class="f" id="modalNCElemWrap" style="display:none">
+      <label>¿A qué afecta? *</label>
+      <div class="r2">
+        <div class="f" style="margin-bottom:0"><select id="modalNCCirc" onchange="modalNCCircChange()"></select></div>
+        <div class="f" style="margin-bottom:0"><select id="modalNCJuego"></select></div>
+      </div>
+    </div>
     <div class="f" id="modalNCSubcatWrap" style="display:none">
       <label>Subcategoría de material *</label>
       <select id="modalNCSubcat">
@@ -405,7 +413,7 @@
     <button class="btn-modal-ok" onclick="confirmarNC()">Confirmar no conformidad</button>
     <!-- Foto del defecto en modal -->
     <div id="modalNCFotoWrap" style="display:none;margin-top:10px">
-      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">Foto del defecto (opcional)</div>
+      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">Foto del defecto * (al menos una)</div>
       <div style="display:flex;gap:8px">
         <button class="btn-foto" onclick="document.getElementById('modalNCFotoCam').click()">&#128247; Cámara</button>
         <button class="btn-foto" onclick="document.getElementById('modalNCFotoGal').click()">&#128444; Galería</button>
@@ -1571,15 +1579,29 @@
     addJuegoToCircuito(S.circuitos.length-1);
   }
 
+  // Un juego o circuito con NC no se puede borrar: la NC se quedaría apuntando a algo que
+  // ya no existe y el informe la pintaría en un elemento fantasma. Se dice cuáles son para
+  // que el inspector las cambie de elemento o las borre antes.
+  function ncsDe(pred){
+    var r=[]; (S.ncs||[]).forEach(function(nc,k){ if(nc._ci!=='g'&&pred(nc)) r.push({n:k+1,nc:nc}); }); return r;
+  }
+  function avisoNoBorrar(que,lista){
+    alert('No se puede borrar '+que+' porque tiene '+(lista.length===1?'1 no conformidad':lista.length+' no conformidades')+':\n\n'+
+      lista.map(function(x){ return '— NC '+x.n+': '+(x.nc.tipo||'sin tipo'); }).join('\n')+
+      '\n\nVe a la pestaña «NC y Fotos» y cámbialas de elemento o bórralas. Después podrás borrar '+que+'.');
+  }
+
   function delCircuito(ci){
     var c=S.circuitos[ci];
     var nj=(c.juegos||[]).length;
     var jIds=new Set((c.juegos||[]).map(function(j){return j.id;}));
-    var ncsVinc=S.ncs.filter(function(nc){
-      return (nc.juegoId&&jIds.has(nc.juegoId))||(nc._ci===ci&&nc._ci!=='g');
+    var ncsVinc=ncsDe(function(nc){
+      if(nc.juegoId) return jIds.has(nc.juegoId);
+      if(nc._circId) return nc._circId===c.id;
+      return nc._ci===ci;
     });
+    if(ncsVinc.length){ avisoNoBorrar('el circuito «'+c.nombre+'»',ncsVinc); return; }
     var msg="¿Borrar circuito \""+c.nombre+"\""+(nj?" y sus "+nj+" juego"+(nj>1?"s":""):"")+"?";
-    if(ncsVinc.length) msg="ATENCIÓN: este circuito tiene "+ncsVinc.length+" NC(s) vinculada(s). Quedarán sin referencia de juego.\n\n"+msg;
     if(!confirm(msg)) return;
     _deletedCircuitIds.add(c.id); _dirtyCircuitIds.delete(c.id);
     delete juegoAbierto[ci];
@@ -1623,13 +1645,12 @@
 
   function delJuego(ci,ji){
     var j=S.circuitos[ci].juegos[ji];
-    var ncsVinc=S.ncs.filter(function(nc){
-      return (nc.juegoId&&nc.juegoId===j.id)||(nc._ci===ci&&nc._ji===ji&&nc._ci!=='g');
+    var ncsVinc=ncsDe(function(nc){
+      if(nc.juegoId) return nc.juegoId===j.id;
+      return !nc._circId&&nc._ci===ci&&nc._ji===ji; // NC antiguas, solo por posición
     });
-    var msg=ncsVinc.length
-      ?"ATENCIÓN: este juego tiene "+ncsVinc.length+" NC(s) vinculada(s). Quedarán sin referencia.\n\n¿Borrar juego?"
-      :"¿Borrar juego?";
-    if(!confirm(msg)) return;
+    if(ncsVinc.length){ avisoNoBorrar('el juego «'+(j.nombre||'Juego '+(ji+1))+'»',ncsVinc); return; }
+    if(!confirm("¿Borrar juego?")) return;
     S.circuitos[ci].juegos.splice(ji,1); markCircuitDirty(ci); markDirty(); renderCircuitos();
   }
 
@@ -2132,6 +2153,16 @@
     } else {
       subcatWrap.style.display='none';
     }
+    var elemWrap=document.getElementById('modalNCElemWrap');
+    if(ref.manual){
+      document.getElementById('modalNCCirc').innerHTML='<option value="">— Circuito —</option>'+
+        (S.circuitos||[]).map(function(c,ci){ return '<option value="'+ci+'">'+c.nombre+'</option>'; }).join('')+
+        '<option value="g">General (toda la instalación)</option>';
+      modalNCCircChange();
+      elemWrap.style.display='block';
+    } else {
+      elemWrap.style.display='none';
+    }
     var sel=document.getElementById('modalNCTipo');
     sel.innerHTML='<option value="">— Selecciona tipo —</option>'+tiposNCList.map(function(t){return'<option>'+t+'</option>'}).join('')+'<option value="__otro__">Otro (escribir)</option>';
     sel.value='';
@@ -2148,6 +2179,14 @@
     document.querySelectorAll('#modalNCPrioRow .prio-btn').forEach(b=>{ b.className='prio-btn'; });
     document.getElementById('modalNC').classList.add('open');
   }
+
+  window.modalNCCircChange=function(){
+    var v=document.getElementById('modalNCCirc').value, js=document.getElementById('modalNCJuego');
+    var circ=(v!==''&&v!=='g')?S.circuitos[parseInt(v)]:null;
+    js.innerHTML='<option value="">'+(circ?'— Elige juego —':(v==='g'?'(no aplica)':'— Juego —'))+'</option>'+
+      (circ?(circ.juegos||[]).map(function(j,ji){ return '<option value="'+ji+'">'+(j.nombre||'Juego '+(ji+1))+'</option>'; }).join(''):'');
+    js.disabled=!circ;
+  };
 
   // FIX: Cancelar NC — revierte el valor al anterior
   window.cancelarNC = ()=>{
@@ -2202,29 +2241,33 @@
     const subcatVisible=document.getElementById('modalNCSubcatWrap').style.display!=='none';
     const subcategoria=document.getElementById('modalNCSubcat').value;
 
-    if(!tipo||!modalNCPrio){
-      document.getElementById('modalNCErr').textContent='Debes seleccionar el tipo y la gravedad.';
-      document.getElementById('modalNCErr').classList.add('vis');
-      return;
+    const ref=modalNCRef;
+    // Todo lo que falta de una vez, y dicho con el nombre del circuito si hace falta.
+    var faltan=[];
+    var ciSel='',jiSel='';
+    if(ref.manual){
+      ciSel=document.getElementById('modalNCCirc').value;
+      jiSel=document.getElementById('modalNCJuego').value;
+      if(ciSel==='') faltan.push('a qué afecta: elige circuito y juego, o «General»');
+      else if(ciSel!=='g'&&jiSel==='') faltan.push('el juego del circuito «'+S.circuitos[parseInt(ciSel)].nombre+'»');
     }
-    if(subcatVisible&&!subcategoria){
-      document.getElementById('modalNCErr').textContent='Debes seleccionar la subcategoría de material.';
-      document.getElementById('modalNCErr').classList.add('vis');
-      return;
-    }
-    if(!modalNCFotos.length){
-      document.getElementById('modalNCErr').textContent='Añade al menos una foto del defecto.';
-      document.getElementById('modalNCErr').classList.add('vis');
+    if(!tipo) faltan.push(tipoSel==='__otro__'?'escribir el tipo («Otro»)':'el tipo de no conformidad');
+    if(!modalNCPrio) faltan.push('la gravedad');
+    if(subcatVisible&&!subcategoria) faltan.push('la subcategoría de material');
+    if(!modalNCFotos.length) faltan.push(modalNCPrio?'al menos una foto del defecto':'al menos una foto del defecto (el botón de foto aparece al elegir la gravedad)');
+    if(faltan.length){
+      var err=document.getElementById('modalNCErr');
+      err.innerHTML='Falta:<br>• '+faltan.join('<br>• ');
+      err.classList.add('vis');
       return;
     }
 
-    const ref=modalNCRef;
     let elem='',autoId='',juegoId=undefined,origen='auto';
     if(ref.manual){
       // NC suelta, sin pregunta de checklist asociada — se añade desde "+ Añadir no
-      // conformidad". elem/circuito/juego quedan editables desde la propia pestaña NC
-      // (mismo camino que ya usan las NC sin autoId).
-      elem=''; autoId=''; origen='manual';
+      // conformidad". El elemento se elige ya en esta ventana (ver más abajo,
+      // ncAplicarElemento); se puede cambiar después en la tarjeta de la NC.
+      origen='manual';
     } else if(ref.itemId){
       const item=GEN_ITEMS.find(i=>i.id===ref.itemId);
       elem=item.sec; autoId=ref.itemId;
@@ -2245,6 +2288,7 @@
       const ncNew={autoId,tipo,elem,desc:obs,norma,prio:modalNCPrio,origen,fotosDefecto:[...modalNCFotos],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision};
       if(subcatVisible&&subcategoria) ncNew.subcategoria=subcategoria;
       if(juegoId) ncNew.juegoId=juegoId;
+      if(ref.manual) ncAplicarElemento(ncNew,ciSel,jiSel,S.ncs.length);
       S.ncs.push(ncNew);
     }
 
@@ -2269,16 +2313,81 @@
   // Toda NC tiene que decir a qué afecta: un juego/elemento de un circuito, «General» o una
   // pregunta del checklist general (autoId). Antes se podía cerrar una inspección con una NC
   // manual sin elegir nada (p. ej. Tajo Morero, 11/2026) y el informe no decía dónde estaba.
-  function ncSinElemento(n){ return !(n.autoId||n.juegoId||(n.elem&&n.elem.trim())); }
-  function ncIncompleta(n){ return !n.tipo||!n.prio||ncSinElemento(n); }
+  // Cada comprobación devuelve el motivo en palabras del inspector (qué falta y dónde), no
+  // un aviso genérico: tiene que entender por qué no le deja completar.
+  function ncLocalizarJuego(juegoId){
+    for(var ci=0;ci<(S.circuitos||[]).length;ci++){
+      var js=S.circuitos[ci].juegos||[];
+      for(var ji=0;ji<js.length;ji++) if(js[ji].id===juegoId) return {ci:ci,ji:ji,circ:S.circuitos[ci],juego:js[ji]};
+    }
+    return null;
+  }
+  function ncEsGeneral(n){ return n._ci==='g'||/^g_manual/.test(n.autoId||''); }
+  function ncProblemaElemento(n){
+    if(n.autoId&&GEN_ITEMS.some(function(it){return it.id===n.autoId;})) return null; // checklist general
+    if(ncEsGeneral(n)) return null;
+    if(n.juegoId){
+      if(ncLocalizarJuego(n.juegoId)) return null;
+      return 'El juego «'+(n.elem||'sin nombre')+'» ya no existe en la inspección (se borró después de crear esta NC). Vuelve a elegir circuito y juego.';
+    }
+    var circ=null;
+    if(n._circId) circ=(S.circuitos||[]).find(function(c){return c.id===n._circId;})||null;
+    else if(typeof n._ci==='number') circ=(S.circuitos||[])[n._ci]||null;
+    if(circ) return 'Has elegido el circuito «'+circ.nombre+'» pero falta elegir el juego.';
+    if(n.autoId&&n.elem&&n.elem.trim()) return null; // NC antigua (antes de los ids de juego)
+    return 'No has elegido a qué afecta: elige circuito y juego, o «General».';
+  }
+  function ncProblemas(n){
+    var p=[];
+    var pe=ncProblemaElemento(n); if(pe) p.push(pe);
+    if(!n.tipo) p.push('Falta el tipo de no conformidad.');
+    if(!n.prio) p.push('Falta la gravedad.');
+    return p;
+  }
+  function ncSinElemento(n){ return !!ncProblemaElemento(n); }
+  function ncIncompleta(n){ return ncProblemas(n).length>0; }
+
+  // Fija a qué afecta una NC manual (tarjeta de la NC o ventana de nueva NC). ciVal: '' |
+  // 'g' (General) | índice de circuito; jiVal: '' | índice de juego. Al cambiar de
+  // circuito se borra todo lo del juego anterior (antes se quedaba juegoId del juego viejo
+  // y la NC pasaba el control de completar con el elemento en blanco).
+  function ncAplicarElemento(nc,ciVal,jiVal,idx){
+    var ciAntes=nc._circId;
+    delete nc.juegoId; nc.elem=''; nc.autoId=''; nc._ji=undefined; nc._circId=undefined;
+    if(ciVal===''||ciVal===undefined||ciVal===null){ nc._ci=undefined; return; }
+    if(ciVal==='g'){ nc._ci='g'; nc.elem='General'; nc.autoId='g_manual_'+uid(); return; }
+    var ci=parseInt(ciVal), circ=S.circuitos[ci];
+    if(!circ){ nc._ci=undefined; return; }
+    nc._ci=ci; nc._circId=circ.id;
+    // La "pregunta del checklist" depende del tipo de elemento del circuito: si el
+    // circuito nuevo no la tiene, se quita.
+    if(nc._col&&(ciAntes!==circ.id)&&!colsForCirc(circ).cols.some(function(c){return c.key===nc._col;})) nc._col='';
+    var ji=(jiVal===''||jiVal===undefined||jiVal===null)?NaN:parseInt(jiVal);
+    var juego=(circ.juegos||[])[ji];
+    if(!juego) return;
+    nc._ji=ji; nc.juegoId=juego.id;
+    nc.elem=circ.nombre+' — '+(juego.nombre||'Juego '+(ji+1));
+    ncBuildAutoId(nc,idx);
+  }
+
+  // _ci/_ji son posiciones: si se borra o se mueve un circuito por delante dejan de
+  // apuntar al sitio. Antes de pintar se recolocan a partir del id del juego.
+  function ncRecolocar(){
+    (S.ncs||[]).forEach(function(nc){
+      if(!nc.juegoId) return;
+      var loc=ncLocalizarJuego(nc.juegoId);
+      if(loc){ nc._ci=loc.ci; nc._ji=loc.ji; nc._circId=loc.circ.id; }
+    });
+  }
 
   function renderNCs(){
     var scrollY=window.scrollY;
     const c=document.getElementById("ncList");
     const warn=document.getElementById("ncWarn");
+    ncRecolocar();
     const incompletas=S.ncs.filter(ncIncompleta);
     if(incompletas.length){
-      warn.textContent=`⚠️ ${incompletas.length} NC${incompletas.length>1?'s':''} sin elemento afectado, tipo o gravedad. Completa los campos marcados en rojo antes de finalizar.`;
+      warn.textContent=`⚠️ ${incompletas.length===1?'Hay 1 NC incompleta':'Hay '+incompletas.length+' NC incompletas'}: ${S.ncs.map((n,k)=>ncIncompleta(n)?'NC '+(k+1):null).filter(Boolean).join(', ')}. En cada una, el recuadro rojo dice qué falta.`;
       warn.classList.add('vis');
     } else {
       warn.classList.remove('vis');
@@ -2288,11 +2397,17 @@
       const incompleta=ncIncompleta(nc);
       // Columnas del selector "Pregunta checklist": las del circuito elegido si tiene
       // tipoElemento propio (SAE), si no las de siempre (PAA/FER/sin elegir aún).
-      const _ncColsInfo=(nc._ci!==undefined&&nc._ci!=='g'&&S.circuitos[nc._ci])?colsForCirc(S.circuitos[nc._ci]):{cols:COLS,labels:COL_LABELS};
+      // Circuito elegido: por id (no se mueve si se borra otro circuito por delante) y, en
+      // NC antiguas sin id, por posición.
+      const _ciSel=nc._ci==='g'?'g':(nc._circId?(S.circuitos||[]).findIndex(c=>c.id===nc._circId):(typeof nc._ci==='number'?nc._ci:-1));
+      const _circSel=(typeof _ciSel==='number'&&_ciSel>=0)?S.circuitos[_ciSel]:null;
+      const _ncColsInfo=_circSel?colsForCirc(_circSel):{cols:COLS,labels:COL_LABELS};
+      const _faltaJuego=!!_circSel&&!nc.juegoId;
+      const _sinNada=ncSinElemento(nc)&&!_circSel;
       return `
         <div class="nc-card ${incompleta?'nc-incompleta':''}">
           <div class="nc-hdr">
-            <span class="nc-num">NC ${i+1}${nc.autoId?" · auto":""}</span>
+            <span class="nc-num">NC ${i+1}${nc.autoId&&nc.origen!=='manual'?" · auto":""}</span>
             ${nc.origenRevision?`<span class="nc-rev-badge">Añadida en Rev.${nc.origenRevision}</span>`:''}
             <div class="nc-badges">
               ${nc.tipo?`<span class="nc-tipo-badge">${nc.tipo}</span>`:'<span style="font-size:11px;color:var(--red)">Sin tipo</span>'}
@@ -2300,20 +2415,21 @@
             </div>
             <button class="nc-del" onclick="delNC(${i})">&#215;</button>
           </div>
-          <div class="f"><label>Elemento afectado${ncSinElemento(nc)?' <span style="color:var(--red)">— elige circuito y juego, o «General»</span>':''}</label>
-            ${nc.autoId ? `<input type="text" value="${(nc.elem||'').replace(/"/g,'&quot;')}" disabled style="opacity:.7">` :
-            `<div class="f" style="margin-bottom:4px"><select onchange="ncSelColumna(${i},this.value)">
-              <option value="">— Pregunta checklist —</option>
-              ${_ncColsInfo.cols.map(col=>`<option value="${col.key}"${nc._col===col.key?' selected':''}>${_ncColsInfo.labels[col.key]||col.key}</option>`).join('')}
-            </select></div>
-            <div class="r2"><div class="f" style="margin-bottom:0"><select onchange="ncSelCircuito(${i},this.value)">
+          ${incompleta?`<div style="margin:6px 0 8px;padding:8px 10px;border:1px solid var(--red);border-radius:6px;background:rgba(198,40,40,.06);color:var(--red);font-size:12px;line-height:1.45"><strong>Falta para poder completar:</strong><br>${ncProblemas(nc).map(p=>'• '+p).join('<br>')}</div>`:''}
+          <div class="f"><label>Elemento afectado${ncSinElemento(nc)?' <span style="color:var(--red)">*</span>':''}</label>
+            ${(nc.autoId && nc.origen!=='manual' && !ncSinElemento(nc)) ? `<input type="text" value="${(nc.elem||'').replace(/"/g,'&quot;')}" disabled style="opacity:.7">` :
+            `<div class="r2"><div class="f" style="margin-bottom:0"><select onchange="ncSelCircuito(${i},this.value)"${_sinNada?' style="border-color:var(--red)"':''}>
               <option value="">— Circuito —</option>
-              ${(S.circuitos||[]).map((c,ci)=>'<option value="'+ci+'"'+(nc._ci===ci?' selected':'')+'>'+c.nombre+'</option>').join('')}
-              <option value="g"${nc._ci==='g'?' selected':''}>General</option>
-            </select></div><div class="f" style="margin-bottom:0"><select onchange="ncSelJuego(${i},this.value)" id="ncJSel${i}">
-              <option value="">— Juego —</option>
-              ${nc._ci!==undefined&&nc._ci!=='g'?(S.circuitos[nc._ci]?.juegos||[]).map((j,ji)=>'<option value="'+ji+'"'+(nc._ji===ji?' selected':'')+'>'+j.nombre+'</option>').join(''):''}
-            </select></div></div>`}
+              ${(S.circuitos||[]).map((c,ci)=>'<option value="'+ci+'"'+(_ciSel===ci?' selected':'')+'>'+c.nombre+'</option>').join('')}
+              <option value="g"${_ciSel==='g'?' selected':''}>General (toda la instalación)</option>
+            </select></div><div class="f" style="margin-bottom:0"><select onchange="ncSelJuego(${i},this.value)" id="ncJSel${i}"${_faltaJuego?' style="border-color:var(--red)"':''}${_circSel?'':' disabled'}>
+              <option value="">${_circSel?'— Elige juego —':(_ciSel==='g'?'(no aplica)':'— Juego —')}</option>
+              ${_circSel?(_circSel.juegos||[]).map((j,ji)=>'<option value="'+ji+'"'+(nc.juegoId&&nc.juegoId===j.id?' selected':'')+'>'+(j.nombre||'Juego '+(ji+1))+'</option>').join(''):''}
+            </select></div></div>
+            ${_ciSel==='g'?'':`<div class="f" style="margin:4px 0 0"><select onchange="ncSelColumna(${i},this.value)">
+              <option value="">— Pregunta checklist (opcional) —</option>
+              ${_ncColsInfo.cols.map(col=>`<option value="${col.key}"${nc._col===col.key?' selected':''}>${_ncColsInfo.labels[col.key]||col.key}</option>`).join('')}
+            </select></div>`}`}
           </div>
           <div class="f"><label>Tipo de no conformidad</label>
             <select onchange="ncCambiarTipo(${i},this.value)">
@@ -2504,15 +2620,13 @@
     S.ncs.splice(i,1); markDirty(); renderNCs();
   }
   function ncSelCircuito(i,v){
-    var nc=S.ncs[i]; nc._ci=v==='g'?'g':parseInt(v);
-    nc._ji=undefined; nc.elem=''; nc.autoId='';
-    if(v==='g'){ nc.autoId='g_manual_'+i; nc.elem='General'; }
+    ncAplicarElemento(S.ncs[i],v,'',i);
     markDirty(); renderNCs();
   }
   function ncSelJuego(i,v){
-    var nc=S.ncs[i]; var ji=parseInt(v); nc._ji=ji;
-    var circ=S.circuitos[nc._ci]; var juego=circ?.juegos?.[ji];
-    if(juego){ nc.elem=circ.nombre+' — '+juego.nombre; nc.juegoId=juego.id; ncBuildAutoId(nc,i); }
+    var nc=S.ncs[i];
+    var ci=nc._circId?S.circuitos.findIndex(function(c){return c.id===nc._circId;}):nc._ci;
+    ncAplicarElemento(nc,ci,v,i);
     markDirty(); renderNCs();
   }
   function ncSelColumna(i,v){
@@ -2802,10 +2916,15 @@
       alert("Hay "+ncsSinFoto.length+" no conformidad(es) sin foto de defecto. Añade al menos una foto antes de completar.");
       return;
     }
-    const incompletas=S.ncs.filter(ncIncompleta);
+    // Incluye el elemento: que exista de verdad (juego borrado) y que no falte el juego
+    // después de elegir circuito. Se dice qué le falta a cada NC, no solo cuántas.
+    const incompletas=S.ncs.map(function(n,k){ return {n:k+1,p:ncProblemas(n),nc:n}; }).filter(function(x){ return x.p.length; });
     if(incompletas.length){
-      goTab(3);
-      alert(`Hay ${incompletas.length} no conformidad${incompletas.length>1?'es':''} sin elemento afectado, tipo o gravedad. Completa los campos marcados en rojo antes de finalizar.`);
+      goTab(3); renderNCs();
+      alert('No se puede completar: '+(incompletas.length===1?'hay 1 no conformidad incompleta':'hay '+incompletas.length+' no conformidades incompletas')+'.\n\n'+
+        incompletas.slice(0,6).map(function(x){ return 'NC '+x.n+(x.nc.tipo?' ('+x.nc.tipo+')':'')+':\n  – '+x.p.join('\n  – '); }).join('\n\n')+
+        (incompletas.length>6?'\n\n…y '+(incompletas.length-6)+' más.':'')+
+        '\n\nEn la pestaña «NC y Fotos» cada una tiene un recuadro rojo con lo que falta.');
       return;
     }
     // Validar checklist general completo
