@@ -407,7 +407,9 @@
       s + (c.juegos||[]).filter(j => j.tipo !== 'R' && keysForCircRes(c).every(k => j[k]==='S'||j[k]==='NA')).length, 0);
     const auxNC = (D.circuitos || []).reduce((s,c) =>
       s + (c.juegos||[]).filter(j => j.tipo !== 'R' && keysForCircRes(c).some(k => j[k]==='N')).length, 0);
-    const ncsGenerales = (D.ncs || []).filter(n => n.prio && n.prio !== 'OBSERVACION' && n.autoId && n.autoId.startsWith('g')).length;
+    // NC del checklist general: por id real de sus preguntas (en SAE/FER no empiezan por «g»)
+    const ncsGenerales = (D.ncs || []).filter(n => n.prio && n.prio !== 'OBSERVACION' &&
+      (n._ci === 'g' || GEN_ITEMS_PDF.some(it => it.id === n.autoId))).length;
 
     document.getElementById('hdrTitulo').textContent = D.nombreInstalacion || 'Resultado';
 
@@ -563,6 +565,21 @@
   // Por eso _ci/_ji va DESPUÉS de nc.elem: el texto congelado es más fiable que una
   // posición que puede haberse movido, y solo se usa _ci/_ji como último recurso si ni
   // siquiera hay nc.elem guardado (NC muy antigua/manual sin texto).
+  // NC de un juego, para la columna «Observaciones» del registro (PAA y SAE/FER). Por id
+  // estable del juego (juegoId o autoId «j_<id>_<col>»); por posición «c<ci>j<ji>» solo en NC
+  // antiguas sin id. La rama PAA buscaba «j_<ci>_<ji>_» (posición en vez de id) y no
+  // encontraba ninguna NC marcada desde el checklist: N sin explicación (TopJump
+  // Massanassa, 11/2026).
+  function ncsDelJuego(j, ci, ji) {
+    return (D.ncs||[]).filter(function(nc){
+      var aid = nc.autoId || '';
+      if (nc.juegoId) return nc.juegoId === j.id;
+      if (j.id && aid.indexOf('j_' + j.id + '_') === 0) return true;
+      var p = 'c' + ci + 'j' + ji;
+      return aid.indexOf(p) === 0 && (aid.length === p.length || aid[p.length] === '_');
+    });
+  }
+
   function getNcElem(nc) {
     if (D && D.circuitos) {
       var circs = Array.isArray(D.circuitos) ? D.circuitos : Object.values(D.circuitos);
@@ -1678,9 +1695,12 @@
 
       GEN_ITEMS_PDF.forEach(item => {
         const v = (D.checklist||{})[item.id]||'';
-        const obs = (D.checklistObs||{})[item.id]||'';
         // Buscar NC asociada a este ítem para color de fondo
         const ncAsoc = (D.ncs||[]).filter(n => n.checklistId === item.id || n.autoId === item.id);
+        // Notas: lo que escribió el inspector y, detrás, las NC de esta pregunta (como en el
+        // apartado II). Antes las NC del checklist general no salían en su fila sino en la
+        // última del apartado II («Zona de seguridad»).
+        const obs = [(D.checklistObs||{})[item.id]||''].concat(ncAsoc.map(n => (n.cerrada?'(C) ':'') + (n.tipo||'') + (n.desc?' — '+n.desc:''))).filter(Boolean).join(' · ');
         const prioFila = ncAsoc.length ? ncAsoc.reduce((max,n) => {
           const ord = {GRAVE:4,MEDIA:3,LEVE:2,DOCUMENTAL:1,OBSERVACION:0};
           return (ord[n.prio]||0) > (ord[max]||0) ? n.prio : max;
@@ -1801,9 +1821,12 @@
         var vGlobal = hayN?'N':allNA?'NA':allS?'S':'S';
 
         var ncsDelCol = (D.ncs||[]).filter(n => n.autoId && n.autoId.includes('_'+col.key) && ncPerteneceASubset(n, circsSubset));
+        // Solo NC antiguas sin pregunta del checklist (autoId «…_manual»): no tienen fila
+        // propia y van una vez en la última. Antes aquí también entraban todas las del
+        // checklist general («g1»…«g7» empiezan por «g», igual que «g_manual_…»), que ya
+        // salen en el apartado I, y las «General» salían dos veces (FlyToledo, 11/2026).
         if (esUltimaColumna) {
-          (D.ncs||[]).forEach(function(n){ if(n.autoId && n.autoId.includes('_manual')) ncsDelCol.push(n); });
-          (D.ncs||[]).forEach(function(n){ if(n.autoId && n.autoId.startsWith('g')) ncsDelCol.push(n); });
+          (D.ncs||[]).forEach(function(n){ if(/_manual/.test(n.autoId||'') && ncsDelCol.indexOf(n) === -1) ncsDelCol.push(n); });
         }
         var ncsAbiertas = ncsDelCol.filter(function(n){ return !n.cerrada; });
         var todasCerradas = ncsDelCol.length > 0 && ncsAbiertas.length === 0;
@@ -2676,9 +2699,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
             // fija a 7mm y el texto de notas se desbordaba por debajo de su caja sin que la
             // comprobación de salto de página se enterara, dando la sensación de que la fila
             // se "cortaba" antes de saltar de página (reportado: registro SAE, "Vía 7").
-            var jPat1b='c'+f.ci+'j'+f.ji;
-            var jPat2b='j_'+f.j.id+'_';
-            var jObsB=(D.ncs||[]).filter(function(nc){var aid=nc.autoId||'';return (aid.indexOf(jPat1b)===0&&(aid.length===jPat1b.length||aid[jPat1b.length]==='_'))||aid.indexOf(jPat2b)===0;}).map(function(nc){return nc.desc||nc.tipo||'';}).filter(Boolean).join('\n');
+            var jObsB=ncsDelJuego(f.j,f.ci,f.ji).map(function(nc){return nc.desc||nc.tipo||'';}).filter(Boolean).join('\n');
             doc.setFontSize(5); doc.setFont('helvetica','normal');
             var obsLinesB = jObsB ? doc.splitTextToSize(jObsB, obsWT-2) : [];
             var rowHB = Math.max(7, obsLinesB.length * 2.8 + 4);
@@ -2758,9 +2779,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
             // Altura de fila dinámica según Observaciones — mismo arreglo que en la rama
             // SAE/FER de arriba: antes era fija a 7mm y el texto de notas se desbordaba sin
             // que el salto de página se enterara ("Vía 7" cortada en el registro).
-            var jPat1 = 'c'+ciIdx2+'j'+jiIdx2;
-            var jPat2 = 'j_'+ciIdx2+'_'+jiIdx2+'_';
-            var jObs = (D.ncs||[]).filter(function(nc){ var aid=nc.autoId||''; return (aid.indexOf(jPat1)===0 && (aid.length===jPat1.length || aid[jPat1.length]==='_')) || aid.indexOf(jPat2)===0; }).map(function(nc){ return nc.desc||nc.tipo||''; }).filter(Boolean).join('\n');
+            var jObs = ncsDelJuego(j, ciIdx2, jiIdx2).map(function(nc){ return nc.desc||nc.tipo||''; }).filter(Boolean).join('\n');
             doc.setFontSize(5.5); doc.setFont('helvetica','normal');
             var obsLinesPaa = jObs ? doc.splitTextToSize(jObs, obsW2-2) : [];
             var rowHPaa = Math.max(7, obsLinesPaa.length * 2.8 + 4);

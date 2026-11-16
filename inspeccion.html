@@ -369,8 +369,9 @@
       <label>¿A qué afecta? *</label>
       <div class="r2">
         <div class="f" style="margin-bottom:0"><select id="modalNCCirc" onchange="modalNCCircChange()"></select></div>
-        <div class="f" style="margin-bottom:0"><select id="modalNCJuego"></select></div>
+        <div class="f" style="margin-bottom:0"><select id="modalNCJuego" onchange="modalNCJuegoChange()"></select></div>
       </div>
+      <div class="f" style="margin:4px 0 0"><select id="modalNCPreg"></select></div>
     </div>
     <div class="f" id="modalNCSubcatWrap" style="display:none">
       <label>Subcategoría de material *</label>
@@ -2186,6 +2187,25 @@
     js.innerHTML='<option value="">'+(circ?'— Elige juego —':(v==='g'?'(no aplica)':'— Juego —'))+'</option>'+
       (circ?(circ.juegos||[]).map(function(j,ji){ return '<option value="'+ji+'">'+(j.nombre||'Juego '+(ji+1))+'</option>'; }).join(''):'');
     js.disabled=!circ;
+    modalNCJuegoChange();
+  };
+  // Pregunta del checklist: las del checklist general para «General», las columnas del
+  // tipo de elemento del circuito para un juego (y solo cuando ya hay juego elegido).
+  window.modalNCJuegoChange=function(){
+    var v=document.getElementById('modalNCCirc').value, jv=document.getElementById('modalNCJuego').value;
+    var ps=document.getElementById('modalNCPreg');
+    var circ=(v!==''&&v!=='g')?S.circuitos[parseInt(v)]:null;
+    if(v==='g'){
+      ps.innerHTML='<option value="">— Pregunta del checklist general —</option>'+GEN_ITEMS.map(function(it){ return '<option value="'+it.id+'">'+it.ref+' '+it.sec+'</option>'; }).join('');
+      ps.disabled=false;
+    } else if(circ&&jv!==''){
+      var info=colsForCirc(circ);
+      ps.innerHTML='<option value="">— Pregunta del checklist —</option>'+info.cols.map(function(c){ return '<option value="'+c.key+'">'+(info.labels[c.key]||c.key)+'</option>'; }).join('');
+      ps.disabled=false;
+    } else {
+      ps.innerHTML='<option value="">— Pregunta (elige antes '+(circ?'el juego':'el circuito')+') —</option>';
+      ps.disabled=true;
+    }
   };
 
   // FIX: Cancelar NC — revierte el valor al anterior
@@ -2244,12 +2264,14 @@
     const ref=modalNCRef;
     // Todo lo que falta de una vez, y dicho con el nombre del circuito si hace falta.
     var faltan=[];
-    var ciSel='',jiSel='';
+    var ciSel='',jiSel='',pregSel='';
     if(ref.manual){
       ciSel=document.getElementById('modalNCCirc').value;
       jiSel=document.getElementById('modalNCJuego').value;
+      pregSel=document.getElementById('modalNCPreg').value;
       if(ciSel==='') faltan.push('a qué afecta: elige circuito y juego, o «General»');
       else if(ciSel!=='g'&&jiSel==='') faltan.push('el juego del circuito «'+S.circuitos[parseInt(ciSel)].nombre+'»');
+      if(ciSel!==''&&(ciSel==='g'||jiSel!=='')&&!pregSel) faltan.push(ciSel==='g'?'la pregunta del checklist general a la que responde':'la pregunta del checklist del juego a la que responde');
     }
     if(!tipo) faltan.push(tipoSel==='__otro__'?'escribir el tipo («Otro»)':'el tipo de no conformidad');
     if(!modalNCPrio) faltan.push('la gravedad');
@@ -2288,8 +2310,8 @@
       const ncNew={autoId,tipo,elem,desc:obs,norma,prio:modalNCPrio,origen,fotosDefecto:[...modalNCFotos],fotosCorreccion:[],resolucion:"",fechaCorreccion:"",cerrada:false,origenRevision:S.revision};
       if(subcatVisible&&subcategoria) ncNew.subcategoria=subcategoria;
       if(juegoId) ncNew.juegoId=juegoId;
-      if(ref.manual) ncAplicarElemento(ncNew,ciSel,jiSel,S.ncs.length);
       S.ncs.push(ncNew);
+      if(ref.manual) ncAplicarElemento(ncNew,ciSel,jiSel,pregSel);
     }
 
     document.getElementById('modalNC').classList.remove('open');
@@ -2337,9 +2359,29 @@
     if(n.autoId&&n.elem&&n.elem.trim()) return null; // NC antigua (antes de los ids de juego)
     return 'No has elegido a qué afecta: elige circuito y juego, o «General».';
   }
+  // Pregunta del checklist a la que responde la NC: es la fila del informe en la que sale
+  // (apartado I para «General», apartado II para un juego). Sin ella la NC no tenía sitio y
+  // el informe la metía en la última fila («Zona de seguridad»), aunque no tuviera nada que
+  // ver (FlyToledo, 11/2026).
+  function ncPregunta(n){
+    var aid=n.autoId||'';
+    if(GEN_ITEMS.some(function(it){return it.id===aid;})) return aid;
+    var m=aid.match(/^j_[a-z0-9]+_(\w+)$/); if(m&&m[1]!=='manual') return m[1];
+    m=aid.match(/^c\d+j\d+_(\w+)$/); if(m&&m[1]!=='manual') return m[1];
+    return '';
+  }
+  function ncNombrePregunta(n,key){
+    if(ncEsGeneral(n)){ var it=GEN_ITEMS.find(function(x){return x.id===key;}); return it?(it.ref+' '+it.sec):key; }
+    var loc=n.juegoId?ncLocalizarJuego(n.juegoId):null;
+    var info=loc?colsForCirc(loc.circ):{labels:COL_LABELS};
+    return info.labels[key]||key;
+  }
   function ncProblemas(n){
     var p=[];
     var pe=ncProblemaElemento(n); if(pe) p.push(pe);
+    else if(!ncPregunta(n)) p.push(ncEsGeneral(n)
+      ? 'Falta la pregunta del checklist general a la que responde (sale en esa fila del informe).'
+      : 'Falta la pregunta del checklist del juego a la que responde (sale en esa fila del informe).');
     if(!n.tipo) p.push('Falta el tipo de no conformidad.');
     if(!n.prio) p.push('Falta la gravedad.');
     return p;
@@ -2347,27 +2389,60 @@
   function ncSinElemento(n){ return !!ncProblemaElemento(n); }
   function ncIncompleta(n){ return ncProblemas(n).length>0; }
 
+  // Casilla del checklist que corresponde a una NC (juego+columna o ítem general). Una NC
+  // manual con elemento y pregunta queda igual que una creada marcando «N» en el checklist:
+  // la casilla pasa a «N» y, si la NC se mueve a otro sitio y en la casilla vieja ya no
+  // queda ninguna NC, la casilla se vacía para que el inspector la vuelva a contestar.
+  function ncCasilla(n){
+    var p=ncPregunta(n); if(!p) return null;
+    if(ncEsGeneral(n)||GEN_ITEMS.some(function(it){return it.id===n.autoId;})) return {gen:p};
+    var loc=n.juegoId?ncLocalizarJuego(n.juegoId):null;
+    return loc?{ci:loc.ci,juego:loc.juego,col:p}:null;
+  }
+  function ncMarcarCasilla(cas,val){
+    if(!cas) return;
+    if(cas.gen){ S.gen[cas.gen]=val; return; }
+    cas.juego[cas.col]=val; markCircuitDirty(cas.ci);
+  }
+  function ncMismaCasilla(a,b){ return !!a&&!!b&&a.gen===b.gen&&a.juego===b.juego&&a.col===b.col; }
+
   // Fija a qué afecta una NC manual (tarjeta de la NC o ventana de nueva NC). ciVal: '' |
-  // 'g' (General) | índice de circuito; jiVal: '' | índice de juego. Al cambiar de
-  // circuito se borra todo lo del juego anterior (antes se quedaba juegoId del juego viejo
-  // y la NC pasaba el control de completar con el elemento en blanco).
-  function ncAplicarElemento(nc,ciVal,jiVal,idx){
-    var ciAntes=nc._circId;
-    delete nc.juegoId; nc.elem=''; nc.autoId=''; nc._ji=undefined; nc._circId=undefined;
-    if(ciVal===''||ciVal===undefined||ciVal===null){ nc._ci=undefined; return; }
-    if(ciVal==='g'){ nc._ci='g'; nc.elem='General'; nc.autoId='g_manual_'+uid(); return; }
-    var ci=parseInt(ciVal), circ=S.circuitos[ci];
-    if(!circ){ nc._ci=undefined; return; }
-    nc._ci=ci; nc._circId=circ.id;
-    // La "pregunta del checklist" depende del tipo de elemento del circuito: si el
-    // circuito nuevo no la tiene, se quita.
-    if(nc._col&&(ciAntes!==circ.id)&&!colsForCirc(circ).cols.some(function(c){return c.key===nc._col;})) nc._col='';
-    var ji=(jiVal===''||jiVal===undefined||jiVal===null)?NaN:parseInt(jiVal);
-    var juego=(circ.juegos||[])[ji];
-    if(!juego) return;
-    nc._ji=ji; nc.juegoId=juego.id;
-    nc.elem=circ.nombre+' — '+(juego.nombre||'Juego '+(ji+1));
-    ncBuildAutoId(nc,idx);
+  // 'g' (General) | índice de circuito; jiVal: '' | índice de juego; pregVal: id de la
+  // pregunta (columna del juego o ítem del checklist general). Al cambiar de circuito se
+  // borra todo lo del juego anterior (antes se quedaba juegoId del juego viejo y la NC
+  // pasaba el control de completar con el elemento en blanco).
+  function ncAplicarElemento(nc,ciVal,jiVal,pregVal){
+    var casAntes=ncCasilla(nc);
+    delete nc.juegoId; nc.elem=''; nc.autoId=''; nc._ji=undefined; nc._circId=undefined; nc._col='';
+    var esG=ciVal==='g';
+    var circ=(!esG&&ciVal!==''&&ciVal!==undefined&&ciVal!==null)?S.circuitos[parseInt(ciVal)]:null;
+    // La pregunta solo se conserva si sigue existiendo en el sitio nuevo
+    var pregs=esG?GEN_ITEMS.map(function(it){return it.id;}):(circ?colsForCirc(circ).cols.map(function(c){return c.key;}):[]);
+    var preg=(pregVal&&pregs.indexOf(pregVal)!==-1)?pregVal:'';
+    if(esG){
+      nc._ci='g';
+      var it=GEN_ITEMS.find(function(x){return x.id===preg;});
+      nc.elem=it?it.sec:'General';
+      if(preg){ nc.autoId=preg; nc._col=preg; }
+    } else if(circ){
+      nc._ci=parseInt(ciVal); nc._circId=circ.id;
+      var ji=(jiVal===''||jiVal===undefined||jiVal===null)?NaN:parseInt(jiVal);
+      var juego=(circ.juegos||[])[ji];
+      if(juego){
+        nc._ji=ji; nc.juegoId=juego.id;
+        nc.elem=circ.nombre+' — '+(juego.nombre||'Juego '+(ji+1));
+        // Mismo formato estable que las NC creadas desde el checklist (confirmarNC):
+        // lo usan el informe (fila del criterio) y el registro (Obs. del juego).
+        if(preg){ nc._col=preg; nc.autoId='j_'+juego.id+'_'+preg; }
+      }
+    } else {
+      nc._ci=undefined;
+    }
+    var casNueva=ncCasilla(nc);
+    if(!ncMismaCasilla(casAntes,casNueva)){
+      if(casAntes&&!S.ncs.some(function(o){ return o!==nc&&ncMismaCasilla(ncCasilla(o),casAntes); })) ncMarcarCasilla(casAntes,'');
+      if(casNueva) ncMarcarCasilla(casNueva,'N');
+    }
   }
 
   // _ci/_ji son posiciones: si se borra o se mueve un circuito por delante dejan de
@@ -2404,6 +2479,8 @@
       const _ncColsInfo=_circSel?colsForCirc(_circSel):{cols:COLS,labels:COL_LABELS};
       const _faltaJuego=!!_circSel&&!nc.juegoId;
       const _sinNada=ncSinElemento(nc)&&!_circSel;
+      const _preg=ncPregunta(nc);
+      const _faltaPreg=!ncSinElemento(nc)&&!_preg;
       return `
         <div class="nc-card ${incompleta?'nc-incompleta':''}">
           <div class="nc-hdr">
@@ -2426,10 +2503,12 @@
               <option value="">${_circSel?'— Elige juego —':(_ciSel==='g'?'(no aplica)':'— Juego —')}</option>
               ${_circSel?(_circSel.juegos||[]).map((j,ji)=>'<option value="'+ji+'"'+(nc.juegoId&&nc.juegoId===j.id?' selected':'')+'>'+(j.nombre||'Juego '+(ji+1))+'</option>').join(''):''}
             </select></div></div>
-            ${_ciSel==='g'?'':`<div class="f" style="margin:4px 0 0"><select onchange="ncSelColumna(${i},this.value)">
-              <option value="">— Pregunta checklist (opcional) —</option>
-              ${_ncColsInfo.cols.map(col=>`<option value="${col.key}"${nc._col===col.key?' selected':''}>${_ncColsInfo.labels[col.key]||col.key}</option>`).join('')}
-            </select></div>`}`}
+            <div class="f" style="margin:4px 0 0"><select onchange="ncSelColumna(${i},this.value)"${_faltaPreg?' style="border-color:var(--red)"':''}${(_ciSel==='g'||nc.juegoId)?'':' disabled'}>
+              <option value="">${(_ciSel==='g'||nc.juegoId)?'— Pregunta del checklist —':'— Pregunta (elige antes el juego) —'}</option>
+              ${_ciSel==='g'
+                ? GEN_ITEMS.map(it=>`<option value="${it.id}"${_preg===it.id?' selected':''}>${it.ref} ${it.sec}</option>`).join('')
+                : (nc.juegoId?_ncColsInfo.cols.map(col=>`<option value="${col.key}"${_preg===col.key?' selected':''}>${_ncColsInfo.labels[col.key]||col.key}</option>`).join(''):'')}
+            </select></div>`}
           </div>
           <div class="f"><label>Tipo de no conformidad</label>
             <select onchange="ncCambiarTipo(${i},this.value)">
@@ -2598,44 +2677,36 @@
   function addNC(){ goTab(3); abrirModalNC({contexto:'Nueva no conformidad (sin vincular a una pregunta del checklist)',manual:true}); }
   function delNC(i){
     var nc=S.ncs[i];
-    if(nc&&nc.origen==='auto'&&nc.autoId){
-      var aid=nc.autoId;
-      var genItem=GEN_ITEMS.find(function(g){return g.id===aid;});
-      if(genItem){
-        S.gen[aid]=''; renderGen();
-      } else {
-        var mNew=aid.match(/^j_(.+)_([^_]+)$/);
-        var mLeg=aid.match(/^c(\d+)j(\d+)_(\w+)$/);
-        if(mNew){
-          var jId=mNew[1],col=mNew[2];
-          S.circuitos.forEach(function(c){(c.juegos||[]).forEach(function(j){if(j.id===jId)j[col]='';});});
-          renderCircuitos();
-        } else if(mLeg){
+    // Al borrar la NC, su casilla del checklist se vacía (hay que volver a contestarla) si
+    // no queda otra NC en ella. Antes solo se hacía con las NC automáticas, y partiendo el
+    // autoId por el último «_»: con columnas como MAT_IMP o estado_cable no la encontraba.
+    if(nc){
+      var cas=ncCasilla(nc);
+      if(cas){
+        if(!S.ncs.some(function(o){ return o!==nc&&ncMismaCasilla(ncCasilla(o),cas); })) ncMarcarCasilla(cas,'');
+      } else if(nc.origen==='auto'){
+        var mLeg=(nc.autoId||'').match(/^c(\d+)j(\d+)_(\w+)$/); // NC antiguas, por posición
+        if(mLeg){
           var ci2=parseInt(mLeg[1]),ji2=parseInt(mLeg[2]),col2=mLeg[3];
           if(S.circuitos[ci2]&&S.circuitos[ci2].juegos[ji2])S.circuitos[ci2].juegos[ji2][col2]='';
-          renderCircuitos();
         }
       }
+      renderGen(); renderCircuitos();
     }
     S.ncs.splice(i,1); markDirty(); renderNCs();
   }
+  // Circuito, juego y pregunta de la tarjeta de NC: los tres pasan por ncAplicarElemento.
+  function ncCiActual(nc){ return nc._ci==='g'?'g':(nc._circId?S.circuitos.findIndex(function(c){return c.id===nc._circId;}):nc._ci); }
+  function ncJiActual(nc){ var loc=nc.juegoId?ncLocalizarJuego(nc.juegoId):null; return loc?loc.ji:''; }
+  function ncTrasCambio(){ markDirty(); renderGen(); renderCircuitos(); renderNCs(); }
   function ncSelCircuito(i,v){
-    ncAplicarElemento(S.ncs[i],v,'',i);
-    markDirty(); renderNCs();
+    var nc=S.ncs[i]; ncAplicarElemento(nc,v,'',nc._col); ncTrasCambio();
   }
   function ncSelJuego(i,v){
-    var nc=S.ncs[i];
-    var ci=nc._circId?S.circuitos.findIndex(function(c){return c.id===nc._circId;}):nc._ci;
-    ncAplicarElemento(nc,ci,v,i);
-    markDirty(); renderNCs();
+    var nc=S.ncs[i]; ncAplicarElemento(nc,ncCiActual(nc),v,nc._col); ncTrasCambio();
   }
   function ncSelColumna(i,v){
-    var nc=S.ncs[i]; nc._col=v; ncBuildAutoId(nc,i); markDirty(); renderNCs();
-  }
-  function ncBuildAutoId(nc,i){
-    if(nc._ci==='g'){ nc.autoId='g_manual_'+i; return; }
-    if(nc._ci===undefined||nc._ji===undefined) return;
-    nc.autoId='c'+nc._ci+'j'+nc._ji+(nc._col?'_'+nc._col:'_manual');
+    var nc=S.ncs[i]; ncAplicarElemento(nc,ncCiActual(nc),ncJiActual(nc),v); ncTrasCambio();
   }
 
   // FOTOS GENERALES — FIX: comprimir
@@ -2650,7 +2721,12 @@
     // equiposMedicion y sesiones tampoco se reescriben enteros — ver buildChecklistUpdates/
     // addCamposSimples/buildSesionesUpdate: mismo motivo que las NC, evitar que una sesión
     // desactualizada borre cambios ajenos que nunca llegó a cargar.
+    // El nº de registro sale de la fecha de inspección (igual que en los PDF, getNRegistro de
+    // resultado.html). Antes solo se corregía en memoria al completar y nunca llegaba a
+    // Firestore: la app y Oficina enseñaban un número y los PDF otro (9 inspecciones, 11/2026).
+    S.nRegistro = corregirFechaNRegistro(S.nRegistro, S.fechaInspeccion);
     const payload = sanitizar({
+      nRegistro:S.nRegistro,
       fechaInspeccion:S.fechaInspeccion,
       horaInicio:S.horaInicio,
       horaFin:S.horaFin,
