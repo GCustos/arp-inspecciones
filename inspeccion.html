@@ -399,6 +399,7 @@
     <div class="f">
       <label>Referencia normativa</label>
       <input type="text" id="modalNCNorma" value="">
+      <select id="modalNCNormaSel" style="margin-top:4px" onchange="if(this.value){document.getElementById('modalNCNorma').value=this.value;this.value='';}"></select>
     </div>
     <div class="modal-err" id="modalNCErr">Debes seleccionar el tipo y la gravedad.</div>
     <button class="btn-modal-ok" onclick="confirmarNC()">Confirmar no conformidad</button>
@@ -607,6 +608,16 @@
   }
   var tiposNCList=["Cables con hilos rotos / desgastados","Madera deteriorada / podrida","Redes rotas / desgastadas","Anclajes / fijaciones deficientes","Eslinga deteriorada","Elemento punzante / cortante expuesto","Señalización insuficiente / incorrecta","Árbol soporte dañado / inclinado","EPI deteriorado / sin revisar","Documentación incompleta / ausente","Zona de seguridad insuficiente","Riesgo de atrapamiento"];
   var tiposNCNormaMap={};
+  // Referencias normativas distintas del catálogo de NC del alcance: se ofrecen en un
+  // desplegable junto al campo «Referencia normativa» (alta y tarjeta de la NC), que sigue
+  // siendo texto libre. Antes, si la del tipo no servía, se escribía a mano y salían
+  // referencias sin apartado o con erratas (p. ej. Tajo Morero 11/2026: solo la norma).
+  var normasNCList=[];
+  function normasNCOpciones(){
+    var l=normasNCList.slice();
+    if(NORMA_APLICABLE&&l.indexOf(NORMA_APLICABLE)===-1) l.unshift(NORMA_APLICABLE);
+    return '<option value="">↓ Elegir referencia del catálogo…</option>'+l.map(function(n){return '<option value="'+escHtml(n)+'">'+escHtml(n)+'</option>';}).join('');
+  }
   function _cargarTiposNC(alcance){
     var alc=(alcance||"paa").toLowerCase();
     db.collection("config").doc(alc).get().then(function(snap){
@@ -614,6 +625,9 @@
         var tNC=snap.data().tiposNC.filter(function(t){return t.activo!==false});
         tiposNCList=tNC.map(function(t){return t.label});
         tNC.forEach(function(t){tiposNCNormaMap[t.label]=t.norma||'';});
+        normasNCList=tNC.map(function(t){return (t.norma||'').trim();}).filter(function(n,k,a){return n&&a.indexOf(n)===k;})
+          .sort(function(a,b){return a.localeCompare(b,'es',{numeric:true});});
+        if(S.ncs&&S.ncs.length) renderNCs();
       } else if(alc!=='paa'){
         // No dejar que esto falle en silencio: antes se quedaba con el catálogo de PAA
         // (hardcodeado como valor por defecto de tiposNCList) sin que nadie se enterara —
@@ -2125,6 +2139,7 @@
     document.getElementById('modalNCTipoLibreWrap').style.display='none';
     document.getElementById('modalNCObs').value='';
     document.getElementById('modalNCNorma').value=NORMA_APLICABLE;
+    document.getElementById('modalNCNormaSel').innerHTML=normasNCOpciones();
     document.getElementById('modalNCErr').textContent='Debes seleccionar el tipo y la gravedad.';
     document.getElementById('modalNCErr').classList.remove('vis');
     document.getElementById('modalNCFotoWrap').style.display='none';
@@ -2158,6 +2173,15 @@
     } else if(v==='__otro__'){
       document.getElementById('modalNCNorma').value=NORMA_APLICABLE;
     }
+  };
+
+  // Al cambiar el tipo de una NC ya creada, su referencia normativa pasa a ser la del tipo
+  // nuevo: antes se quedaba la del tipo anterior y llegaba así al informe. Si el inspector
+  // la había cambiado (no es la del tipo anterior ni la genérica del alcance), se respeta.
+  window.ncCambiarTipo=(i,v)=>{
+    const nc=S.ncs[i], actual=(nc.norma||'').trim();
+    if(!actual||actual===NORMA_APLICABLE||actual===(tiposNCNormaMap[nc.tipo]||'')) nc.norma=tiposNCNormaMap[v]||NORMA_APLICABLE;
+    nc.tipo=v; markDirty(); renderNCs();
   };
 
   window.setModalPrio=(p)=>{
@@ -2292,7 +2316,7 @@
             </select></div></div>`}
           </div>
           <div class="f"><label>Tipo de no conformidad</label>
-            <select onchange="S.ncs[${i}].tipo=this.value;markDirty();renderNCs()">
+            <select onchange="ncCambiarTipo(${i},this.value)">
               <option value="">&#8212; Selecciona &#8212;</option>
               ${nc.tipo && tiposNCList.indexOf(nc.tipo)===-1 ? `<option selected>${nc.tipo}</option>` : ''}
               ${tiposNCList.map(t=>`<option ${nc.tipo===t?'selected':''}>${t}</option>`).join('')}
@@ -2303,6 +2327,7 @@
           </div>
           <div class="f"><label>Referencia normativa</label>
             <input type="text" value="${(nc.norma||'').replace(/"/g,'&quot;')}" placeholder="${NORMA_APLICABLE}, punto X.X" onchange="S.ncs[${i}].norma=this.value;markDirty()">
+            <select style="margin-top:4px" onchange="if(this.value){S.ncs[${i}].norma=this.value;markDirty();renderNCs();}">${normasNCOpciones()}</select>
           </div>
           <div class="f"><label>Gravedad</label>
             <div class="prio-row">
