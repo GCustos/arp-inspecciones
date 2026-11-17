@@ -414,8 +414,7 @@
     document.getElementById('hdrTitulo').textContent = D.nombreInstalacion || 'Resultado';
 
     const sesiones = (function() {
-      const src = D.sesiones && D.sesiones.length ? D.sesiones : [];
-      const ses = src.filter(s => s.horaInicio || s.horaFin);
+      const ses = sesionesReales();
       if (!ses.length) return `<div class="sesion-item">📅 ${D.fechaInspeccion||'Sin fecha'}</div>`;
       return ses.map(s => `<div class="sesion-item">📅 ${s.fecha||'Sin fecha'} · ${s.horaInicio||'--'}–${s.horaFin||'--'}</div>`).join('');
     })();
@@ -792,10 +791,17 @@
 
 
 
+  // Días con visita real: descarta las sesiones «fantasma» (sin horaInicio ni horaFin), como
+  // el día previsto que se apuntaba al asignar o un día en que solo se abrió la inspección.
+  // Todo lo que pinta fechas de visita (pantalla, portada y firma del informe, registro y
+  // certificado) la usa. El certificado no filtraba: Magic Robin Hood salía «efectuado en
+  // fecha 02/11/2026», el día previsto, en vez del 31/10 de la visita.
+  function sesionesReales() {
+    return (D.sesiones||[]).filter(function(s){ return s.horaInicio || s.horaFin; });
+  }
+
   function getSesionesStr() {
-    // Descarta sesiones "fantasma" (creadas solo por abrir la inspección otro día, sin
-    // horaInicio ni horaFin) — mismo filtro que ya usa generarRegistro() para esto.
-    var sesReales = (D.sesiones||[]).filter(function(s){ return s.horaInicio || s.horaFin; });
+    var sesReales = sesionesReales();
     if (sesReales.length) {
       return sesReales.map(s => `Fecha inspección: ${fmtFecha(s.fecha)} – Inspector: ${D.inspectorNombre||''}`).join('\n');
     }
@@ -2151,11 +2157,10 @@
 
       // Fecha(s) y nombre inspector — ultima hoja muestra solo la ultima visita
       const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-      // Mismo filtro que getSesionesStr()/generarRegistro(): descarta sesiones fantasma
-      // (sin horaInicio ni horaFin) para no coger como "última visita" un día en que
-      // solo se abrió la inspección sin trabajar en ella.
+      // Sin sesiones fantasma (sesionesReales) para no coger como "última visita" un día en
+      // que solo se abrió la inspección sin trabajar en ella.
       const portadaSesRaw = D.sesiones && D.sesiones.length ? D.sesiones : [{fecha:D.fechaInspeccion||''}];
-      const portadaSesFilt = portadaSesRaw.filter(function(s){ return s.horaInicio || s.horaFin; });
+      const portadaSesFilt = sesionesReales();
       const portadaSes = portadaSesFilt.length ? portadaSesFilt : portadaSesRaw;
       const lastSesInf = portadaSes[portadaSes.length - 1];
       const lastRawInf = portadaSes.length > 1 ? (lastSesInf.fecha||'') : (D.fechaInspeccion||lastSesInf.fecha||'');
@@ -2268,9 +2273,10 @@
         totalJUnidadTxt = totalJ + ' JUEGOS';
       }
 
-      // Fecha de inspección (última sesión)
-      const fechaInsp = D.sesiones && D.sesiones.length
-        ? fmtFecha(D.sesiones[D.sesiones.length-1].fecha)
+      // Fecha de inspección: la última visita real (sin sesiones fantasma)
+      const _sesCert = sesionesReales();
+      const fechaInsp = _sesCert.length
+        ? fmtFecha(_sesCert[_sesCert.length-1].fecha)
         : fmtFecha(D.fechaInspeccion||'');
 
       // Fecha de entrada en vigor = fecha de emisión (firma) del informe: el certificado se
@@ -2437,7 +2443,7 @@ Visto que el informe presenta un resultado FAVORABLE, se considera que los equip
 
       // Fecha + hora — una fila por visita (Rev.0, Rev.1, Rev.2…)
       var allSes = D.sesiones && D.sesiones.length ? D.sesiones : [{fecha:D.fechaInspeccion||'',horaInicio:'',horaFin:''}];
-      var _sesFilt = allSes.filter(function(s){return s.horaInicio||s.horaFin;});
+      var _sesFilt = sesionesReales();
       if (_sesFilt.length) allSes = _sesFilt;
       var histRev = D.historialRevisiones || [];
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);

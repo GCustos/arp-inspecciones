@@ -287,12 +287,12 @@
 
   function certVisado(insp) {
     if (insp.resultado !== 'FAVORABLE') return null;
-    var fecha = insp.fechaInspeccion;
-    // Rev.1+: usar la fecha de la última sesión si hay más de una
-    if (insp.sesiones && insp.sesiones.length > 1) {
-      var last = insp.sesiones[insp.sesiones.length - 1];
-      if (last && last.fecha) fecha = last.fecha;
-    }
+    // Igual que el certificado (resultado.html) y el mapa (functions): vigencia desde la fecha
+    // de emisión; si no la hay (inspecciones antiguas), desde la de inspección. Antes miraba la
+    // última sesión, que podía ser una fantasma sin horas (Magic Robin Hood: el 02/11 previsto),
+    // y como en Firestore las sesiones son un mapa sin .length, en la práctica siempre usaba
+    // fechaInspeccion aunque la emisión fuera otro día.
+    var fecha = insp.fechaEmision || insp.fechaInspeccion;
     if (!fecha) return null;
     var d = new Date(fecha + 'T12:00:00');
     d.setFullYear(d.getFullYear() + 1);
