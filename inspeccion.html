@@ -2972,6 +2972,27 @@
       var _inpF=document.getElementById('inpFechaInspeccion'); if(_inpF) _inpF.value=_fechaReal;
       markDirty();
     }
+    // Estructura de circuitos: de aquí sale la plantilla que hereda la inspección del año que
+    // viene (instalaciones/{id}.plantillaCircuitos). Había plantillas con elementos sin nombre
+    // (Alceda, Andarax, Massanassa, Duruelo) y dos circuitos con el mismo nombre (TirolinasGo):
+    // en el informe salen en blanco o no se distinguen, y se arrastran cada año.
+    var _estr=[], _primero=null, _nombresC={};
+    S.circuitos.forEach(function(c,ci){
+      var nc=(c.nombre||'').trim(), et='Circuito '+(ci+1)+(nc?' «'+nc+'»':'');
+      if(!nc) _estr.push(et+': sin nombre');
+      else { var k=nc.toLowerCase(); if(_nombresC[k]!==undefined) _estr.push(et+': mismo nombre que el circuito '+(_nombresC[k]+1)); else _nombresC[k]=ci; }
+      if(!(c.juegos||[]).length) _estr.push(et+': no tiene elementos (añádelos o borra el circuito)');
+      (c.juegos||[]).forEach(function(j,ji){
+        if(!(j.nombre||'').trim()){ _estr.push(et+', elemento '+(ji+1)+': sin nombre'); if(!_primero) _primero={ci:ci,ji:ji}; }
+      });
+    });
+    if(_estr.length){
+      goTab(2);
+      alert('No se puede completar: corrige los nombres de circuitos y elementos.\n\n'+_estr.slice(0,8).join('\n')+(_estr.length>8?'\n…y '+(_estr.length-8)+' más':'')+
+        '\n\nEs lo que se hereda para la inspección del año que viene.');
+      if(_primero) irAlJuego(_primero.ci,_primero.ji);
+      return;
+    }
     // Validar fotos de juegos
     var juegosSinFoto=[]; var firstFoto={ci:-1,ji:-1};
     S.circuitos.forEach(function(c,ci){
