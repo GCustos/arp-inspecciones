@@ -97,6 +97,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 <script src="utils.js"></script>
+<script src="logo.js"></script>
 <script>
 if (!firebase.apps.length) {
   firebase.initializeApp({
@@ -754,7 +755,7 @@ function nuevaRevision(id) {
   var rev     = (ofertaCache.revision || 0) + 1;
   var nOferta = ofertaCache.nOferta.replace(/Rev\.\d+$/, 'Rev.' + rev);
   db.collection('ofertas').doc(id).update({
-    revision: rev, nOferta: nOferta, estado: 'borrador',
+    revision: rev, nOferta: nOferta, estado: 'borrador', fechaRevision: hoyLocalISO(),
     ultimaModificacion: firebase.firestore.FieldValue.serverTimestamp()
   }).then(function() {
     showToast('Rev.' + rev + ' creada');
@@ -765,13 +766,43 @@ function nuevaRevision(id) {
 // ─── PDF ────────────────────────────────────────────────────────────────────
 
 function generarPDF(id) {
-  db.collection('ofertas').doc(id).get().then(function(snap) {
-    if (!snap.exists) return;
-    buildPDF(snap.data());
-  });
+  Promise.all([
+    db.collection('ofertas').doc(id).get(),
+    db.collection('config').doc('empresa').get().catch(function() { return null; }),
+    db.collection('config').doc('listaDocumentos').get().catch(function() { return null; })
+  ]).then(function(r) {
+    if (!r[0].exists) return;
+    var fmt = formatoOferta(r[2] && r[2].exists ? r[2].data() : null);
+    if (!fmt) { alert('No se encuentra la revisión del formato de oferta en la lista de documentos (fila vinculada a la oferta de la app).'); return; }
+    buildPDF(r[0].data(), r[1] && r[1].exists ? r[1].data() : {}, fmt);
+  }).catch(function(e) { showToast('Error: ' + e.message); });
 }
 
-function buildPDF(o) {
+// Revisión y fecha del FORMATO de oferta (no de cada oferta): la fila de la lista de documentos
+// ENAC vinculada a la oferta de la app (vinculo.tipo 'oferta'). La revisión de cada oferta
+// concreta va en su número (…/Rev.N), y su fecha es la de la oferta.
+function formatoOferta(lista) {
+  var fila = null;
+  ((lista && lista.secciones) || []).forEach(function(s) {
+    (s.filas || []).forEach(function(f) { if (f.vinculo && f.vinculo.tipo === 'oferta') fila = f; });
+  });
+  if (!fila) return null;
+  var revs = fila.revs || [], u = -1;
+  revs.forEach(function(v, i) { if (v) u = i; });
+  return u < 0 ? null : { rev: u, fecha: revs[u] };
+}
+
+// Fecha de la oferta (Date local): la de su revisión vigente si es una Rev.N creada con
+// fechaRevision; si no, la de su número (fechaDoc AAMMDD). Nunca el día en que se descarga.
+function fechaDeOferta(o) {
+  var m = String(o.fechaRevision || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = String(o.fechaDoc || '').match(/^(\d{2})(\d{2})(\d{2})$/);
+  if (m) return new Date(2000 + +m[1], +m[2] - 1, +m[3]);
+  return o.fechaCreacion && o.fechaCreacion.seconds ? new Date(o.fechaCreacion.seconds * 1000) : new Date();
+}
+
+function buildPDF(o, emp, fmt) {
   var jsPDF   = window.jspdf.jsPDF;
   var doc     = new jsPDF({ unit:'mm', format:'a4' });
   var W = 210, H = 297, ML = 20, MR = 20, CW = W - ML - MR;
@@ -780,14 +811,20 @@ function buildPDF(o) {
   var MUTED   = [138, 130, 120];
   var NPAGS   = 8;
 
-  var fechaHoy   = new Date();
-  var fechaStr   = fechaHoy.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' });
-  var mesStr     = fechaHoy.toLocaleString('es-ES', { month:'long' });
-  var lugarFecha = 'Dos Hermanas, a ' + fechaHoy.getDate() + ' de ' + mesStr + ' de ' + fechaHoy.getFullYear();
+  var LIGHT   = [249, 247, 243];
+  var fechaOf    = fechaDeOferta(o);
+  var mesStr     = fechaOf.toLocaleString('es-ES', { month:'long' });
+  var lugarFecha = 'Dos Hermanas, a ' + fechaOf.getDate() + ' de ' + mesStr + ' de ' + fechaOf.getFullYear();
   var nOferta    = o.nOferta || '';
   var clienteNom = o.clienteNombre || '';
   var proyecto   = o.instalacionNombre || o.proyecto || '';
-  var rev        = 'Rev. ' + (o.revision || 0);
+  // Datos de la empresa: config/empresa (los mismos que el pie del informe)
+  var SEDE  = emp.sedeFiscal || emp.sedeSocial || 'C/ Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4, 41704 Dos Hermanas, Sevilla';
+  var WEB   = emp.web   || 'www.arpprevencion.com';
+  var EMAIL = emp.email || 'info@arpprevencion.com';
+  function logo(x, y, w) {  // proporción del logo 43 × 30
+    try { doc.addImage('data:image/jpeg;base64,' + ARP_LOGO_B64, 'JPEG', x, y, w, w * 30 / 43); } catch (e) {}
+  }
 
   function sf(style, size, color) {
     doc.setFont('helvetica', style || 'normal');
@@ -799,15 +836,20 @@ function buildPDF(o) {
     doc.setDrawColor.apply(doc, color || GOLD);
     doc.line(x1 !== undefined ? x1 : ML, y, x2 !== undefined ? x2 : W - MR, y);
   }
+  // Pie: mismo estilo que el del informe (línea dorada, sede en dorado, web y correo)
   function footer(pag) {
-    hline(H - 18, ML, W - MR, GOLD, 0.5);
-    sf('bold', 10, GOLD);
-    doc.text('ARP', ML + 8, H - 8, { align:'center' });
-    sf('normal', 7, MUTED);
-    doc.text('Domicilio fiscal C/Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4', W / 2, H - 13, { align:'center' });
-    doc.text('41704 Dos Hermanas, Sevilla', W / 2, H - 9, { align:'center' });
-    doc.text('Info@arpprevencion.com   www.arpprevencion.com', W / 2, H - 5, { align:'center' });
-    doc.text('Página ' + pag + ' de ' + NPAGS, W - MR, H - 5, { align:'right' });
+    doc.setFillColor.apply(doc, GOLD);
+    doc.rect(ML, H - 19, CW, 0.8, 'F');
+    logo(ML, H - 16, 15);
+    sf('bold', 7.5, GOLD);
+    // Dirección en dos líneas: calle / código postal y ciudad
+    doc.text(SEDE.split(/,\s*(?=\d{5}\b)/), W / 2, H - 13, { align:'center' });
+    sf('normal', 7.5, MUTED);
+    doc.text(WEB + '   ·   ' + EMAIL, W / 2, H - 5, { align:'center' });
+    sf('bold', 7.5, DARK);
+    doc.text('Página ' + pag + ' de ' + NPAGS, W - MR, H - 10, { align:'right' });
+    sf('normal', 6.5, MUTED);
+    doc.text('Oferta nº ' + nOferta, W - MR, H - 5, { align:'right' });
   }
   function pageHeader(pag) {
     doc.setDrawColor.apply(doc, GOLD);
@@ -815,12 +857,12 @@ function buildPDF(o) {
     doc.rect(ML, 15, CW, 22);
     doc.line(ML + 28, 15, ML + 28, 37);
     doc.line(W - MR - 32, 15, W - MR - 32, 37);
-    sf('bold', 12, GOLD); doc.text('ARP', ML + 14, 29, { align:'center' });
+    logo(ML + 3, 17.5, 22);
     sf('bold', 10, DARK); doc.text('OFERTA ECONÓMICA', ML + 28 + (CW - 60) / 2, 23, { align:'center' });
     sf('bold',  8, DARK); doc.text('CERTIFICACIÓN RESPECTO A NORMA', ML + 28 + (CW - 60) / 2, 31, { align:'center' });
     sf('normal', 7, DARK);
-    doc.text(rev,               W - MR - 16, 21, { align:'center' });
-    doc.text('Fecha: ' + fechaStr, W - MR - 16, 27, { align:'center' });
+    doc.text('Rev. ' + fmt.rev,     W - MR - 16, 21, { align:'center' });
+    doc.text('Fecha: ' + fmt.fecha, W - MR - 16, 27, { align:'center' });
     doc.text('Pág. ' + pag + ' / ' + NPAGS, W - MR - 16, 33, { align:'center' });
     return 44;
   }
@@ -856,19 +898,11 @@ function buildPDF(o) {
   }
 
   // ── PAG 1: PORTADA ──────────────────────────────────────────────────────
-  doc.setFillColor.apply(doc, GOLD);
-  doc.rect(ML, 15, CW, 1, 'F');
+  logo(W / 2 - 25, 30, 50);
 
-  sf('bold', 9, MUTED);
-  doc.text('Domicilio fiscal C/Gabriel Miró 3, Edificio Wertice, Planta 1ª Puerta 4', W - MR, 20, { align:'right' });
-  doc.text('41704 Dos Hermanas, Sevilla', W - MR, 24, { align:'right' });
-  doc.text('Info@arpprevencion.com   www.arpprevencion.com', W - MR, 28, { align:'right' });
-
-  sf('bold', 30, GOLD); doc.text('ARP', ML + 15, 40);
-  sf('normal', 9, MUTED); doc.text('prevención', ML + 15, 46);
-
-  var tlines = doc.splitTextToSize('OFERTA ECONÓMICA PARA LA CERTIFICACIÓN RESPECTO A NORMATIVA EUROPEA.', CW - 30);
+  // Fuente antes de partir el título: si no, se parte con el tamaño anterior y se sale de la página
   sf('bold', 17, DARK);
+  var tlines = doc.splitTextToSize('OFERTA ECONÓMICA PARA LA CERTIFICACIÓN RESPECTO A NORMATIVA EUROPEA.', CW - 20);
   var ty = H * 0.33;
   tlines.forEach(function(line) {
     doc.text(line, W / 2, ty, { align:'center' });
@@ -879,11 +913,14 @@ function buildPDF(o) {
   });
 
   sf('bold', 15, DARK);
-  var cnUpper = '(' + clienteNom.toUpperCase() + ')';
-  doc.text(cnUpper, W / 2, H * 0.54, { align:'center' });
-  var clw = doc.getTextWidth(cnUpper);
-  doc.setLineWidth(0.5); doc.setDrawColor.apply(doc, DARK);
-  doc.line(W / 2 - clw / 2, H * 0.54 + 1.5, W / 2 + clw / 2, H * 0.54 + 1.5);
+  var cnLines = doc.splitTextToSize('(' + clienteNom.toUpperCase() + ')', CW - 20), cy = H * 0.54;
+  cnLines.forEach(function(line) {
+    doc.text(line, W / 2, cy, { align:'center' });
+    var clw = doc.getTextWidth(line);
+    doc.setLineWidth(0.5); doc.setDrawColor.apply(doc, DARK);
+    doc.line(W / 2 - clw / 2, cy + 1.5, W / 2 + clw / 2, cy + 1.5);
+    cy += 8;
+  });
 
   sf('bold', 10, DARK); doc.text('Oferta nº ' + nOferta, W - MR, H * 0.72, { align:'right' });
 
@@ -1034,7 +1071,7 @@ function buildPDF(o) {
     presFooter.push([{ content:'TOTAL TRAS DESCUENTO', colSpan:3, styles:{ halign:'right', fontStyle:'bold' } }, { content:fmtEur(trasDes), styles:{ halign:'right', fontStyle:'bold' } }]);
   }
   presFooter.push([{ content:'IVA (21%)', colSpan:3, styles:{ halign:'right' } }, { content:fmtEur(ivaImp), styles:{ halign:'right' } }]);
-  presFooter.push([{ content:'TOTAL (con IVA)', colSpan:3, styles:{ halign:'right', fontStyle:'bold', fillColor:[210,210,210] } }, { content:fmtEur(conIva), styles:{ halign:'right', fontStyle:'bold', fillColor:[210,210,210] } }]);
+  presFooter.push([{ content:'TOTAL (con IVA)', colSpan:3, styles:{ halign:'right', fontStyle:'bold', fillColor:GOLD, textColor:255, fontSize:9 } }, { content:fmtEur(conIva), styles:{ halign:'right', fontStyle:'bold', fillColor:GOLD, textColor:255, fontSize:9 } }]);
 
   doc.autoTable({
     startY: y,
@@ -1045,6 +1082,8 @@ function buildPDF(o) {
     margin: { left: ML, right: MR },
     styles: { fontSize: 8, cellPadding: 3 },
     headStyles: { fillColor: GOLD, textColor: 255, fontStyle: 'bold' },
+    footStyles: { fillColor: LIGHT, textColor: DARK, fontStyle: 'normal' },
+    alternateRowStyles: { fillColor: LIGHT },
     columnStyles: {
       0: { cellWidth: 90 },
       1: { cellWidth: 30, halign: 'right' },
@@ -1107,7 +1146,7 @@ function buildPDF(o) {
   hline(y, ML, W - MR, GOLD, 0.4); y += 8;
 
   sf('normal', 8, DARK);
-  y = justifiedText('De conformidad con lo dispuesto en el Reglamento (UE) 2016/679, General de Protección de Datos (RGPD), y en la normativa vigente en materia de protección de datos personales, le informamos que los datos facilitados serán incorporados al sistema de tratamiento titularidad de ADELL RIESGOS Y PREVENCIÓN S.L., con CIF B64399793 y domicilio fiscal en Gabriel Miró 3, Edificio Vértice, Planta 1ª Puerta 4, 41704 Dos Hermanas (Sevilla).', ML, y, CW, 5) + 6;
+  y = justifiedText('De conformidad con lo dispuesto en el Reglamento (UE) 2016/679, General de Protección de Datos (RGPD), y en la normativa vigente en materia de protección de datos personales, le informamos que los datos facilitados serán incorporados al sistema de tratamiento titularidad de ADELL RIESGOS Y PREVENCIÓN S.L., con CIF B64399793 y domicilio fiscal en ' + SEDE.replace(/^C\/\s*/, '') + '.', ML, y, CW, 5) + 6;
 
   sf('bold', 9, DARK); doc.text('Finalidades del tratamiento, base jurídica y conservación', ML, y); y += 7;
 
@@ -1138,7 +1177,7 @@ function buildPDF(o) {
 
   sf('bold', 9, DARK); doc.text('Derechos del interesado', ML, y); y += 6;
   sf('normal', 8, DARK);
-  y = justifiedText('Podrá ejercer los derechos de acceso, rectificación, supresión, limitación del tratamiento, portabilidad y oposición, así como la revocación del consentimiento prestado, dirigiendo su solicitud a la dirección indicada anteriormente o al correo electrónico: info@arpprevencion.com', ML, y, CW, 5) + 5;
+  y = justifiedText('Podrá ejercer los derechos de acceso, rectificación, supresión, limitación del tratamiento, portabilidad y oposición, así como la revocación del consentimiento prestado, dirigiendo su solicitud a la dirección indicada anteriormente o al correo electrónico: ' + EMAIL, ML, y, CW, 5) + 5;
   justifiedText('Asimismo, podrá presentar reclamación ante la Agencia Española de Protección de Datos si considera que el tratamiento no se ajusta a la normativa vigente.', ML, y, CW, 5);
 
   footer(7);
@@ -1172,7 +1211,7 @@ function buildPDF(o) {
   doc.text('Dirección fiscal:', ML, y); y += 8;
   doc.text('En nombre de:', ML, y);
 
-  sf('bold', 22, GOLD); doc.text('ARP', W - MR, y - 10, { align:'right' });
+  logo(W - MR - 30, y - 30, 30);
   sf('normal', 8, MUTED); doc.text('B 64399793', W - MR, y - 2, { align:'right' });
   sf('bold', 9, DARK); doc.text('ARP PREVENCIÓN S.L.', W - MR, y + 4, { align:'right' });
 
