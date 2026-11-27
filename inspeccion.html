@@ -753,7 +753,10 @@
         return { codigo: d.id, tipo: data.tipo||'', medicion: data.medicion||'', marca: data.marca||'', nSerie: data.nSerie||'', calibracion: data.calibracion||{} };
       });
       renderEquipos();
-      markDirty();
+      // Sin markDirty(): buildPayload ya compara equiposMedicion con lo guardado y los
+      // escribe en el primer guardado real. Con markDirty el autoguardado de 30 s ponía la
+      // inspección "en curso" y abría una sesión solo por abrirla (Selva de l'Aventura,
+      // 27/11/2026: la abrió la oficina al asignarla y quedó en curso con sesión 11:47).
     }).catch(function(e) { console.warn('Error cargando equipos:', e.message); renderEquipos(); });
   }
 
@@ -1258,11 +1261,11 @@
         }
       }
       cargaCompleta = true;
-      if(data.instalacionId && data.estado !== 'completada'){
-        db.collection('instalaciones').doc(data.instalacionId).update({
-          inspeccionActivaEstado:'en_curso'
-        }).catch(function(){});
-      }
+      // La instalación pasa a "en curso" en el primer guardado real (guardarConNcs), no
+      // por abrir la pantalla: abrirla para mirarla o recién asignada no la empieza.
+      _instalacionIdActiva = data.instalacionId || '';
+      _instEnCursoMarcado = data.estado === 'completada' || !_instalacionIdActiva;
+      if(data.estado === 'en_curso') marcarInstalacionEnCurso();
       if(data.equiposMedicion&&data.equiposMedicion.length) {
         S.equiposMedicion=data.equiposMedicion;
         _equiposMedicionLastSaved = JSON.stringify(S.equiposMedicion);
@@ -2807,6 +2810,14 @@
     if(ncOps.length) ops.push(executeNcOps(ncOps));
     await Promise.all(ops);
     if(_legacyNcArrayFormat) _legacyNcArrayFormat=false;
+    if(payload.estado==='en_curso') marcarInstalacionEnCurso();
+  }
+
+  var _instalacionIdActiva='', _instEnCursoMarcado=true;
+  function marcarInstalacionEnCurso(){
+    if(_instEnCursoMarcado) return;
+    _instEnCursoMarcado=true;
+    db.collection('instalaciones').doc(_instalacionIdActiva).update({ inspeccionActivaEstado:'en_curso' }).catch(function(){});
   }
 
   // Genera las actualizaciones granulares de circuitos (dot-notation) para evitar
